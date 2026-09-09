@@ -2,13 +2,137 @@
 // AUTO MECÂNICA - SCRIPTS PRINCIPAIS
 // =============================================
 
-// Inicializar tooltips do Bootstrap
 document.addEventListener('DOMContentLoaded', function() {
+    initTooltips();
+    initSidebar();
+    initTheme();
+    initMobileSidebar();
+    initAutoCollapse();
+});
+
+// =============================================
+// TOOLTIPS DO BOOTSTRAP
+// =============================================
+function initTooltips() {
     var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
     tooltipTriggerList.forEach(function(tooltipTriggerEl) {
         new bootstrap.Tooltip(tooltipTriggerEl);
     });
-});
+}
+
+// =============================================
+// SIDEBAR - EXPANDIR / COLAPSAR (persiste em localStorage)
+// =============================================
+function initSidebar() {
+    const sidebar = document.getElementById('sidebar');
+    const btn = document.getElementById('sidebarCollapseBtn');
+    if (!sidebar || !btn) return;
+
+    const saved = localStorage.getItem('sidebar');
+    const wasCollapsed = saved === 'collapsed';
+
+    if (wasCollapsed && window.innerWidth > 768) {
+        sidebar.classList.add('collapsed');
+    }
+
+    btn.addEventListener('click', function() {
+        sidebar.classList.toggle('collapsed');
+        const isCollapsed = sidebar.classList.contains('collapsed');
+        localStorage.setItem('sidebar', isCollapsed ? 'collapsed' : 'expanded');
+        updateCollapseBtn();
+    });
+
+    function updateCollapseBtn() {
+        if (!btn.querySelector('i')) return;
+        btn.querySelector('i').className = sidebar.classList.contains('collapsed')
+            ? 'fas fa-chevron-right'
+            : 'fas fa-chevron-left';
+    }
+
+    updateCollapseBtn();
+}
+
+// =============================================
+// THEME SWITCH - DARK / LIGHT (persiste em localStorage)
+// =============================================
+function initTheme() {
+    const toggle = document.getElementById('themeToggle');
+    const saved = localStorage.getItem('theme');
+    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+
+    if (saved === 'dark' || (!saved && prefersDark)) {
+        document.body.classList.add('dark');
+    }
+
+    if (toggle) {
+        toggle.addEventListener('click', function() {
+            document.body.classList.toggle('dark');
+            const isDark = document.body.classList.contains('dark');
+            localStorage.setItem('theme', isDark ? 'dark' : 'light');
+            updateThemeIcon(toggle, isDark);
+        });
+    }
+
+    updateThemeIcon(toggle, document.body.classList.contains('dark'));
+}
+
+function updateThemeIcon(toggle, isDark) {
+    if (!toggle) return;
+    const icon = toggle.querySelector('i');
+    if (!icon) return;
+    icon.className = isDark ? 'fas fa-sun' : 'fas fa-moon';
+}
+
+// =============================================
+// MOBILE - SIDEBAR DRAWER + OVERLAY + BURGER
+// =============================================
+function initMobileSidebar() {
+    const sidebar = document.getElementById('sidebar');
+    const overlay = document.getElementById('sidebarOverlay');
+    const burger = document.getElementById('mobileMenuBtn');
+
+    if (!sidebar || !overlay || !burger) return;
+
+    function closeMobileSidebar() {
+        sidebar.classList.remove('mobile-open');
+        overlay.classList.remove('active');
+    }
+
+    burger.addEventListener('click', function() {
+        sidebar.classList.toggle('mobile-open');
+        overlay.classList.toggle('active');
+    });
+
+    overlay.addEventListener('click', closeMobileSidebar);
+
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') closeMobileSidebar();
+    });
+
+    window.addEventListener('resize', function() {
+        if (window.innerWidth > 768) closeMobileSidebar();
+    });
+}
+
+// =============================================
+// AUTO-COLLAPSE EM TELAS MENORES QUE 1280px
+// =============================================
+function initAutoCollapse() {
+    const sidebar = document.getElementById('sidebar');
+    if (!sidebar) return;
+
+    function checkViewport() {
+        const saved = localStorage.getItem('sidebar');
+        if (window.innerWidth < 1280 && window.innerWidth > 768 && saved !== 'expanded') {
+            sidebar.classList.add('collapsed');
+        } else if (window.innerWidth > 1280 && sidebar.classList.contains('collapsed') && saved === 'collapsed') {
+            sidebar.classList.remove('collapsed');
+        }
+    }
+
+    checkViewport();
+    window.addEventListener('resize', checkViewport);
+}
 
 // =============================================
 // FORMATAR CPF: 123.456.789-00
