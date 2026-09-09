@@ -1,0 +1,406 @@
+/* =============================================
+   AUTO MECÂNICA - ESTILO GLOBAL
+   ============================================= */
+
+:root {
+    --primary-color: #0d6efd;
+    --primary-dark: #0b5ed7;
+    --secondary-color: #6c757d;
+    --success-color: #198754;
+    --dark-bg: #212529;
+    --sidebar-width: 260px;
+    --card-radius: 12px;
+    --shadow-sm: 0 2px 4px rgba(0,0,0,0.06);
+    --shadow-md: 0 4px 12px rgba(0,0,0,0.1);
+    --shadow-lg: 0 8px 30px rgba(0,0,0,0.15);
+}
+
+/* ============ TIPOGRAFIA & BASE ============ */
+* {
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background-color: #f5f7fb;
+    color: var(--dark-bg);
+    min-height: 100vh;
+}
+
+h1, h2, h3, h4, h5, h6 {
+    font-weight: 600;
+}
+
+/* ============ NAVBAR ============ */
+.navbar {
+    padding: 0.8rem 1.5rem;
+    background: linear-gradient(135deg, #0d6efd, #0a4bb8) !important;
+    box-shadow: var(--shadow-md);
+}
+
+.navbar-brand {
+    font-size: 1.3rem;
+    letter-spacing: 0.5px;
+}
+
+.navbar .nav-link {
+    font-size: 0.95rem;
+    padding: 0.6rem 1rem !important;
+    border-radius: 8px;
+    transition: all 0.2s ease;
+}
+
+.navbar .nav-link:hover {
+    background-color: rgba(255,255,255,0.12);
+    color: #fff !important;
+}
+
+.navbar .nav-link.active {
+    background-color: rgba(255,255,255,0.2);
+    color: #fff !important;
+}
+
+/* ============ CARDS ============ */
+.card {
+    border: none;
+    border-radius: var(--card-radius);
+    box-shadow: var(--shadow-sm);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.card:hover {
+    box-shadow: var(--shadow-md);
+}
+
+.card-header {
+    background-color: #fff;
+    border-bottom: 1px solid #eee;
+    border-radius: var(--card-radius) var(--card-radius) 0 0 !important;
+    font-weight: 600;
+    padding: 1rem 1.5rem;
+}
+
+.card-header .title-icon {
+    color: var(--primary-color);
+}
+
+/* Cards de estatística (dashboard) */
+.stat-card {
+    border-radius: var(--card-radius);
+    padding: 1.5rem;
+    color: #fff;
+    position: relative;
+    overflow: hidden;
+}
+
+.stat-card .stat-icon {
+    position: absolute;
+    right: -10px;
+    bottom: -10px;
+    font-size: 5rem;
+    opacity: 0.15;
+}
+
+.stat-card .stat-label {
+    font-size: 0.9rem;
+    opacity: 0.9;
+    margin-bottom: 0.25rem;
+}
+
+.stat-card .stat-value {
+    font-size: 2rem;
+    font-weight: 700;
+}
+
+.bg-grad-primary {
+    background: linear-gradient(135deg, #0d6efd, #0a4bb8);
+}
+
+.bg-grad-success {
+    background: linear-gradient(135deg, #198754, #0f5132);
+}
+
+.bg-grad-warning {
+    background: linear-gradient(135deg, #fd7e14, #dc3545);
+}
+
+.bg-grad-info {
+    background: linear-gradient(135deg, #0dcaf0, #0d6efd);
+}
+
+.bg-grad-purple {
+    background: linear-gradient(135deg, #6f42c1, #491f8a);
+}
+
+.bg-grad-danger {
+    background: linear-gradient(135deg, #dc3545, #962d38);
+}
+
+/* ============ BOTÕES ============ */
+.btn {
+    border-radius: 8px;
+    font-weight: 500;
+    transition: all 0.2s ease;
+}
+
+.btn-primary {
+    background-color: var(--primary-color);
+    border-color: var(--primary-color);
+}
+
+.btn-primary:hover {
+    background-color: var(--primary-dark);
+    border-color: var(--primary-dark);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(13, 110, 253, 0.3);
+}
+
+.btn-outline-primary:hover {
+    transform: translateY(-1px);
+}
+
+.btn-icon {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+}
+
+/* ============ TABELAS ============ */
+.table {
+    margin-bottom: 0;
+}
+
+.table thead th {
+    background-color: #f8f9fa;
+    border-bottom: 2px solid #dee2e6;
+    font-weight: 600;
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--secondary-color);
+    white-space: nowrap;
+}
+
+.table tbody tr {
+    transition: background-color 0.15s ease;
+}
+
+.table tbody tr:hover {
+    background-color: rgba(13, 110, 253, 0.04);
+}
+
+.table .actions-cell {
+    white-space: nowrap;
+    text-align: right;
+}
+
+.table .actions-cell .btn {
+    padding: 0.35rem 0.6rem;
+    font-size: 0.9rem;
+    margin-left: 0.25rem;
+}
+
+/* ============ FORMULÁRIOS ============ */
+.form-control, .form-select {
+    border-radius: 8px;
+    padding: 0.6rem 0.9rem;
+    border: 1px solid #ced4da;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.form-control:focus, .form-select:focus {
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.12);
+}
+
+.form-label {
+    font-weight: 500;
+    font-size: 0.9rem;
+    color: var(--secondary-color);
+    margin-bottom: 0.35rem;
+}
+
+.input-group-text {
+    border-radius: 8px 0 0 8px;
+    background-color: #f8f9fa;
+}
+
+/* ============ ALERTAS ============ */
+.alert {
+    border-radius: 8px;
+    border: none;
+    font-weight: 450;
+}
+
+/* ============ BADGES / STATUS ============ */
+.badge {
+    font-size: 0.78rem;
+    font-weight: 600;
+    padding: 0.4em 0.8em;
+    border-radius: 6px;
+}
+
+.badge-success {
+    background-color: #d1e7dd;
+    color: #0f5132;
+}
+
+.badge-warning {
+    background-color: #fff3cd;
+    color: #664d03;
+}
+
+.badge-danger {
+    background-color: #f8d7da;
+    color: #842029;
+}
+
+.badge-info {
+    background-color: #cff4fc;
+    color: #055160;
+}
+
+.badge-secondary {
+    background-color: #e2e3e5;
+    color: #41464b;
+}
+
+/* ============ AUTH PAGE ============ */
+.auth-bg {
+    background: linear-gradient(135deg, #0d6efd 0%, #0a4bb8 50%, #212529 100%);
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+}
+
+.auth-wrapper {
+    width: 100%;
+}
+
+.auth-card {
+    border-radius: 16px;
+    overflow: hidden;
+}
+
+.auth-icon {
+    width: 80px;
+    height: 80px;
+    margin: 0 auto;
+    background: linear-gradient(135deg, #0d6efd, #0a4bb8);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: var(--shadow-md);
+}
+
+.auth-icon i {
+    font-size: 2.2rem;
+    color: #fff;
+}
+
+/* ============ PÁGINAS DE CRUD ============ */
+.page-header {
+    margin-bottom: 1.5rem;
+    padding: 1.25rem 1.5rem;
+    background: #fff;
+    border-radius: var(--card-radius);
+    box-shadow: var(--shadow-sm);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 1rem;
+}
+
+.page-header h1 {
+    font-size: 1.4rem;
+    margin: 0;
+    color: var(--dark-bg);
+}
+
+.page-header .page-subtitle {
+    color: var(--secondary-color);
+    font-size: 0.9rem;
+}
+
+/* ============ SEARCH & FILTROS ============ */
+.search-wrapper {
+    position: relative;
+}
+
+.search-wrapper .form-control {
+    padding-left: 2.5rem;
+}
+
+.search-wrapper .search-icon {
+    position: absolute;
+    left: 0.9rem;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--secondary-color);
+    z-index: 10;
+}
+
+/* ============ ALERTA ESTOQUE BAIXO ============ */
+.estoque-alert {
+    background-color: #fff3cd;
+    color: #664d03;
+    font-weight: 500;
+}
+
+/* ============ DASHBOARD LINKS ============ */
+.dashboard-link {
+    text-decoration: none;
+    color: inherit;
+}
+
+.dashboard-link:hover {
+    transform: translateY(-3px);
+    box-shadow: var(--shadow-lg);
+}
+
+/* ============ RESPONSIVO ============ */
+@media (max-width: 768px) {
+    .page-header {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+    
+    .navbar .nav-link {
+        padding: 0.5rem 0.8rem !important;
+    }
+}
+
+/* ============ UTILITÁRIOS ============ */
+.cursor-pointer {
+    cursor: pointer;
+}
+
+.fw-500 {
+    font-weight: 500;
+}
+
+.fw-600 {
+    font-weight: 600;
+}
+
+.text-light-muted {
+    color: rgba(255,255,255,0.8) !important;
+}
+
+.vh-60 {
+    min-height: 60vh;
+}
+
+.empty-state {
+    padding: 4rem 1rem;
+    text-align: center;
+    color: var(--secondary-color);
+}
+
+.empty-state i {
+    font-size: 4rem;
+    margin-bottom: 1rem;
+    opacity: 0.4;
+}
