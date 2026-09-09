@@ -9,6 +9,9 @@ require_once __DIR__ . '/../../includes/mensagens.php';
 $clientes = $conn->query("SELECT id, nome FROM clientes ORDER BY nome")->fetchAll();
 $servicos = $conn->query("SELECT * FROM servicos WHERE ativo = 1 ORDER BY nome")->fetchAll();
 $pecas = $conn->query("SELECT * FROM pecas WHERE quantidade > 0 ORDER BY nome")->fetchAll();
+$os_id = (int) ($_GET['os_id'] ?? 0);
+$cliente_preselecionado = (int) ($_GET['cliente_id'] ?? 0);
+$veiculo_preselecionado = (int) ($_GET['veiculo_id'] ?? 0);
 ?>
 
 <div class="page-header">
@@ -22,6 +25,7 @@ $pecas = $conn->query("SELECT * FROM pecas WHERE quantidade > 0 ORDER BY nome")-
 </div>
 
 <form method="POST" action="processar.php?acao=cadastrar" id="formOrcamento">
+    <input type="hidden" name="os_id" value="<?php echo $os_id; ?>">
     <div class="row">
         <div class="col-lg-8">
             <!-- Progresso do wizard -->
@@ -57,7 +61,7 @@ $pecas = $conn->query("SELECT * FROM pecas WHERE quantidade > 0 ORDER BY nome")-
                             <select class="form-select" id="cliente_id" name="cliente_id" required onchange="carregarVeiculos(this.value, 'veiculo_id', null)">
                                 <option value="">-- Selecione o cliente --</option>
                                 <?php foreach ($clientes as $c): ?>
-                                    <option value="<?php echo $c['id']; ?>"><?php echo limpar($c['nome']); ?></option>
+                                    <option value="<?php echo $c['id']; ?>" <?php echo $cliente_preselecionado === (int) $c['id'] ? 'selected' : ''; ?>><?php echo limpar($c['nome']); ?></option>
                                 <?php endforeach; ?>
                             </select>
                         </div>

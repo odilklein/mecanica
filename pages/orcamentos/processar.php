@@ -10,6 +10,7 @@ try {
         // Dados do orçamento
         $cliente_id = (int)($_POST['cliente_id'] ?? 0);
         $veiculo_id = (int)($_POST['veiculo_id'] ?? 0);
+        $os_id = (int)($_POST['os_id'] ?? 0) ?: null;
         $data_validade = $_POST['data_validade'] ?? null;
         $observacoes = limpar($_POST['observacoes'] ?? '');
 
@@ -18,6 +19,14 @@ try {
             $_SESSION['mensagem_tipo'] = "warning";
             header("Location: cadastrar.php");
             exit();
+        }
+
+        if ($os_id) {
+            $stmt = $conn->prepare('SELECT id FROM ordens_servico WHERE id = :id AND cliente_id = :cliente_id');
+            $stmt->execute([':id' => $os_id, ':cliente_id' => $cliente_id]);
+            if (!$stmt->fetchColumn()) {
+                throw new Exception('A ordem de serviço não pertence ao cliente informado.');
+            }
         }
 
         // Gerar número sequencial
@@ -40,10 +49,11 @@ try {
         $total_servicos = 0;
 
         // Inserir orçamento
-        $stmt = $conn->prepare("INSERT INTO orcamentos (numero, cliente_id, veiculo_id, data_orcamento, data_validade, status, observacoes, criado_por) VALUES (:numero, :cliente_id, :veiculo_id, CURDATE(), :data_validade, 'aberto', :observacoes, :criado_por)");
+        $stmt = $conn->prepare("INSERT INTO orcamentos (numero, cliente_id, veiculo_id, os_id, data_orcamento, data_validade, status, observacoes, criado_por) VALUES (:numero, :cliente_id, :veiculo_id, :os_id, CURDATE(), :data_validade, 'aberto', :observacoes, :criado_por)");
         $stmt->bindParam(':numero', $numero);
         $stmt->bindParam(':cliente_id', $cliente_id);
         $stmt->bindParam(':veiculo_id', $veiculo_id);
+        $stmt->bindParam(':os_id', $os_id);
         $stmt->bindParam(':data_validade', $data_validade);
         $stmt->bindParam(':observacoes', $observacoes);
         $stmt->bindParam(':criado_por', $_SESSION['usuario_id']);

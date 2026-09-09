@@ -90,6 +90,28 @@ if ($acao !== 'cadastrar') {
         header('Location: detalhes.php?id=' . $os_id);
         exit();
     }
+
+    if ($acao === 'registrar_entrega') {
+        exigir_papel(['admin', 'secretaria', 'mecanico_chefe']);
+        $modalidade = $_POST['modalidade'] ?? '';
+        $responsavel = limpar($_POST['responsavel'] ?? '');
+        $destino = limpar($_POST['destino'] ?? '');
+        $km_saida = (int) ($_POST['km_saida'] ?? 0);
+        if (!in_array($modalidade, ['retirada', 'entrega'], true)) {
+            http_response_code(400);
+            exit('Modalidade de entrega inválida.');
+        }
+        $stmt = $conn->prepare("INSERT INTO os_entregas (os_id, modalidade, responsavel, destino, km_saida, status, criado_por) VALUES (:os_id, :modalidade, :responsavel, :destino, :km_saida, 'planejada', :usuario)");
+        $stmt->execute([':os_id' => $os_id, ':modalidade' => $modalidade, ':responsavel' => $responsavel ?: null, ':destino' => $destino ?: null, ':km_saida' => $km_saida ?: null, ':usuario' => $_SESSION['usuario_id']]);
+        $stmt = $conn->prepare("UPDATE ordens_servico SET status = IF(status IN ('em_execucao', 'aguardando_retorno'), 'pronta_para_entrega', status) WHERE id = :id");
+        $stmt->execute([':id' => $os_id]);
+        $stmt = $conn->prepare("INSERT INTO os_eventos (os_id, tipo, descricao, criado_por) VALUES (:os_id, 'entrega_planejada', 'Entrega ou retirada registrada', :usuario)");
+        $stmt->execute([':os_id' => $os_id, ':usuario' => $_SESSION['usuario_id']]);
+        $_SESSION['mensagem'] = 'Entrega ou retirada registrada.';
+        $_SESSION['mensagem_tipo'] = 'success';
+        header('Location: detalhes.php?id=' . $os_id);
+        exit();
+    }
 }
 
 $nome = limpar($_POST['nome'] ?? '');

@@ -24,6 +24,7 @@ $url_servicos = $caminho_base . '/pages/servicos/listar.php';
 $url_agendamentos = $caminho_base . '/pages/agendamentos/listar.php';
 $url_orcamentos = $caminho_base . '/pages/orcamentos/listar.php';
 $url_ordens_servico = $caminho_base . '/pages/ordens_servico/listar.php';
+$url_pedidos_pecas = $caminho_base . '/pages/pedidos_pecas/listar.php';
 $url_relatorio = $caminho_base . '/pages/orcamentos/relatorio.php';
 $url_logout = $caminho_base . '/pages/auth/logout.php';
 ?>
@@ -70,6 +71,10 @@ $url_logout = $caminho_base . '/pages/auth/logout.php';
                 <span class="nav-text">Estoque</span>
             </a>
             <?php endif; ?>
+            <?php if (tem_papel(['admin', 'secretaria', 'mecanico_chefe', 'mecanico'])): ?><a href="<?php echo $url_pedidos_pecas; ?>" class="sidebar-nav-item <?php echo sidebarAtiva('pedidos_pecas') ? 'active' : ''; ?>" title="Pedidos de peças">
+                <i data-lucide="truck"></i>
+                <span class="nav-text">Pedidos de peças</span>
+            </a><?php endif; ?>
             <?php if (tem_papel(['admin', 'secretaria', 'mecanico_chefe'])): ?><a href="<?php echo $url_servicos; ?>" class="sidebar-nav-item <?php echo sidebarAtiva('servicos') ? 'active' : ''; ?>" title="Serviços">
                 <i data-lucide="hammer"></i>
                 <span class="nav-text">Serviços</span>
