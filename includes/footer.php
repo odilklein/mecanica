@@ -1,5 +1,8 @@
 <?php
-$url_js = (isset($caminho_base) ? $caminho_base : '../../') . 'js/main.js';
+if (!isset($caminho_base)) {
+    require_once __DIR__ . '/base_url.php';
+}
+$url_js = $caminho_base . '/js/main.js';
 ?>
     </div>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>

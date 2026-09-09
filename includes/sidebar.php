@@ -12,18 +12,18 @@ function sidebarAtiva($modulo) {
 
 // Configurar URLs relativas ao contexto
 if (!isset($caminho_base)) {
-    $caminho_base = '../../';
+    require_once __DIR__ . '/base_url.php';
 }
 
-$url_index = $caminho_base . 'index.php';
-$url_clientes = $caminho_base . 'pages/clientes/listar.php';
-$url_veiculos = $caminho_base . 'pages/veiculos/listar.php';
-$url_pecas = $caminho_base . 'pages/pecas/listar.php';
-$url_servicos = $caminho_base . 'pages/servicos/listar.php';
-$url_agendamentos = $caminho_base . 'pages/agendamentos/listar.php';
-$url_orcamentos = $caminho_base . 'pages/orcamentos/listar.php';
-$url_relatorio = $caminho_base . 'pages/orcamentos/relatorio.php';
-$url_logout = $caminho_base . 'pages/auth/logout.php';
+$url_index = $caminho_base . '/index.php';
+$url_clientes = $caminho_base . '/pages/clientes/listar.php';
+$url_veiculos = $caminho_base . '/pages/veiculos/listar.php';
+$url_pecas = $caminho_base . '/pages/pecas/listar.php';
+$url_servicos = $caminho_base . '/pages/servicos/listar.php';
+$url_agendamentos = $caminho_base . '/pages/agendamentos/listar.php';
+$url_orcamentos = $caminho_base . '/pages/orcamentos/listar.php';
+$url_relatorio = $caminho_base . '/pages/orcamentos/relatorio.php';
+$url_logout = $caminho_base . '/pages/auth/logout.php';
 ?>
 
 <aside class="sidebar" id="sidebar">

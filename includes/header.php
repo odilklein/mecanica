@@ -1,21 +1,10 @@
 <?php
-// Calcular caminho base relativo até a raiz do projeto (index.php),
-// comparando a hierarquia de arquivos da página com a raiz do projeto.
-// Funciona independente de subpasta na URL (ex.: localhost/mecanica).
-$pagina_dir_fs = str_replace('\\', '/', realpath(dirname($_SERVER['SCRIPT_FILENAME'])));
-$raiz_fs = str_replace('\\', '/', realpath(__DIR__ . '/..'));
-$dirs_pagina = explode('/', trim($pagina_dir_fs, '/'));
-$dirs_raiz = explode('/', trim($raiz_fs, '/'));
-$comum = 0;
-while ($comum < count($dirs_pagina) && $comum < count($dirs_raiz) && $dirs_pagina[$comum] === $dirs_raiz[$comum]) {
-    $comum++;
-}
-$caminho_base = str_repeat('../', max(0, count($dirs_pagina) - $comum));
+require_once __DIR__ . '/base_url.php';
 
-$url_css = $caminho_base . 'css/style.css';
-$url_js = $caminho_base . 'js/main.js';
-$url_index = $caminho_base . 'index.php';
-$url_logout = $caminho_base . 'pages/auth/logout.php';
+$url_css = $caminho_base . '/css/style.css';
+$url_js = $caminho_base . '/js/main.js';
+$url_index = $caminho_base . '/index.php';
+$url_logout = $caminho_base . '/pages/auth/logout.php';
 ?>
 <!DOCTYPE html>
 <html lang="pt-BR">
