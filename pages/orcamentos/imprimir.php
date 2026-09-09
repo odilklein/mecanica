@@ -27,11 +27,11 @@ $itens = $stmt->fetchAll();
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body { font-family: Arial, sans-serif; font-size: 14px; color: #333; }
         .container { max-width: 800px; margin: 0 auto; padding: 30px; }
-        .header { text-align: center; border-bottom: 3px solid #0d6efd; padding-bottom: 15px; margin-bottom: 20px; }
-        .header h1 { color: #0d6efd; font-size: 28px; }
+        .header { text-align: center; border-bottom: 3px solid #bd1804; padding-bottom: 15px; margin-bottom: 20px; }
+        .header h1 { color: #bd1804; font-size: 28px; }
         .header p { color: #666; }
         .info-box { border: 1px solid #ddd; border-radius: 8px; padding: 15px; margin-bottom: 15px; }
-        .info-box h3 { font-size: 14px; color: #0d6efd; margin-bottom: 8px; text-transform: uppercase; }
+        .info-box h3 { font-size: 14px; color: #bd1804; margin-bottom: 8px; text-transform: uppercase; }
         .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
         .info-grid .full { grid-column: 1 / -1; }
         .info-label { font-weight: bold; color: #666; }
@@ -43,12 +43,12 @@ $itens = $stmt->fetchAll();
         .totals { margin-left: auto; width: 300px; }
         .totals div { display: flex; justify-content: space-between; padding: 5px 0; }
         .totals .grand-total { font-size: 18px; font-weight: bold; border-top: 2px solid #000; padding-top: 10px; }
-        .totals .grand-total span { color: #0d6efd; }
+        .totals .grand-total span { color: #bd1804; }
         .footer { margin-top: 40px; text-align: center; font-size: 12px; color: #666; border-top: 1px solid #ddd; padding-top: 15px; }
         .stamp { margin-top: 30px; display: flex; justify-content: space-between; }
         .stamp div { width: 45%; text-align: center; border-top: 1px solid #999; padding-top: 8px; font-size: 12px; }
         .no-print { text-align: center; margin: 20px 0; }
-        .no-print button { padding: 12px 30px; font-size: 16px; background: #0d6efd; color: #fff; border: none; border-radius: 5px; cursor: pointer; }
+        .no-print button { padding: 12px 30px; font-size: 16px; background: #bd1804; color: #fff; border: none; border-radius: 5px; cursor: pointer; }
         @media print {
             .no-print { display: none; }
             body { font-size: 12px; }
@@ -97,7 +97,7 @@ $itens = $stmt->fetchAll();
         </div>
         <?php endif; ?>
 
-        <h3 style="margin-top:20px; color:#0d6efd; text-transform:uppercase; font-size:14px;">Descrição dos Serviços / Peças</h3>
+        <h3 style="margin-top:20px; color:#bd1804; text-transform:uppercase; font-size:14px;">Descrição dos Serviços / Peças</h3>
         <table>
             <thead>
                 <tr>
