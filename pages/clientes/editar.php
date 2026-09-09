@@ -22,11 +22,11 @@ require_once __DIR__ . '/../../includes/header.php';
 
 <div class="page-header">
     <div>
-        <h1><i class="fas fa-user-edit text-primary me-2"></i>Editar Cliente</h1>
+        <h1><i data-lucide="user-pen" class="text-primary me-2"></i>Editar Cliente</h1>
         <span class="page-subtitle">Atualize os dados de <?php echo limpar($cliente['nome']); ?></span>
     </div>
     <a href="listar.php" class="btn btn-outline-secondary btn-icon">
-        <i class="fas fa-arrow-left"></i> Voltar
+        <i data-lucide="arrow-left"></i> Voltar
     </a>
 </div>
 
@@ -69,7 +69,7 @@ require_once __DIR__ . '/../../includes/header.php';
                     <div class="d-flex justify-content-between mt-4">
                         <a href="listar.php" class="btn btn-outline-secondary">Cancelar</a>
                         <button type="submit" class="btn btn-primary btn-icon">
-                            <i class="fas fa-save"></i> Atualizar Cliente
+                            <i data-lucide="save"></i> Atualizar Cliente
                         </button>
                     </div>
                 </form>

@@ -9,11 +9,11 @@ require_once __DIR__ . '/../../includes/mensagens.php';
 
 <div class="page-header">
     <div>
-        <h1><i class="fas fa-tools text-primary me-2"></i>Serviços</h1>
+        <h1><i data-lucide="hammer" class="text-primary me-2"></i>Serviços</h1>
         <span class="page-subtitle">Tipos de serviços oferecidos pela oficina</span>
     </div>
     <a href="cadastrar.php" class="btn btn-primary btn-icon">
-        <i class="fas fa-plus"></i> Novo Serviço
+        <i data-lucide="plus"></i> Novo Serviço
     </a>
 </div>
 
@@ -22,7 +22,7 @@ require_once __DIR__ . '/../../includes/mensagens.php';
         <div class="row mb-3">
             <div class="col-md-6">
                 <div class="search-wrapper">
-                    <i class="fas fa-search search-icon"></i>
+                    <i data-lucide="search" class="search-icon"></i>
                     <input type="text" class="form-control" id="buscarServico" placeholder="Buscar serviço...">
                 </div>
             </div>
@@ -70,12 +70,12 @@ require_once __DIR__ . '/../../includes/mensagens.php';
                         </td>
                         <td class="actions-cell">
                             <a href="editar.php?id=<?php echo $s['id']; ?>" class="btn btn-outline-primary btn-sm" title="Editar">
-                                <i class="fas fa-edit"></i>
+                                <i data-lucide="pencil"></i>
                             </a>
                             <form method="POST" action="excluir.php" id="excluirServico<?php echo $s['id']; ?>" class="d-inline" onsubmit="return confirmarExclusao('excluirServico<?php echo $s['id']; ?>', 'Excluir o serviço <?php echo addslashes($s['nome']); ?>?');">
                                 <input type="hidden" name="id" value="<?php echo $s['id']; ?>">
                                 <button type="submit" class="btn btn-outline-danger btn-sm" title="Excluir">
-                                    <i class="fas fa-trash"></i>
+                                    <i data-lucide="trash-2"></i>
                                 </button>
                             </form>
                         </td>
@@ -84,11 +84,11 @@ require_once __DIR__ . '/../../includes/mensagens.php';
                     <tr>
                         <td colspan="6">
                             <div class="empty-state">
-                                <i class="fas fa-tools"></i>
+                                <i data-lucide="hammer"></i>
                                 <h4>Nenhum serviço cadastrado</h4>
                                 <p>Cadastre os serviços que a oficina oferece para usar nos orçamentos.</p>
                                 <a href="cadastrar.php" class="btn btn-primary btn-icon">
-                                    <i class="fas fa-plus"></i> Cadastrar Serviço
+                                    <i data-lucide="plus"></i> Cadastrar Serviço
                                 </a>
                             </div>
                         </td>

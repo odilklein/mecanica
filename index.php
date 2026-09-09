@@ -96,15 +96,15 @@ function badgeStatusOrc($status) {
 
 <div class="page-header">
     <div>
-        <h1><i class="fas fa-th-large"></i>Dashboard</h1>
+        <h1><i data-lucide="layout-grid"></i>Dashboard</h1>
         <span class="page-subtitle">Visão geral da oficina - <?php echo $hoje; ?></span>
     </div>
     <div class="page-header-actions">
         <a href="pages/agendamentos/cadastrar.php" class="btn btn-primary btn-icon">
-            <i class="fas fa-calendar-plus"></i> Novo Agendamento
+            <i data-lucide="calendar-plus"></i> Novo Agendamento
         </a>
         <a href="pages/orcamentos/cadastrar.php" class="btn btn-outline-primary btn-icon">
-            <i class="fas fa-file-invoice-dollar"></i> Novo Orçamento
+            <i data-lucide="receipt-text"></i> Novo Orçamento
         </a>
     </div>
 </div>
@@ -116,11 +116,11 @@ function badgeStatusOrc($status) {
             <span class="stat-border"></span>
             <div class="stat-header">
                 <span class="stat-label">Clientes</span>
-                <span class="stat-icon"><i class="fas fa-users"></i></span>
+                <span class="stat-icon"><i data-lucide="users"></i></span>
             </div>
             <div class="stat-value"><?php echo $total_clientes; ?></div>
-            <div class="stat-delta up"><i class="fas fa-arrow-up"></i> total cadastrados</div>
-            <i class="fas fa-users stat-decoration"></i>
+            <div class="stat-delta up"><i data-lucide="arrow-up"></i> total cadastrados</div>
+            <i data-lucide="users" class="stat-decoration"></i>
         </div>
     </div>
     <div class="col-6 col-md-4 col-xl-2">
@@ -128,11 +128,11 @@ function badgeStatusOrc($status) {
             <span class="stat-border"></span>
             <div class="stat-header">
                 <span class="stat-label">Veículos</span>
-                <span class="stat-icon blue"><i class="fas fa-car"></i></span>
+                <span class="stat-icon blue"><i data-lucide="car"></i></span>
             </div>
             <div class="stat-value"><?php echo $total_veiculos; ?></div>
-            <div class="stat-delta up"><i class="fas fa-arrow-up"></i> em atendimento</div>
-            <i class="fas fa-car stat-decoration"></i>
+            <div class="stat-delta up"><i data-lucide="arrow-up"></i> em atendimento</div>
+            <i data-lucide="car" class="stat-decoration"></i>
         </div>
     </div>
     <div class="col-6 col-md-4 col-xl-2">
@@ -140,11 +140,11 @@ function badgeStatusOrc($status) {
             <span class="stat-border"></span>
             <div class="stat-header">
                 <span class="stat-label">Agend. Hoje</span>
-                <span class="stat-icon yellow"><i class="fas fa-calendar-check"></i></span>
+                <span class="stat-icon yellow"><i data-lucide="calendar-check"></i></span>
             </div>
             <div class="stat-value"><?php echo $agendamentos_hoje; ?></div>
             <div class="stat-delta">para <?php echo $hoje; ?></div>
-            <i class="fas fa-calendar-check stat-decoration"></i>
+            <i data-lucide="calendar-check" class="stat-decoration"></i>
         </div>
     </div>
     <div class="col-6 col-md-4 col-xl-2">
@@ -152,11 +152,11 @@ function badgeStatusOrc($status) {
             <span class="stat-border"></span>
             <div class="stat-header">
                 <span class="stat-label">Orç. Abertos</span>
-                <span class="stat-icon green"><i class="fas fa-file-invoice"></i></span>
+                <span class="stat-icon green"><i data-lucide="file-text"></i></span>
             </div>
             <div class="stat-value"><?php echo $orcamentos_abertos; ?></div>
-            <div class="stat-delta up"><i class="fas fa-arrow-up"></i> aguardando aprovação</div>
-            <i class="fas fa-file-invoice stat-decoration"></i>
+            <div class="stat-delta up"><i data-lucide="arrow-up"></i> aguardando aprovação</div>
+            <i data-lucide="file-text" class="stat-decoration"></i>
         </div>
     </div>
     <div class="col-6 col-md-4 col-xl-2">
@@ -164,11 +164,11 @@ function badgeStatusOrc($status) {
             <span class="stat-border"></span>
             <div class="stat-header">
                 <span class="stat-label">Faturamento</span>
-                <span class="stat-icon"><i class="fas fa-money-bill-wave"></i></span>
+                <span class="stat-icon"><i data-lucide="banknote"></i></span>
             </div>
             <div class="stat-value" style="font-size:1.2rem;"><?php echo formatar_moeda($faturamento); ?></div>
-            <div class="stat-delta up"><i class="fas fa-arrow-up"></i> total aprovado</div>
-            <i class="fas fa-money-bill-wave stat-decoration"></i>
+            <div class="stat-delta up"><i data-lucide="arrow-up"></i> total aprovado</div>
+            <i data-lucide="banknote" class="stat-decoration"></i>
         </div>
     </div>
     <div class="col-6 col-md-4 col-xl-2">
@@ -176,11 +176,11 @@ function badgeStatusOrc($status) {
             <span class="stat-border"></span>
             <div class="stat-header">
                 <span class="stat-label">Estoque Baixo</span>
-                <span class="stat-icon red"><i class="fas fa-exclamation-triangle"></i></span>
+                <span class="stat-icon red"><i data-lucide="triangle-alert"></i></span>
             </div>
             <div class="stat-value"><?php echo $estoque_baixo; ?></div>
-            <div class="stat-delta down"><i class="fas fa-arrow-down"></i> itens críticos</div>
-            <i class="fas fa-boxes-stacked stat-decoration"></i>
+            <div class="stat-delta down"><i data-lucide="arrow-down"></i> itens críticos</div>
+            <i data-lucide="boxes" class="stat-decoration"></i>
         </div>
     </div>
 </div>
@@ -191,7 +191,7 @@ function badgeStatusOrc($status) {
     <div class="col-lg-8">
         <div class="card mb-3">
             <div class="card-header">
-                <i class="fas fa-calendar-check me-2"></i> Próximos Agendamentos
+                <i data-lucide="calendar-check" class="me-2"></i> Próximos Agendamentos
                 <a href="pages/agendamentos/listar.php" class="btn btn-sm btn-link float-end">Ver todos</a>
             </div>
             <div class="card-body p-0">
@@ -238,11 +238,11 @@ function badgeStatusOrc($status) {
                 </div>
                 <?php else: ?>
                 <div class="empty-state">
-                    <i class="fas fa-calendar-check"></i>
+                    <i data-lucide="calendar-check"></i>
                     <h4>Nenhum agendamento futuro</h4>
                     <p>Crie um novo agendamento para começar.</p>
                     <a href="pages/agendamentos/cadastrar.php" class="btn btn-primary btn-icon">
-                        <i class="fas fa-plus"></i> Novo Agendamento
+                        <i data-lucide="plus"></i> Novo Agendamento
                     </a>
                 </div>
                 <?php endif; ?>
@@ -251,7 +251,7 @@ function badgeStatusOrc($status) {
 
         <div class="card">
             <div class="card-header">
-                <i class="fas fa-file-invoice-dollar me-2"></i> Últimos Orçamentos
+                <i data-lucide="receipt-text" class="me-2"></i> Últimos Orçamentos
                 <a href="pages/orcamentos/listar.php" class="btn btn-sm btn-link float-end">Ver todos</a>
             </div>
             <div class="card-body p-0">
@@ -284,11 +284,11 @@ function badgeStatusOrc($status) {
                 </div>
                 <?php else: ?>
                 <div class="empty-state">
-                    <i class="fas fa-file-invoice-dollar"></i>
+                    <i data-lucide="receipt-text"></i>
                     <h4>Nenhum orçamento ainda</h4>
                     <p>Crie o primeiro orçamento do sistema.</p>
                     <a href="pages/orcamentos/cadastrar.php" class="btn btn-primary btn-icon">
-                        <i class="fas fa-plus"></i> Novo Orçamento
+                        <i data-lucide="plus"></i> Novo Orçamento
                     </a>
                 </div>
                 <?php endif; ?>
@@ -300,7 +300,7 @@ function badgeStatusOrc($status) {
     <div class="col-lg-4">
         <div class="card mb-3">
             <div class="card-header">
-                <i class="fas fa-exclamation-triangle me-2" style="color:var(--warning);"></i> Estoque Baixo
+                <i data-lucide="triangle-alert" class="me-2" style="color:var(--warning);"></i> Estoque Baixo
                 <a href="pages/pecas/listar.php" class="btn btn-sm btn-link float-end">Ver estoque</a>
             </div>
             <div class="card-body">
@@ -308,7 +308,7 @@ function badgeStatusOrc($status) {
                     <?php foreach ($pecas_baixo as $peca): ?>
                     <a href="pages/pecas/editar.php?id=<?php echo $peca['id']; ?>" class="text-decoration-none">
                         <div class="d-flex align-items-center gap-2 mb-3 p-2 rounded" style="background: var(--warning-bg); border-left: 3px solid var(--warning);">
-                            <i class="fas fa-boxes-stacked" style="color: var(--warning);"></i>
+                            <i data-lucide="boxes" style="color: var(--warning);"></i>
                             <div class="flex-grow-1 min-w-0">
                                 <strong class="d-block" style="font-size:0.82rem; color: var(--text-primary);"><?php echo limpar($peca['nome']); ?></strong>
                                 <small style="color: var(--warning);">
@@ -321,7 +321,7 @@ function badgeStatusOrc($status) {
                     <?php endforeach; ?>
                 <?php else: ?>
                 <div class="text-center py-3">
-                    <i class="fas fa-check-circle" style="font-size:2.5rem; color: var(--success); opacity:0.5;"></i>
+                    <i data-lucide="circle-check-big" style="font-size:2.5rem; color: var(--success); opacity:0.5;"></i>
                     <p class="mt-2 mb-0" style="font-size:0.85rem; color: var(--text-muted);">Estoque saudável, sem alertas.</p>
                 </div>
                 <?php endif; ?>
@@ -330,24 +330,24 @@ function badgeStatusOrc($status) {
 
         <div class="card">
             <div class="card-header">
-                <i class="fas fa-bolt me-2"></i> Ações Rápidas
+                <i data-lucide="zap" class="me-2"></i> Ações Rápidas
             </div>
             <div class="card-body">
                 <div class="quick-actions">
                     <a href="pages/clientes/cadastrar.php" class="quick-action-btn">
-                        <i class="fas fa-user-plus"></i> <span class="nav-text">Novo Cliente</span>
+                        <i data-lucide="user-plus"></i> <span class="nav-text">Novo Cliente</span>
                     </a>
                     <a href="pages/veiculos/cadastrar.php" class="quick-action-btn">
-                        <i class="fas fa-car blue"></i> <span class="nav-text">Cadastrar Veículo</span>
+                        <i data-lucide="car" class="blue"></i> <span class="nav-text">Cadastrar Veículo</span>
                     </a>
                     <a href="pages/agendamentos/cadastrar.php" class="quick-action-btn">
-                        <i class="fas fa-calendar-plus green"></i> <span class="nav-text">Novo Agendamento</span>
+                        <i data-lucide="calendar-plus" class="green"></i> <span class="nav-text">Novo Agendamento</span>
                     </a>
                     <a href="pages/orcamentos/cadastrar.php" class="quick-action-btn">
-                        <i class="fas fa-file-invoice-dollar yellow"></i> <span class="nav-text">Novo Orçamento</span>
+                        <i data-lucide="receipt-text" class="yellow"></i> <span class="nav-text">Novo Orçamento</span>
                     </a>
                     <a href="pages/pecas/entrada.php" class="quick-action-btn">
-                        <i class="fas fa-arrow-right-arrow-left blue"></i> <span class="nav-text">Movimentar Estoque</span>
+                        <i data-lucide="arrow-right-left" class="blue"></i> <span class="nav-text">Movimentar Estoque</span>
                     </a>
                 </div>
             </div>

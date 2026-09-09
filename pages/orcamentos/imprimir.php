@@ -1,6 +1,7 @@
 <?php
 require_once __DIR__ . '/../../includes/sessao.php';
 require_once __DIR__ . '/../../config/conexao.php';
+require_once __DIR__ . '/../../config/empresa.php';
 
 $id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
 
@@ -30,6 +31,7 @@ $itens = $stmt->fetchAll();
         .header { text-align: center; border-bottom: 3px solid #bd1804; padding-bottom: 15px; margin-bottom: 20px; }
         .header h1 { color: #bd1804; font-size: 28px; }
         .header p { color: #666; }
+        .header .contact-line { font-size: 12px; margin-top: 8px; line-height: 1.6; }
         .info-box { border: 1px solid #ddd; border-radius: 8px; padding: 15px; margin-bottom: 15px; }
         .info-box h3 { font-size: 14px; color: #bd1804; margin-bottom: 8px; text-transform: uppercase; }
         .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
@@ -62,8 +64,12 @@ $itens = $stmt->fetchAll();
 
     <div class="container">
         <div class="header">
-            <h1>🔧 AutoMecânica</h1>
-            <p>Orçamento de Serviços Automotivos</p>
+            <h1><?php echo EMPRESA_NOME; ?></h1>
+            <p><?php echo EMPRESA_SLOGAN; ?> · Orçamento de Serviços Automotivos</p>
+            <p class="contact-line">
+                <?php echo EMPRESA_ENDERECO; ?> · <?php echo EMPRESA_CIDADE; ?><br>
+                Tel: <?php echo EMPRESA_TELEFONE; ?> · <?php echo EMPRESA_EMAIL; ?>
+            </p>
         </div>
 
         <div class="info-box">

@@ -32,11 +32,11 @@ require_once __DIR__ . '/../../includes/mensagens.php';
 
 <div class="page-header">
     <div>
-        <h1><i class="fas fa-edit text-primary me-2"></i>Editar Orçamento #<?php echo str_pad($orcamento['numero'], 4, '0', STR_PAD_LEFT); ?></h1>
+        <h1><i data-lucide="pencil" class="text-primary me-2"></i>Editar Orçamento #<?php echo str_pad($orcamento['numero'], 4, '0', STR_PAD_LEFT); ?></h1>
         <span class="page-subtitle">Atualize o orçamento</span>
     </div>
     <a href="listar.php" class="btn btn-outline-secondary btn-icon">
-        <i class="fas fa-arrow-left"></i> Voltar
+        <i data-lucide="arrow-left"></i> Voltar
     </a>
 </div>
 
@@ -46,7 +46,7 @@ require_once __DIR__ . '/../../includes/mensagens.php';
             <input type="hidden" name="id" value="<?php echo $id; ?>">
 
             <div class="card mb-3">
-                <div class="card-header"><i class="fas fa-user me-2 text-primary"></i>Dados do Cliente</div>
+                <div class="card-header"><i data-lucide="user" class="me-2 text-primary"></i>Dados do Cliente</div>
                 <div class="card-body">
                     <div class="row g-3">
                         <div class="col-md-6">
@@ -78,9 +78,9 @@ require_once __DIR__ . '/../../includes/mensagens.php';
 
             <div class="card">
                 <div class="card-header d-flex justify-content-between align-items-center">
-                    <span><i class="fas fa-list me-2 text-primary"></i>Itens do Orçamento</span>
+                    <span><i data-lucide="list" class="me-2 text-primary"></i>Itens do Orçamento</span>
                     <button type="button" class="btn btn-sm btn-outline-primary" onclick="adicionarItem()">
-                        <i class="fas fa-plus me-1"></i>Adicionar Item
+                        <i data-lucide="plus" class="me-1"></i>Adicionar Item
                     </button>
                 </div>
                 <div class="card-body">
@@ -105,7 +105,7 @@ require_once __DIR__ . '/../../includes/mensagens.php';
 
     <div class="col-lg-4">
         <div class="card sticky-top" style="top: 80px;">
-            <div class="card-header"><i class="fas fa-calculator me-2 text-primary"></i>Resumo</div>
+            <div class="card-header"><i data-lucide="calculator" class="me-2 text-primary"></i>Resumo</div>
             <div class="card-body">
                 <div class="d-flex justify-content-between mb-2">
                     <span>Peças:</span><strong id="totalPecas">R$ 0,00</strong>
@@ -119,7 +119,7 @@ require_once __DIR__ . '/../../includes/mensagens.php';
                     <strong class="h4 mb-0 text-primary" id="totalGeral">R$ 0,00</strong>
                 </div>
                 <button type="submit" form="formOrcamento" class="btn btn-success btn-lg w-100 btn-icon" onclick="return validarOrcamento()">
-                    <i class="fas fa-save"></i> Atualizar Orçamento
+                    <i data-lucide="save"></i> Atualizar Orçamento
                 </button>
             </div>
         </div>
@@ -167,10 +167,11 @@ function adicionarItem(pecaIdSelecionada = '', servicoIdSelecionado = '', tipo =
         <td><input type="number" class="form-control form-control-sm qtd-item" id="qtd_${id}" value="${qtdTxt}" min="1" onchange="atualizarSubtotal(${id})"></td>
         <td><input type="text" class="form-control form-control-sm preco-item" id="preco_${id}" value="R$ 0,00" readonly></td>
         <td><strong class="subtotal-item" id="subtotal_${id}">R$ 0,00</strong></td>
-        <td><button type="button" class="btn btn-link text-danger p-0" onclick="removerItem(${id})"><i class="fas fa-times"></i></button></td>
+        <td><button type="button" class="btn btn-link text-danger p-0" onclick="removerItem(${id})"><i data-lucide="x"></i></button></td>
     `;
 
     document.getElementById('corpoItens').appendChild(row);
+    if (typeof lucide !== 'undefined') lucide.createIcons();
 
     // Se há preço pré-definido (item existente), aplicar
     if (qtdTxt && qtdTxt !== '1' || pecaIdSelecionada || servicoIdSelecionado) {
@@ -205,6 +206,7 @@ function mudarTipo(id) {
     }
 
     celItem.innerHTML = options;
+    if (typeof lucide !== 'undefined') lucide.createIcons();
     atualizarPreco(id);
 }
 

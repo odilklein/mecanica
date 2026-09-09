@@ -6,34 +6,57 @@ $titulo_pagina = "Novo Orçamento";
 require_once __DIR__ . '/../../includes/header.php';
 require_once __DIR__ . '/../../includes/mensagens.php';
 
-// Buscar peças e serviços para selects
-$pecas = $conn->query("SELECT * FROM pecas WHERE quantidade > 0 ORDER BY nome")->fetchAll();
+$clientes = $conn->query("SELECT id, nome FROM clientes ORDER BY nome")->fetchAll();
 $servicos = $conn->query("SELECT * FROM servicos WHERE ativo = 1 ORDER BY nome")->fetchAll();
+$pecas = $conn->query("SELECT * FROM pecas WHERE quantidade > 0 ORDER BY nome")->fetchAll();
 ?>
 
 <div class="page-header">
     <div>
-        <h1><i class="fas fa-file-invoice text-primary me-2"></i>Novo Orçamento</h1>
-        <span class="page-subtitle">Crie um orçamento com peças e serviços</span>
+        <h1><i data-lucide="file-text" class="text-primary me-2"></i>Novo Orçamento</h1>
+        <span class="page-subtitle">Crie um orçamento em 3 passos: cliente, itens e revisão</span>
     </div>
     <a href="listar.php" class="btn btn-outline-secondary btn-icon">
-        <i class="fas fa-arrow-left"></i> Voltar
+        <i data-lucide="arrow-left"></i> Voltar
     </a>
 </div>
 
-<div class="row">
-    <div class="col-lg-8">
-        <form method="POST" action="processar.php?acao=cadastrar" id="formOrcamento">
-            <!-- Dados do cliente e veículo -->
-            <div class="card mb-3">
-                <div class="card-header"><i class="fas fa-user me-2 text-primary"></i>Dados do Cliente</div>
+<form method="POST" action="processar.php?acao=cadastrar" id="formOrcamento">
+    <div class="row">
+        <div class="col-lg-8">
+            <!-- Progresso do wizard -->
+            <div class="wizard-progress">
+                <div class="wizard-step active" id="wz1">
+                    <span class="step-num"><i data-lucide="user"></i></span>
+                    <span class="step-label">Cliente e Veículo</span>
+                </div>
+                <div class="wizard-step" id="wz2">
+                    <span class="step-num"><i data-lucide="list"></i></span>
+                    <span class="step-label">Itens do Orçamento</span>
+                </div>
+                <div class="wizard-step" id="wz3">
+                    <span class="step-num"><i data-lucide="check"></i></span>
+                    <span class="step-label">Revisão</span>
+                </div>
+            </div>
+
+            <!-- ETAPA 1: Cliente e Veículo -->
+            <div class="card wizard-panel active" id="painel1">
                 <div class="card-body">
+                    <div class="panel-header">
+                        <i data-lucide="user-cog"></i>
+                        <div>
+                            <p class="panel-title">Identifique o cliente e o veículo</p>
+                            <p class="panel-subtitle">Selecione o cliente para carregar os veículos cadastrados.</p>
+                        </div>
+                    </div>
+
                     <div class="row g-3">
                         <div class="col-md-6">
                             <label for="cliente_id" class="form-label">Cliente *</label>
                             <select class="form-select" id="cliente_id" name="cliente_id" required onchange="carregarVeiculos(this.value, 'veiculo_id', null)">
                                 <option value="">-- Selecione o cliente --</option>
-                                <?php foreach ($conn->query("SELECT id, nome FROM clientes ORDER BY nome")->fetchAll() as $c): ?>
+                                <?php foreach ($clientes as $c): ?>
                                     <option value="<?php echo $c['id']; ?>"><?php echo limpar($c['nome']); ?></option>
                                 <?php endforeach; ?>
                             </select>
@@ -56,277 +79,356 @@ $servicos = $conn->query("SELECT * FROM servicos WHERE ativo = 1 ORDER BY nome")
                 </div>
             </div>
 
-            <!-- Itens do orçamento -->
-            <div class="card">
-                <div class="card-header d-flex justify-content-between align-items-center">
-                    <span><i class="fas fa-list me-2 text-primary"></i>Itens do Orçamento</span>
-                    <button type="button" class="btn btn-sm btn-outline-primary" onclick="adicionarItem()">
-                        <i class="fas fa-plus me-1"></i>Adicionar Item
-                    </button>
-                </div>
+            <!-- ETAPA 2: Itens (serviços e peças) -->
+            <div class="card wizard-panel" id="painel2">
                 <div class="card-body">
-                    <table class="table table-sm" id="tabelaItens">
-                        <thead>
-                            <tr>
-                                <th style="width: 20%">Tipo</th>
-                                <th>Item</th>
-                                <th style="width: 90px">Qtd</th>
-                                <th style="width: 130px">Preço</th>
-                                <th style="width: 130px">Subtotal</th>
-                                <th style="width: 40px"></th>
-                            </tr>
-                        </thead>
-                        <tbody id="corpoItens">
-                            <!-- Itens serão adicionados via JS -->
-                        </tbody>
-                    </table>
-                    <p class="text-muted mb-0"><small><i class="fas fa-info-circle me-1"></i>Clique em "Adicionar Item" para incluir peças ou serviços no orçamento.</small></p>
+                    <div class="panel-header">
+                        <i data-lucide="hammer"></i>
+                        <div>
+                            <p class="panel-title">Selecione os serviços</p>
+                            <p class="panel-subtitle">Marque um ou mais serviços. A quantidade padrão é 1.</p>
+                        </div>
+                    </div>
+
+                    <?php if (empty($servicos)): ?>
+                        <div class="empty-state">
+                            <i data-lucide="wrench"></i>
+                            <h4>Nenhum serviço cadastrado</h4>
+                            <p>Cadastre serviços para incluir mão de obra no orçamento.</p>
+                        </div>
+                    <?php else: ?>
+                        <div class="row g-3 mb-4">
+                            <?php foreach ($servicos as $s): ?>
+                                <div class="col-md-6">
+                                    <div class="select-card selecionavel" data-tipo="servico" data-id="<?php echo $s['id']; ?>" data-preco="<?php echo $s['preco_mao_obra']; ?>" onclick="toggleCard(this)">
+                                        <div class="check-badge"><i data-lucide="check"></i></div>
+                                        <div class="select-card-title"><?php echo limpar($s['nome']); ?></div>
+                                        <div class="select-card-desc"><?php echo formatar_moeda($s['preco_mao_obra']); ?> por serviço<?php if (!empty($s['tempo_estimado'])): ?> · ~<?php echo limpar($s['tempo_estimado']); ?>h<?php endif; ?></div>
+                                        <div class="qtd-wrap" onclick="event.stopPropagation()">
+                                            <label>Qtd.</label>
+                                            <input type="number" class="form-control form-control-sm qtd-select" value="1" min="1" onchange="atualizarTotais()">
+                                        </div>
+                                    </div>
+                                </div>
+                            <?php endforeach; ?>
+                        </div>
+
+                        <div class="panel-header mt-4">
+                            <i data-lucide="package"></i>
+                            <div>
+                                <p class="panel-title">Selecione as peças</p>
+                                <p class="panel-subtitle">Peças disponíveis em estoque. A quantidade não pode exceder o estoque.</p>
+                            </div>
+                        </div>
+
+                        <?php if (empty($pecas)): ?>
+                            <div class="empty-state">
+                                <i data-lucide="box"></i>
+                                <h4>Nenhuma peça em estoque</h4>
+                                <p>Cadastre peças para incluí-las no orçamento.</p>
+                            </div>
+                        <?php else: ?>
+                            <div class="row g-3">
+                                <?php foreach ($pecas as $p): ?>
+                                    <div class="col-md-6">
+                                        <div class="select-card selecionavel" data-tipo="peca" data-id="<?php echo $p['id']; ?>" data-preco="<?php echo $p['preco_venda']; ?>" onclick="toggleCard(this)">
+                                            <div class="check-badge"><i data-lucide="check"></i></div>
+                                            <div class="select-card-title"><?php echo limpar($p['nome']); ?></div>
+                                            <div class="select-card-desc"><?php echo formatar_moeda($p['preco_venda']); ?> · Estoque: <?php echo (int)$p['quantidade']; ?></div>
+                                            <div class="qtd-wrap" onclick="event.stopPropagation()">
+                                                <label>Qtd.</label>
+                                                <input type="number" class="form-control form-control-sm qtd-select" value="1" min="1" max="<?php echo (int)$p['quantidade']; ?>" onchange="atualizarTotais()">
+                                            </div>
+                                        </div>
+                                    </div>
+                                <?php endforeach; ?>
+                            </div>
+                        <?php endif; ?>
+                    <?php endif; ?>
+
+                    <div class="d-flex align-items-center gap-2 mt-4 text-muted">
+                        <i data-lucide="info" class="icon-sm"></i>
+                        <small>Os itens selecionados aparecem na revisão, na próxima etapa.</small>
+                    </div>
                 </div>
             </div>
-        </form>
-    </div>
 
-    <!-- Resumo do orçamento -->
-    <div class="col-lg-4">
-        <div class="card sticky-top" style="top: 80px;">
-            <div class="card-header"><i class="fas fa-calculator me-2 text-primary"></i>Resumo</div>
-            <div class="card-body">
-                <div class="d-flex justify-content-between mb-2">
-                    <span>Peças:</span>
-                    <strong id="totalPecas">R$ 0,00</strong>
+            <!-- ETAPA 3: Revisão -->
+            <div class="card wizard-panel" id="painel3">
+                <div class="card-body">
+                    <div class="panel-header">
+                        <i data-lucide="clipboard-check"></i>
+                        <div>
+                            <p class="panel-title">Revise o orçamento</p>
+                            <p class="panel-subtitle">Confira os itens e valores antes de salvar.</p>
+                        </div>
+                    </div>
+
+                    <div id="resumoCliente" class="mb-4"></div>
+
+                    <div class="d-flex align-items-center gap-2 mb-2">
+                        <h6 class="mb-0">Itens</h6>
+                        <button type="button" class="btn btn-sm btn-link" onclick="irParaEtapa(2)">Editar itens</button>
+                    </div>
+                    <div class="item-lista mb-4" id="listaItens"></div>
+
+                    <div class="totals-resumo">
+                        <div class="d-flex justify-content-between py-1">
+                            <span>Peças:</span>
+                            <strong id="totalPecas">R$ 0,00</strong>
+                        </div>
+                        <div class="d-flex justify-content-between py-1">
+                            <span>Mão de Obra:</span>
+                            <strong id="totalServicos">R$ 0,00</strong>
+                        </div>
+                        <div class="d-flex justify-content-between py-2 grand-total">
+                            <span class="h5 mb-0">TOTAL:</span>
+                            <strong class="h4 mb-0 text-primary" id="totalGeral">R$ 0,00</strong>
+                        </div>
+                    </div>
                 </div>
-                <div class="d-flex justify-content-between mb-2">
-                    <span>Mão de Obra:</span>
-                    <strong id="totalServicos">R$ 0,00</strong>
+            </div>
+        </div>
+
+        <!-- Lateral -->
+        <div class="col-lg-4">
+            <div class="card sticky-top" style="top: 80px;">
+                <div class="card-header"><i data-lucide="calculator" class="me-2 text-primary"></i>Resumo</div>
+                <div class="card-body">
+                    <div class="d-flex justify-content-between mb-2">
+                        <span>Itens selecionados:</span>
+                        <strong id="contadorItens">0</strong>
+                    </div>
+                    <div class="d-flex justify-content-between mb-2">
+                        <span>Peças:</span>
+                        <strong id="totalPecasLateral">R$ 0,00</strong>
+                    </div>
+                    <div class="d-flex justify-content-between mb-2">
+                        <span>Mão de Obra:</span>
+                        <strong id="totalServicosLateral">R$ 0,00</strong>
+                    </div>
+                    <hr>
+                    <div class="d-flex justify-content-between mb-3">
+                        <span class="h5 mb-0">TOTAL:</span>
+                        <strong class="h4 mb-0 text-primary" id="totalGeralLateral">R$ 0,00</strong>
+                    </div>
+                    <button type="button" id="btnProximo" class="btn btn-primary btn-lg w-100 btn-icon" onclick="irParaEtapa(2)">
+                        <i data-lucide="arrow-right"></i> Próximo
+                    </button>
+                    <button type="button" id="btnVoltar" class="btn btn-outline-secondary btn-lg w-100 btn-icon mt-2" style="display:none" onclick="irParaEtapa(1)">
+                        <i data-lucide="arrow-left"></i> Voltar
+                    </button>
+                    <button type="submit" id="btnSalvar" class="btn btn-success btn-lg w-100 btn-icon mt-2" style="display:none" onclick="return validarOrcamento()">
+                        <i data-lucide="save"></i> Salvar Orçamento
+                    </button>
                 </div>
-                <hr>
-                <div class="d-flex justify-content-between mb-3">
-                    <span class="h5 mb-0">TOTAL:</span>
-                    <strong class="h4 mb-0 text-primary" id="totalGeral">R$ 0,00</strong>
-                </div>
-                <button type="submit" form="formOrcamento" class="btn btn-success btn-lg w-100 btn-icon" onclick="return validarOrcamento()">
-                    <i class="fas fa-save"></i> Salvar Orçamento
-                </button>
             </div>
         </div>
     </div>
-</div>
+</form>
 
 <script>
-const pecas = <?php echo json_encode($pecas); ?>;
-const servicos = <?php echo json_encode($servicos); ?>;
+const fmtMoeda = v => v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 
-let contadorItem = 0;
+// ============ WIZARD NAVEGAÇÃO ============
+let etapaAtual = 1;
 
-// Dados de peças e serviços para busca
-function adicionarItem(pecaIdSelecionada = '', servicoIdSelecionado = '', tipo = 'peca', qtdTxt = '') {
-    contadorItem++;
-    const id = contadorItem;
-    const tipoHtml = `
-        <select class="form-select form-select-sm tipo-item" id="tipo_${id}" onchange="mudarTipo(${id})">
-            <option value="peca" ${tipo === 'peca' ? 'selected' : ''}>Peça</option>
-            <option value="servico" ${tipo === 'servico' ? 'selected' : ''}>Serviço</option>
-        </select>
-    `;
-
-    // Preencher selects com as opções
-    let selectPeca = '<select class="form-select form-select-sm item-select" id="item_peca_' + id + '" onchange="atualizarPreco(' + id + ')">';
-    selectPeca += '<option value="">-- Selecione a peça --</option>';
-    pecas.forEach(p => {
-        selectPeca += `<option value="${p.id}" data-preco="${p.preco_venda}" data-nome="${p.nome.replace(/'/g, "\\'")}" ${pecaIdSelecionada === p.id.toString() ? 'selected' : ''}>${p.nome} (em estoque: ${p.quantidade})</option>`;
-    });
-    selectPeca += '</select>';
-
-    let selectServico = '<select class="form-select form-select-sm item-select" id="item_servico_' + id + '" onchange="atualizarPreco(' + id + ')">';
-    selectServico += '<option value="">-- Selecione o serviço --</option>';
-    servicos.forEach(s => {
-        selectServico += `<option value="${s.id}" data-preco="${s.preco_mao_obra}" data-nome="${s.nome.replace(/'/g, "\\'")}" ${servicoIdSelecionado === s.id.toString() ? 'selected' : ''}>${s.nome}</option>`;
-    });
-    selectServico += '</select>';
-
-    const row = document.createElement('tr');
-    row.id = 'linha_' + id;
-    row.innerHTML = `
-        <td>${tipoHtml}</td>
-        <td id="celItem_${id}">${tipo === 'servico' ? selectServico : selectPeca}</td>
-        <td><input type="number" class="form-control form-control-sm qtd-item" id="qtd_${id}" value="${qtdTxt || 1}" min="1" onchange="atualizarSubtotal(${id})"></td>
-        <td><input type="text" class="form-control form-control-sm preco-item" id="preco_${id}" value="R$ 0,00" readonly></td>
-        <td><strong class="subtotal-item" id="subtotal_${id}">R$ 0,00</strong></td>
-        <td><button type="button" class="btn btn-link text-danger p-0" onclick="removerItem(${id})"><i class="fas fa-times"></i></button></td>
-    `;
-
-    document.getElementById('corpoItens').appendChild(row);
-    atualizarPreco(id);
-}
-
-function mudarTipo(id) {
-    const tipo = document.getElementById('tipo_' + id).value;
-    const celItem = document.getElementById('celItem_' + id);
-
-    let options = '';
-    if (tipo === 'peca') {
-        options = '<select class="form-select form-select-sm item-select" id="item_peca_' + id + '" onchange="atualizarPreco(' + id + ')">';
-        options += '<option value="">-- Selecione a peça --</option>';
-        pecas.forEach(p => {
-            options += `<option value="${p.id}" data-preco="${p.preco_venda}" data-nome="${p.nome.replace(/'/g, "\\'")}">${p.nome} (em estoque: ${p.quantidade})</option>`;
-        });
-        options += '</select>';
-    } else {
-        options = '<select class="form-select form-select-sm item-select" id="item_servico_' + id + '" onchange="atualizarPreco(' + id + ')">';
-        options += '<option value="">-- Selecione o serviço --</option>';
-        servicos.forEach(s => {
-            options += `<option value="${s.id}" data-preco="${s.preco_mao_obra}" data-nome="${s.nome.replace(/'/g, "\\'")}">${s.nome}</option>`;
-        });
-        options += '</select>';
+function setEtapa(n) {
+    etapaAtual = n;
+    for (let i = 1; i <= 3; i++) {
+        document.getElementById('painel' + i).classList.toggle('active', i === n);
+        document.getElementById('wz' + i).classList.toggle('active', i === n);
+        document.getElementById('wz' + i).classList.toggle('completed', i < n);
     }
+    document.getElementById('btnProximo').style.display = n === 3 ? 'none' : '';
+    document.getElementById('btnVoltar').style.display = n === 1 ? 'none' : '';
+    document.getElementById('btnSalvar').style.display = n === 3 ? '' : 'none';
 
-    celItem.innerHTML = options;
-    atualizarPreco(id);
+    if (n === 3) renderResumo();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
-function atualizarPreco(id) {
-    const tipo = document.getElementById('tipo_' + id).value;
-    const selectId = tipo === 'peca' ? 'item_peca_' + id : 'item_servico_' + id;
-    const select = document.getElementById(selectId);
-    const preco = select.options[select.selectedIndex].dataset.preco || '0';
-    document.getElementById('preco_' + id).value = 'R$ ' + parseFloat(preco).toFixed(2).replace('.', ',');
-
-    // Se for serviço, quantidade fica 1
-    if (tipo === 'servico') {
-        document.getElementById('qtd_' + id).value = 1;
-        document.getElementById('qtd_' + id).readOnly = true;
-    } else {
-        document.getElementById('qtd_' + id).readOnly = false;
+function irParaEtapa(n) {
+    if (n > etapaAtual) {
+        if (!validarEtapa(etapaAtual)) return;
     }
-
-    atualizarSubtotal(id);
+    setEtapa(n);
 }
 
-function atualizarSubtotal(id) {
-    const tipo = document.getElementById('tipo_' + id).value;
-    const qtd = parseInt(document.getElementById('qtd_' + id).value) || 0;
-    const precoTxt = document.getElementById('preco_' + id).value.replace('R$ ', '').replace('.', '').replace(',', '.');
-    const preco = parseFloat(precoTxt) || 0;
-    const subtotal = qtd * preco;
-    document.getElementById('subtotal_' + id).textContent = 'R$ ' + subtotal.toFixed(2).replace('.', ',').replace(/\B(?=(\d{3})+(?!\d))/g, '.');
-    calcularTotais();
-}
-
-function removerItem(id) {
-    document.getElementById('linha_' + id).remove();
-    calcularTotais();
-}
-
-function calcularTotais() {
-    let totalPecas = 0, totalServicos = 0;
-    document.querySelectorAll('#corpoItens tr').forEach(row => {
-        const id = row.id.replace('linha_', '');
-        const tipo = document.getElementById('tipo_' + id).value;
-        const subtotalTxt = document.getElementById('subtotal_' + id).textContent.replace('R$ ', '').replace('.', '').replace(',', '.');
-        const subtotal = parseFloat(subtotalTxt) || 0;
-        if (tipo === 'peca') totalPecas += subtotal;
-        else totalServicos += subtotal;
-    });
-
-    const fmt = v => 'R$ ' + v.toFixed(2).replace('.', ',').replace(/\B(?=(\d{3})+(?!\d))/g, '.');
-    document.getElementById('totalPecas').textContent = fmt(totalPecas);
-    document.getElementById('totalServicos').textContent = fmt(totalServicos);
-    document.getElementById('totalGeral').textContent = fmt(totalPecas + totalServicos);
-
-    // Salvar valores em inputs hidden
-    let hiddenPecas = document.getElementById('hidden_total_pecas');
-    let hiddenServicos = document.getElementById('hidden_total_servicos');
-    let hiddenGeral = document.getElementById('hidden_total_geral');
-    if (!hiddenPecas) {
-        const form = document.getElementById('formOrcamento');
-        hiddenPecas = document.createElement('input');
-        hiddenPecas.type = 'hidden';
-        hiddenPecas.name = 'total_pecas';
-        hiddenPecas.id = 'hidden_total_pecas';
-        form.appendChild(hiddenPecas);
-
-        hiddenServicos = document.createElement('input');
-        hiddenServicos.type = 'hidden';
-        hiddenServicos.name = 'total_servicos';
-        hiddenServicos.id = 'hidden_total_servicos';
-        form.appendChild(hiddenServicos);
-
-        hiddenGeral = document.createElement('input');
-        hiddenGeral.type = 'hidden';
-        hiddenGeral.name = 'total_geral';
-        hiddenGeral.id = 'hidden_total_geral';
-        form.appendChild(hiddenGeral);
-    }
-    hiddenPecas.value = totalPecas;
-    hiddenServicos.value = totalServicos;
-    hiddenGeral.value = totalPecas + totalServicos;
-}
-
-function validarOrcamento() {
-    const itens = document.querySelectorAll('#corpoItens tr');
-    if (itens.length === 0) {
-        alert('Adicione pelo menos um item ao orçamento.');
-        return false;
-    }
-
-    // Verifica se todos os itens foram selecionados
-    for (const row of itens) {
-        const id = row.id.replace('linha_', '');
-        const tipo = document.getElementById('tipo_' + id).value;
-        const selectId = tipo === 'peca' ? 'item_peca_' + id : 'item_servico_' + id;
-        const select = document.getElementById(selectId);
-        if (!select.value) {
-            alert('Selecione todos os itens do orçamento.');
+function validarEtapa(n) {
+    if (n === 1) {
+        if (!document.getElementById('cliente_id').value) {
+            alert('Selecione o cliente para continuar.');
             return false;
         }
-        // Verifica estoque para peças
-        if (tipo === 'peca') {
-            const qtd = parseInt(document.getElementById('qtd_' + id).value) || 0;
-            const opt = select.options[select.selectedIndex];
-            const nomeTxt = opt.dataset.nome;
-            const p = pecas.find(p => p.id === parseInt(select.value));
-            if (p && qtd > p.quantidade) {
-                alert('Estoque insuficiente de "' + nomeTxt + '". Disponível: ' + p.quantidade + ' unidade(s).');
-                return false;
-            }
+    } else if (n === 2) {
+        if (contarSelecionados() === 0) {
+            alert('Selecione pelo menos um serviço ou peça.');
+            return false;
         }
     }
-
-    definirItensHidden();
     return true;
 }
 
-function definirItensHidden() {
-    // Remove any existing hidden items
+// ============ SELEÇÃO DE ITENS (CARDS) ============
+function toggleCard(card) {
+    card.classList.toggle('selected');
+    atualizarTotais();
+}
+
+function getCards() {
+    return document.querySelectorAll('.select-card.selecionavel');
+}
+
+function cardsSelecionados() {
+    return Array.from(getCards()).filter(c => c.classList.contains('selected'));
+}
+
+function contarSelecionados() {
+    return cardsSelecionados().length;
+}
+
+function atualizarTotais() {
+    const cards = cardsSelecionados();
+    let totalPecas = 0, totalServicos = 0;
+
+    document.getElementById('contadorItens').textContent = cards.length;
+
+    cards.forEach(c => {
+        const qtd = parseInt(c.querySelector('.qtd-select').value) || 1;
+        const preco = parseFloat(c.dataset.preco) || 0;
+        const subtotal = qtd * preco;
+        if (c.dataset.tipo === 'peca') totalPecas += subtotal;
+        else totalServicos += subtotal;
+    });
+
+    document.getElementById('totalPecas').textContent = fmtMoeda(totalPecas);
+    document.getElementById('totalServicos').textContent = fmtMoeda(totalServicos);
+    document.getElementById('totalGeral').textContent = fmtMoeda(totalPecas + totalServicos);
+
+    document.getElementById('totalPecasLateral').textContent = fmtMoeda(totalPecas);
+    document.getElementById('totalServicosLateral').textContent = fmtMoeda(totalServicos);
+    document.getElementById('totalGeralLateral').textContent = fmtMoeda(totalPecas + totalServicos);
+}
+
+// ============ REVISÃO ============
+function renderResumo() {
+    const clienteSel = document.getElementById('cliente_id');
+    const veiculoSel = document.getElementById('veiculo_id');
+    const clienteTexto = clienteSel.options[clienteSel.selectedIndex] ? clienteSel.options[clienteSel.selectedIndex].text : '';
+    const veiculoTexto = veiculoSel.value ? veiculoSel.options[veiculoSel.selectedIndex].text : 'Veículo não informado';
+
+    document.getElementById('resumoCliente').innerHTML = `
+        <div class="item-linha">
+            <div class="item-tipo"><i data-lucide="user"></i></div>
+            <div>
+                <div class="item-nome">${clienteTexto}</div>
+                <div class="item-preco">${veiculoTexto}</div>
+            </div>
+        </div>
+    `;
+
+    const lista = document.getElementById('listaItens');
+    lista.innerHTML = '';
+    const cards = cardsSelecionados();
+
+    if (cards.length === 0) {
+        lista.innerHTML = '<p class="text-muted mb-0">Nenhum item selecionado.</p>';
+    }
+
+    cards.forEach(c => {
+        const nome = c.querySelector('.select-card-title').textContent.trim();
+        const qtd = parseInt(c.querySelector('.qtd-select').value) || 1;
+        const preco = parseFloat(c.dataset.preco) || 0;
+        const subtotal = qtd * preco;
+        const ehServico = c.dataset.tipo === 'servico';
+
+        const linha = document.createElement('div');
+        linha.className = 'item-linha';
+        linha.innerHTML = `
+            <div class="item-tipo">${ehServico ? '<i data-lucide="wrench"></i>' : '<i data-lucide="package"></i>'}</div>
+            <div>
+                <div class="item-nome">${nome}${ehServico ? ' (serviço)' : ''}</div>
+                <div class="item-preco">${qtd} × ${fmtMoeda(preco)}</div>
+            </div>
+            <div class="item-preco" style="margin-left: auto">${fmtMoeda(subtotal)}</div>
+            <button type="button" class="btn-remove" title="Remover" onclick="removerSelecao(this)"><i data-lucide="trash-2"></i></button>
+        `;
+        lista.appendChild(linha);
+    });
+
+    if (typeof lucide !== 'undefined') lucide.createIcons();
+    atualizarTotais();
+}
+
+function removerSelecao(btn) {
+    const lista = document.getElementById('listaItens');
+    const linha = btn.closest('.item-linha');
+    const idx = Array.from(linha.parentElement.children).indexOf(linha);
+
+    const cards = cardsSelecionados();
+    if (idx < cards.length) cards[idx].classList.remove('selected');
+
+    linha.remove();
+    atualizarTotais();
+    renderResumo();
+}
+
+// ============ SUBMISSÃO ============
+function validarOrcamento() {
+    if (!validarEtapa(2)) {
+        setEtapa(2);
+        return false;
+    }
+    if (!document.getElementById('cliente_id').value) {
+        alert('Selecione o cliente.');
+        setEtapa(1);
+        return false;
+    }
+
     document.querySelectorAll('input[name="itens[]"]').forEach(el => el.remove());
 
-    document.querySelectorAll('#corpoItens tr').forEach(row => {
-        const id = row.id.replace('linha_', '');
-        const tipo = document.getElementById('tipo_' + id).value;
-        const selectId = tipo === 'peca' ? 'item_peca_' + id : 'item_servico_' + id;
-        const select = document.getElementById(selectId);
-        const qtd = document.getElementById('qtd_' + id).value;
-        const precoTxt = document.getElementById('preco_' + id).value.replace('R$ ', '').replace('.', '').replace(',', '.');
-        const subtotalTxt = document.getElementById('subtotal_' + id).textContent.replace('R$ ', '').replace('.', '').replace(',', '.');
+    const form = document.getElementById('formOrcamento');
+    let totalPecas = 0, totalServicos = 0;
 
-        const form = document.getElementById('formOrcamento');
+    cardsSelecionados().forEach(c => {
+        const tipo = c.dataset.tipo;
+        const qtd = parseInt(c.querySelector('.qtd-select').value) || 1;
+        const preco = parseFloat(c.dataset.preco) || 0;
+        const subtotal = qtd * preco;
+        if (tipo === 'peca') totalPecas += subtotal;
+        else totalServicos += subtotal;
+
         const hidden = document.createElement('input');
         hidden.type = 'hidden';
         hidden.name = 'itens[]';
         hidden.value = JSON.stringify({
             tipo: tipo,
-            item_id: select.value,
-            quantidade: parseInt(qtd) || 1,
-            preco: parseFloat(precoTxt) || 0,
-            subtotal: parseFloat(subtotalTxt) || 0
+            item_id: c.dataset.id,
+            quantidade: qtd,
+            preco: preco,
+            subtotal: subtotal
         });
         form.appendChild(hidden);
     });
+
+    const totalGeral = totalPecas + totalServicos;
+    const h1 = document.createElement('input'); h1.type = 'hidden'; h1.name = 'total_pecas'; h1.value = totalPecas; form.appendChild(h1);
+    const h2 = document.createElement('input'); h2.type = 'hidden'; h2.name = 'total_servicos'; h2.value = totalServicos; form.appendChild(h2);
+    const h3 = document.createElement('input'); h3.type = 'hidden'; h3.name = 'total_geral'; h3.value = totalGeral; form.appendChild(h3);
+
+    return true;
 }
 
-// Adicionar um item inicial vazio
-adicionarItem();
-
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Enter' && e.target.tagName !== 'TEXTAREA') {
+        const alvo = e.target;
+        if (alvo.tagName === 'INPUT' || alvo.tagName === 'SELECT') {
+            e.preventDefault();
+            irParaEtapa(etapaAtual + 1);
+        }
+    }
+});
 </script>
 
 <?php require_once __DIR__ . '/../../includes/footer.php'; ?>

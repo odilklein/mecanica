@@ -3,22 +3,28 @@
 // CONEXÃO COM O BANCO DE DADOS
 // =============================================
 
-define('DB_HOST', 'localhost');
-define('DB_USER', 'root');
-define('DB_PASS', '');
-define('DB_NAME', 'mecanica');
+$db_host = getenv('DB_HOST') ?: 'localhost';
+$db_user = getenv('DB_USER') ?: 'root';
+$db_pass = getenv('DB_PASS') ?: '';
+$db_name = getenv('DB_NAME') ?: 'mecanica';
 
 try {
-    $conn = new PDO("mysql:host=" . DB_HOST . ";dbname=" . DB_NAME . ";charset=utf8mb4", DB_USER, DB_PASS);
+    $conn = new PDO("mysql:host=" . $db_host . ";dbname=" . $db_name . ";charset=utf8mb4", $db_user, $db_pass);
     $conn->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
     $conn->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_ASSOC);
 } catch (PDOException $e) {
-    die("Erro na conexão com o banco de dados: " . $e->getMessage());
+    error_log($e->getMessage());
+    http_response_code(500);
+    die("Não foi possível conectar ao banco de dados.");
 }
 
 // Função para escapar dados e evitar XSS
 function limpar($dado) {
-    return htmlspecialchars(trim($dado), ENT_QUOTES, 'UTF-8');
+    return trim((string) $dado);
+}
+
+function esc($dado) {
+    return htmlspecialchars((string) $dado, ENT_QUOTES, 'UTF-8');
 }
 
 // Função para formatar moeda

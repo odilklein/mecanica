@@ -3,6 +3,9 @@
 // =============================================
 
 document.addEventListener('DOMContentLoaded', function() {
+    if (typeof lucide !== 'undefined') {
+        lucide.createIcons();
+    }
     initTooltips();
     initSidebar();
     initTheme();
@@ -39,17 +42,7 @@ function initSidebar() {
         sidebar.classList.toggle('collapsed');
         const isCollapsed = sidebar.classList.contains('collapsed');
         localStorage.setItem('sidebar', isCollapsed ? 'collapsed' : 'expanded');
-        updateCollapseBtn();
     });
-
-    function updateCollapseBtn() {
-        if (!btn.querySelector('i')) return;
-        btn.querySelector('i').className = sidebar.classList.contains('collapsed')
-            ? 'fas fa-chevron-right'
-            : 'fas fa-chevron-left';
-    }
-
-    updateCollapseBtn();
 }
 
 // =============================================
@@ -78,9 +71,12 @@ function initTheme() {
 
 function updateThemeIcon(toggle, isDark) {
     if (!toggle) return;
-    const icon = toggle.querySelector('i');
+    const icon = toggle.querySelector('[data-lucide]');
     if (!icon) return;
-    icon.className = isDark ? 'fas fa-sun' : 'fas fa-moon';
+    icon.setAttribute('data-lucide', isDark ? 'sun' : 'moon');
+    if (typeof lucide !== 'undefined') {
+        lucide.createIcons();
+    }
 }
 
 // =============================================

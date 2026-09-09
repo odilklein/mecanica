@@ -8,11 +8,11 @@ require_once __DIR__ . '/../../includes/header.php';
 
 <div class="page-header">
     <div>
-        <h1><i class="fas fa-user-plus text-primary me-2"></i>Novo Cliente</h1>
+        <h1><i data-lucide="user-plus" class="text-primary me-2"></i>Novo Cliente</h1>
         <span class="page-subtitle">Preencha os dados do cliente</span>
     </div>
     <a href="listar.php" class="btn btn-outline-secondary btn-icon">
-        <i class="fas fa-arrow-left"></i> Voltar
+        <i data-lucide="arrow-left"></i> Voltar
     </a>
 </div>
 
@@ -54,7 +54,7 @@ require_once __DIR__ . '/../../includes/header.php';
                     <div class="d-flex justify-content-between mt-4">
                         <a href="listar.php" class="btn btn-outline-secondary">Cancelar</a>
                         <button type="submit" class="btn btn-primary btn-icon">
-                            <i class="fas fa-save"></i> Salvar Cliente
+                            <i data-lucide="save"></i> Salvar Cliente
                         </button>
                     </div>
                 </form>

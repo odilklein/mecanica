@@ -13,20 +13,20 @@ $estoque_baixo = $stmt->fetch()['total'];
 
 <div class="page-header">
     <div>
-        <h1><i class="fas fa-boxes text-primary me-2"></i>Estoque de Peças</h1>
+        <h1><i data-lucide="boxes" class="text-primary me-2"></i>Estoque de Peças</h1>
         <span class="page-subtitle">Controle o estoque e as peças da oficina</span>
     </div>
     <div class="d-flex gap-2">
         <?php if ($estoque_baixo > 0): ?>
             <a href="listar.php#estoque-baixo" class="btn btn-outline-warning btn-icon">
-                <i class="fas fa-exclamation-triangle"></i> Estoque Baixo (<?php echo $estoque_baixo; ?>)
+                <i data-lucide="triangle-alert"></i> Estoque Baixo (<?php echo $estoque_baixo; ?>)
             </a>
         <?php endif; ?>
         <a href="entrada.php" class="btn btn-outline-success btn-icon">
-            <i class="fas fa-sign-in-alt"></i> Entrada de Estoque
+            <i data-lucide="log-in"></i> Entrada de Estoque
         </a>
         <a href="cadastrar.php" class="btn btn-primary btn-icon">
-            <i class="fas fa-plus"></i> Nova Peça
+            <i data-lucide="plus"></i> Nova Peça
         </a>
     </div>
 </div>
@@ -34,7 +34,7 @@ $estoque_baixo = $stmt->fetch()['total'];
 <div class="row mb-3 g-2">
     <div class="col-md-4">
         <div class="search-wrapper">
-            <i class="fas fa-search search-icon"></i>
+            <i data-lucide="search" class="search-icon"></i>
             <input type="text" class="form-control" id="buscarPeca" placeholder="Buscar peça...">
         </div>
     </div>
@@ -106,15 +106,15 @@ $estoque_baixo = $stmt->fetch()['total'];
                         <td><span class="badge badge-<?php echo $status_badge; ?>"><?php echo $status; ?></span></td>
                         <td class="actions-cell">
                             <a href="editar.php?id=<?php echo $p['id']; ?>" class="btn btn-outline-primary btn-sm" title="Editar">
-                                <i class="fas fa-edit"></i>
+                                <i data-lucide="pencil"></i>
                             </a>
                             <a href="entrada.php?peca_id=<?php echo $p['id']; ?>" class="btn btn-outline-success btn-sm" title="Dar entrada">
-                                <i class="fas fa-plus-circle"></i>
+                                <i data-lucide="circle-plus"></i>
                             </a>
                             <form method="POST" action="excluir.php" id="excluirPeca<?php echo $p['id']; ?>" class="d-inline" onsubmit="return confirmarExclusao('excluirPeca<?php echo $p['id']; ?>', 'Excluir a peça <?php echo addslashes($p['nome']); ?>?');">
                                 <input type="hidden" name="id" value="<?php echo $p['id']; ?>">
                                 <button type="submit" class="btn btn-outline-danger btn-sm" title="Excluir">
-                                    <i class="fas fa-trash"></i>
+                                    <i data-lucide="trash-2"></i>
                                 </button>
                             </form>
                         </td>
@@ -123,11 +123,11 @@ $estoque_baixo = $stmt->fetch()['total'];
                     <tr>
                         <td colspan="9">
                             <div class="empty-state">
-                                <i class="fas fa-box-open"></i>
+                                <i data-lucide="package-open"></i>
                                 <h4>Nenhuma peça cadastrada</h4>
                                 <p>Cadastre as peças para controlar o estoque da oficina.</p>
                                 <a href="cadastrar.php" class="btn btn-primary btn-icon">
-                                    <i class="fas fa-plus"></i> Cadastrar Peça
+                                    <i data-lucide="plus"></i> Cadastrar Peça
                                 </a>
                             </div>
                         </td>
