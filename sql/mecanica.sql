@@ -156,7 +156,7 @@ CREATE TABLE IF NOT EXISTS movimentacoes_estoque (
 -- USUÁRIO PADRÃO (login: admin@mecanica.com / senha: admin123)
 -- =============================================
 INSERT INTO usuarios (nome, email, senha, tipo) VALUES
-('Administrador', 'admin@mecanica.com', '$2y$10$e0MYzXyjpJS7Pd0RVvHwHeBj9pL0q3vV4hU0C5nKqYkW1iR5Cv3pS', 'admin');
+('Administrador', 'admin@mecanica.com', '$2y$10$.491K1gK9aEtg0umHZfhDeWJ/w80tt5SEJT9rfcHKBDkt5keW.Z6S', 'admin');
 
 -- =============================================
 -- SERVIÇOS PADRÃO
