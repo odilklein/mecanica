@@ -83,7 +83,8 @@ $stmt_top_clientes = $conn->query("
 ");
 $top_clientes = $stmt_top_clientes->fetchAll();
 
-$mes_nome = strftime('%B', mktime(0, 0, 0, $mes_atual, 1));
+$nomes_meses = [1 => 'janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho', 'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro'];
+$mes_nome = $nomes_meses[(int) $mes_atual];
 require_once __DIR__ . '/../../includes/header.php';
 ?>
 

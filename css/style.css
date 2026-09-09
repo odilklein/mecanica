@@ -87,9 +87,12 @@ body {
     min-height: 100vh;
     overflow-x: hidden;
     transition: background-color 0.3s ease, color 0.3s ease;
+    color-scheme: light;
 }
 
-color-scheme: dark;
+body.dark {
+    color-scheme: dark;
+}
 
 h1, h2, h3, h4, h5, h6 {
     font-weight: 600;
@@ -402,8 +405,7 @@ a {
     transition: left 0.2s ease, background-color 0.3s ease, border-color 0.3s ease;
 }
 
-.sidebar.collapsed ~ .main-wrapper .topbar,
-body.collapsed-sidebar .topbar {
+.sidebar.collapsed ~ .main-wrapper .topbar {
     left: var(--sidebar-collapsed);
 }
 
@@ -565,7 +567,7 @@ body.collapsed-sidebar .topbar {
     animation: fadeIn 0.3s ease;
 }
 
-body.collapsed-sidebar .main-wrapper {
+.sidebar.collapsed ~ .main-wrapper {
     margin-left: var(--sidebar-collapsed);
 }
 
@@ -981,6 +983,11 @@ body.collapsed-sidebar .main-wrapper {
     color: var(--info);
 }
 
+.badge-primary {
+    background-color: var(--accent-light);
+    color: var(--accent);
+}
+
 .badge-secondary {
     background-color: var(--accent-light);
     color: var(--accent);
@@ -1261,42 +1268,6 @@ body.collapsed-sidebar .main-wrapper {
 .gap-3 { gap: 1rem; }
 
 /* ============ RESPONSIVO ============ */
-@media (max-width: 1280px) {
-    body:not(.user-expanded) .sidebar {
-        width: var(--sidebar-collapsed);
-    }
-
-    body:not(.user-expanded) .main-wrapper {
-        margin-left: var(--sidebar-collapsed);
-    }
-
-    body:not(.user-expanded) .topbar {
-        left: var(--sidebar-collapsed);
-    }
-
-    body:not(.user-expanded) .brand-text,
-    body:not(.user-expanded) .nav-text,
-    body:not(.user-expanded) .nav-section-title,
-    body:not(.user-expanded) .sidebar-user-info {
-        opacity: 0;
-        pointer-events: none;
-    }
-
-    body:not(.user-expanded) .sidebar-nav-item {
-        justify-content: center;
-        padding: 9px 0;
-        margin: 2px 8px;
-    }
-
-    body:not(.user-expanded) .sidebar-actions {
-        flex-direction: column;
-    }
-
-    body:not(.user-expanded) .sidebar-collapse-btn {
-        display: none;
-    }
-}
-
 @media (max-width: 768px) {
     .sidebar {
         width: var(--sidebar-width);

@@ -6,17 +6,13 @@ $arquivo_atual = basename($_SERVER['PHP_SELF'] ?? '');
 function sidebarAtiva($modulo) {
     global $uri_atual, $arquivo_atual;
     if ($modulo === 'dashboard') return ($arquivo_atual === 'index.php' || $arquivo_atual === '');
+    if ($modulo === 'orcamentos' && strpos($uri_atual, 'relatorio') !== false) return false;
     return strpos($uri_atual, $modulo) !== false;
 }
 
 // Configurar URLs relativas ao contexto
 if (!isset($caminho_base)) {
-    $caminho_base = '';
-    $dir_atual = rtrim(str_replace('\\', '/', dirname($_SERVER['SCRIPT_NAME'])), '/');
-    if ($dir_atual !== '' && $dir_atual !== '.') {
-        $niveis = substr_count($dir_atual, '/');
-        $caminho_base = str_repeat('../', $niveis);
-    }
+    $caminho_base = '../../';
 }
 
 $url_index = $caminho_base . 'index.php';

@@ -122,11 +122,19 @@ function initAutoCollapse() {
     if (!sidebar) return;
 
     function checkViewport() {
-        const saved = localStorage.getItem('sidebar');
-        if (window.innerWidth < 1280 && window.innerWidth > 768 && saved !== 'expanded') {
-            sidebar.classList.add('collapsed');
-        } else if (window.innerWidth > 1280 && sidebar.classList.contains('collapsed') && saved === 'collapsed') {
-            sidebar.classList.remove('collapsed');
+        const isMobile = window.innerWidth <= 768;
+        if (isMobile) return;
+
+        if (window.innerWidth < 1280) {
+            const saved = localStorage.getItem('sidebar');
+            if (saved !== 'expanded') {
+                sidebar.classList.add('collapsed');
+            }
+        } else if (sidebar.classList.contains('collapsed')) {
+            const saved = localStorage.getItem('sidebar');
+            if (saved !== 'collapsed') {
+                sidebar.classList.remove('collapsed');
+            }
         }
     }
 
