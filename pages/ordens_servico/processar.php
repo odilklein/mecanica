@@ -2,12 +2,95 @@
 require_once __DIR__ . '/../../includes/sessao.php';
 require_once __DIR__ . '/../../config/conexao.php';
 
-exigir_papel(['admin', 'secretaria', 'mecanico_chefe']);
+exigir_papel(['admin', 'secretaria', 'mecanico_chefe', 'mecanico']);
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     header('Location: listar.php');
     exit();
 }
 validar_csrf();
+
+$acao = $_GET['acao'] ?? '';
+$os_id = (int) ($_POST['os_id'] ?? 0);
+
+if ($acao !== 'cadastrar') {
+    if ($os_id <= 0) {
+        http_response_code(400);
+        exit('Ordem de serviço inválida.');
+    }
+
+    $stmt = $conn->prepare('SELECT id, status FROM ordens_servico WHERE id = :id');
+    $stmt->execute([':id' => $os_id]);
+    $os_atual = $stmt->fetch();
+    if (!$os_atual) {
+        http_response_code(404);
+        exit('Ordem de serviço não encontrada.');
+    }
+
+    if ($_SESSION['usuario_tipo'] === 'mecanico') {
+        $stmt = $conn->prepare('SELECT 1 FROM os_responsaveis WHERE os_id = :os_id AND usuario_id = :usuario_id AND concluido_em IS NULL');
+        $stmt->execute([':os_id' => $os_id, ':usuario_id' => $_SESSION['usuario_id']]);
+        if (!$stmt->fetchColumn()) {
+            http_response_code(403);
+            exit('Esta ordem de serviço não está atribuída a você.');
+        }
+    }
+
+    if ($acao === 'atualizar_diagnostico') {
+        $diagnostico = limpar($_POST['diagnostico'] ?? '');
+        $observacoes = limpar($_POST['observacoes_internas'] ?? '');
+        if ($diagnostico === '') {
+            $_SESSION['mensagem'] = 'Informe o diagnóstico técnico.';
+            $_SESSION['mensagem_tipo'] = 'warning';
+            header('Location: detalhes.php?id=' . $os_id);
+            exit();
+        }
+        $stmt = $conn->prepare("UPDATE ordens_servico SET diagnostico = :diagnostico, observacoes_internas = :observacoes, status = IF(status IN ('recebida', 'triagem', 'aguardando_diagnostico'), 'aguardando_orcamento', status) WHERE id = :id");
+        $stmt->execute([':diagnostico' => $diagnostico, ':observacoes' => $observacoes ?: null, ':id' => $os_id]);
+        $stmt = $conn->prepare("INSERT INTO os_eventos (os_id, tipo, status_anterior, status_novo, descricao, criado_por) VALUES (:os_id, 'diagnostico', :anterior, 'aguardando_orcamento', 'Diagnóstico técnico atualizado', :usuario)");
+        $stmt->execute([':os_id' => $os_id, ':anterior' => $os_atual['status'], ':usuario' => $_SESSION['usuario_id']]);
+        $_SESSION['mensagem'] = 'Diagnóstico atualizado.';
+        $_SESSION['mensagem_tipo'] = 'success';
+        header('Location: detalhes.php?id=' . $os_id);
+        exit();
+    }
+
+    if ($acao === 'mudar_status') {
+        exigir_papel(['admin', 'secretaria', 'mecanico_chefe']);
+        $novo_status = $_POST['status'] ?? '';
+        $status_validos = ['recebida', 'triagem', 'aguardando_diagnostico', 'aguardando_orcamento', 'aguardando_aprovacao', 'aguardando_peca', 'pronta_para_execucao', 'em_execucao', 'aguardando_retorno', 'pronta_para_entrega', 'entregue', 'cancelada'];
+        if (!in_array($novo_status, $status_validos, true)) {
+            http_response_code(400);
+            exit('Status inválido.');
+        }
+        $conn->beginTransaction();
+        $stmt = $conn->prepare('UPDATE ordens_servico SET status = :status, data_conclusao = IF(:status = \'entregue\', NOW(), data_conclusao) WHERE id = :id');
+        $stmt->execute([':status' => $novo_status, ':id' => $os_id]);
+        $stmt = $conn->prepare('INSERT INTO os_eventos (os_id, tipo, status_anterior, status_novo, descricao, criado_por) VALUES (:os_id, \'status\', :anterior, :novo, :descricao, :usuario)');
+        $stmt->execute([':os_id' => $os_id, ':anterior' => $os_atual['status'], ':novo' => $novo_status, ':descricao' => 'Status alterado manualmente', ':usuario' => $_SESSION['usuario_id']]);
+        $conn->commit();
+        $_SESSION['mensagem'] = 'Status da OS atualizado.';
+        $_SESSION['mensagem_tipo'] = 'success';
+        header('Location: detalhes.php?id=' . $os_id);
+        exit();
+    }
+
+    if ($acao === 'atribuir') {
+        exigir_papel(['admin', 'mecanico_chefe']);
+        $usuario_id = (int) ($_POST['usuario_id'] ?? 0);
+        $stmt = $conn->prepare("SELECT id FROM usuarios WHERE id = :id AND tipo IN ('mecanico', 'mecanico_chefe')");
+        $stmt->execute([':id' => $usuario_id]);
+        if (!$stmt->fetchColumn()) {
+            http_response_code(400);
+            exit('Mecânico inválido.');
+        }
+        $stmt = $conn->prepare('INSERT INTO os_responsaveis (os_id, usuario_id, atribuido_por) VALUES (:os_id, :usuario_id, :atribuido_por) ON DUPLICATE KEY UPDATE concluido_em = NULL');
+        $stmt->execute([':os_id' => $os_id, ':usuario_id' => $usuario_id, ':atribuido_por' => $_SESSION['usuario_id']]);
+        $_SESSION['mensagem'] = 'Mecânico atribuído à OS.';
+        $_SESSION['mensagem_tipo'] = 'success';
+        header('Location: detalhes.php?id=' . $os_id);
+        exit();
+    }
+}
 
 $nome = limpar($_POST['nome'] ?? '');
 $telefone = limpar($_POST['telefone'] ?? '');

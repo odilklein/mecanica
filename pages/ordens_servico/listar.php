@@ -25,7 +25,7 @@ $status_nomes = ['recebida' => 'Recebida', 'triagem' => 'Triagem', 'aguardando_d
                 <tbody>
                 <?php foreach ($ordens as $ordem): ?>
                     <tr>
-                        <td><strong>#<?php echo str_pad((int) $ordem['numero'], 4, '0', STR_PAD_LEFT); ?></strong></td>
+                        <td><a href="detalhes.php?id=<?php echo (int) $ordem['id']; ?>"><strong>#<?php echo str_pad((int) $ordem['numero'], 4, '0', STR_PAD_LEFT); ?></strong></a></td>
                         <td><?php echo esc($ordem['cliente']); ?><br><small class="text-muted"><?php echo esc($ordem['telefone'] ?: 'Sem telefone'); ?></small></td>
                         <td><?php echo esc(trim(($ordem['marca'] ?? '') . ' ' . ($ordem['modelo'] ?? '')) ?: 'Não informado'); ?><br><small class="text-muted"><?php echo esc($ordem['placa'] ?: ''); ?></small></td>
                         <td><span title="<?php echo esc($ordem['queixa_inicial']); ?>"><?php echo esc(mb_strimwidth($ordem['queixa_inicial'], 0, 55, '...')); ?></span></td>
