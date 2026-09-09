@@ -1226,6 +1226,28 @@ body.collapsed-sidebar .main-wrapper {
 .vh-60 { min-height: 60vh; }
 .text-light-muted { color: rgba(255, 255, 255, 0.8) !important; }
 
+/* ============ OVERRIDES BOOTSTRAP PARA COR PRIMÁRIA ============ */
+.text-primary { color: var(--accent) !important; }
+.bg-primary { background-color: var(--accent) !important; }
+.border-primary { border-color: var(--accent) !important; }
+.btn-link { color: var(--accent); }
+.btn-link:hover { color: var(--accent-hover); }
+.text-bg-primary { background-color: var(--accent) !important; }
+.progress-bar { background-color: var(--accent); }
+.form-check-input:checked, .form-check-input[type=checkbox]:indeterminate {
+    background-color: var(--accent);
+    border-color: var(--accent);
+}
+.page-link, .page-link:hover { color: var(--accent); }
+.page-item.active .page-link {
+    background-color: var(--accent);
+    border-color: var(--accent);
+}
+.nav-pills .nav-link.active {
+    background-color: var(--accent);
+    color: #fff;
+}
+
 .section-title {
     font-size: 0.8rem;
     font-weight: 600;
