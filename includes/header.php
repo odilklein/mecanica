@@ -1,3 +1,17 @@
+<?php
+// Calcular caminho base relativo a partir da página atual
+$caminho_base = '';
+$dir_atual = rtrim(str_replace('\\', '/', dirname($_SERVER['SCRIPT_NAME'])), '/');
+if ($dir_atual !== '' && $dir_atual !== '.') {
+    $niveis = substr_count($dir_atual, '/');
+    $caminho_base = str_repeat('../', $niveis);
+}
+
+$url_css = $caminho_base . 'css/style.css';
+$url_js = $caminho_base . 'js/main.js';
+$url_index = $caminho_base . 'index.php';
+$url_logout = $caminho_base . 'pages/auth/logout.php';
+?>
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
@@ -8,7 +22,7 @@
     <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
-    <link href="../../css/style.css" rel="stylesheet">
+    <link href="<?php echo $url_css; ?>" rel="stylesheet">
 </head>
 <body>
     <?php require_once __DIR__ . '/sidebar.php'; ?>
@@ -19,7 +33,7 @@
                 <i class="fas fa-bars"></i>
             </button>
             <div class="topbar-breadcrumb">
-                <a href="../../index.php"><i class="fas fa-home"></i></a>
+                <a href="<?php echo $url_index; ?>"><i class="fas fa-home"></i></a>
                 <span class="separator">/</span>
                 <span class="current"><?php echo $titulo_pagina ?? 'Dashboard'; ?></span>
             </div>
