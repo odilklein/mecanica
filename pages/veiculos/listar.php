@@ -1,6 +1,7 @@
 <?php
 require_once __DIR__ . '/../../includes/sessao.php';
 require_once __DIR__ . '/../../config/conexao.php';
+exigir_papel(['admin', 'secretaria', 'mecanico_chefe']);
 
 $filtro_cliente = isset($_GET['cliente_id']) ? (int)$_GET['cliente_id'] : 0;
 
@@ -11,11 +12,11 @@ require_once __DIR__ . '/../../includes/mensagens.php';
 
 <div class="page-header">
     <div>
-        <h1><i class="fas fa-car text-primary me-2"></i>Veículos</h1>
+        <h1><i data-lucide="car" class="text-primary me-2"></i>Veículos</h1>
         <span class="page-subtitle">Gerencie os veículos dos clientes</span>
     </div>
     <a href="cadastrar.php" class="btn btn-primary btn-icon">
-        <i class="fas fa-plus"></i> Novo Veículo
+        <i data-lucide="plus"></i> Novo Veículo
     </a>
 </div>
 
@@ -24,7 +25,7 @@ require_once __DIR__ . '/../../includes/mensagens.php';
         <div class="row mb-3 g-2">
             <div class="col-md-4">
                 <div class="search-wrapper">
-                    <i class="fas fa-search search-icon"></i>
+                    <i data-lucide="search" class="search-icon"></i>
                     <input type="text" class="form-control" id="buscarVeiculo" placeholder="Buscar por placa, marca, modelo...">
                 </div>
             </div>
@@ -72,7 +73,7 @@ require_once __DIR__ . '/../../includes/mensagens.php';
                     ?>
                     <tr>
                         <td>
-                            <i class="fas fa-car text-muted me-2"></i>
+                            <i data-lucide="car" class="text-muted me-2"></i>
                             <strong><?php echo limpar($v['marca']); ?> <?php echo limpar($v['modelo']); ?></strong>
                         </td>
                         <td><span class="badge bg-dark"><?php echo limpar($v['placa']); ?></span></td>
@@ -87,12 +88,13 @@ require_once __DIR__ . '/../../includes/mensagens.php';
                         <td><?php echo number_format($v['km_atual'], 0, ',', '.'); ?> km</td>
                         <td class="actions-cell">
                             <a href="editar.php?id=<?php echo $v['id']; ?>" class="btn btn-outline-primary btn-sm" title="Editar">
-                                <i class="fas fa-edit"></i>
+                                <i data-lucide="pencil"></i>
                             </a>
                             <form method="POST" action="excluir.php" id="excluirVeiculo<?php echo $v['id']; ?>" class="d-inline" onsubmit="return confirmarExclusao('excluirVeiculo<?php echo $v['id']; ?>', 'Excluir o veículo <?php echo $v['marca']; ?> <?php echo $v['modelo']; ?> - <?php echo $v['placa']; ?>?');">
+                                <input type="hidden" name="csrf_token" value="<?php echo esc(csrf_token()); ?>">
                                 <input type="hidden" name="id" value="<?php echo $v['id']; ?>">
                                 <button type="submit" class="btn btn-outline-danger btn-sm" title="Excluir">
-                                    <i class="fas fa-trash"></i>
+                                    <i data-lucide="trash-2"></i>
                                 </button>
                             </form>
                         </td>
@@ -101,11 +103,11 @@ require_once __DIR__ . '/../../includes/mensagens.php';
                     <tr>
                         <td colspan="7">
                             <div class="empty-state">
-                                <i class="fas fa-car"></i>
+                                <div class="empty-state-icon"><i data-lucide="car"></i></div>
                                 <h4>Nenhum veículo cadastrado</h4>
-                                <p>Cadastre o primeiro veículo da oficina.</p>
+                                <p>Cadastre o primeiro veículo da oficina para começar.</p>
                                 <a href="cadastrar.php" class="btn btn-primary btn-icon">
-                                    <i class="fas fa-plus"></i> Cadastrar Veículo
+                                    <i data-lucide="plus"></i> Cadastrar Veículo
                                 </a>
                             </div>
                         </td>

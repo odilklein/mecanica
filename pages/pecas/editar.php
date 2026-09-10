@@ -1,6 +1,7 @@
 <?php
 require_once __DIR__ . '/../../includes/sessao.php';
 require_once __DIR__ . '/../../config/conexao.php';
+exigir_papel(['admin', 'secretaria']);
 
 $id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
 
@@ -22,11 +23,11 @@ require_once __DIR__ . '/../../includes/header.php';
 
 <div class="page-header">
     <div>
-        <h1><i class="fas fa-edit text-primary me-2"></i>Editar Peça</h1>
+        <h1><i data-lucide="pencil" class="text-primary me-2"></i>Editar Peça</h1>
         <span class="page-subtitle"><?php echo limpar($peca['nome']); ?></span>
     </div>
     <a href="listar.php" class="btn btn-outline-secondary btn-icon">
-        <i class="fas fa-arrow-left"></i> Voltar
+        <i data-lucide="arrow-left"></i> Voltar
     </a>
 </div>
 
@@ -91,7 +92,7 @@ require_once __DIR__ . '/../../includes/header.php';
                     <div class="d-flex justify-content-between mt-4">
                         <a href="listar.php" class="btn btn-outline-secondary">Cancelar</a>
                         <button type="submit" class="btn btn-primary btn-icon">
-                            <i class="fas fa-save"></i> Atualizar Peça
+                            <i data-lucide="save"></i> Atualizar Peça
                         </button>
                     </div>
                 </form>

@@ -3,11 +3,19 @@
 // =============================================
 
 document.addEventListener('DOMContentLoaded', function() {
+    if (typeof lucide !== 'undefined') {
+        lucide.createIcons();
+    }
+    document.body.classList.remove('loading');
+    document.body.style.opacity = '1';
     initTooltips();
     initSidebar();
     initTheme();
     initMobileSidebar();
     initAutoCollapse();
+    initWizard();
+    initDynamicLists();
+    initSelectCards();
 });
 
 // =============================================
@@ -39,17 +47,7 @@ function initSidebar() {
         sidebar.classList.toggle('collapsed');
         const isCollapsed = sidebar.classList.contains('collapsed');
         localStorage.setItem('sidebar', isCollapsed ? 'collapsed' : 'expanded');
-        updateCollapseBtn();
     });
-
-    function updateCollapseBtn() {
-        if (!btn.querySelector('i')) return;
-        btn.querySelector('i').className = sidebar.classList.contains('collapsed')
-            ? 'fas fa-chevron-right'
-            : 'fas fa-chevron-left';
-    }
-
-    updateCollapseBtn();
 }
 
 // =============================================
@@ -78,9 +76,12 @@ function initTheme() {
 
 function updateThemeIcon(toggle, isDark) {
     if (!toggle) return;
-    const icon = toggle.querySelector('i');
+    const icon = toggle.querySelector('[data-lucide]');
     if (!icon) return;
-    icon.className = isDark ? 'fas fa-sun' : 'fas fa-moon';
+    icon.setAttribute('data-lucide', isDark ? 'sun' : 'moon');
+    if (typeof lucide !== 'undefined') {
+        lucide.createIcons();
+    }
 }
 
 // =============================================
@@ -259,4 +260,147 @@ function carregarVeiculos(clienteId, selectId, servicoId) {
             }
         })
         .catch(err => console.error('Erro ao carregar veículos:', err));
+}
+
+// =============================================
+// WIZARD STEP-BY-STEP
+// =============================================
+function initWizard() {
+    const wizard = document.querySelector('.wizard-progress');
+    if (!wizard) return;
+
+    const steps = wizard.querySelectorAll('.wizard-step');
+    const panels = document.querySelectorAll('.wizard-panel');
+    const prevBtn = document.getElementById('wizardPrev');
+    const nextBtn = document.getElementById('wizardNext');
+    let current = 0;
+
+    function showStep(index) {
+        steps.forEach(function(step, i) {
+            step.classList.remove('active', 'completed');
+            if (i < index) step.classList.add('completed');
+            if (i === index) step.classList.add('active');
+        });
+        panels.forEach(function(panel, i) {
+            panel.classList.toggle('active', i === index);
+        });
+        current = index;
+        if (prevBtn) prevBtn.style.visibility = index === 0 ? 'hidden' : 'visible';
+        if (nextBtn) {
+            if (index === steps.length - 1) {
+                nextBtn.innerHTML = '<i data-lucide="check"></i> Criar OS';
+                nextBtn.type = 'submit';
+            } else {
+                nextBtn.innerHTML = 'Próximo <i data-lucide="arrow-right"></i>';
+                nextBtn.type = 'button';
+            }
+        }
+        if (typeof lucide !== 'undefined') lucide.createIcons();
+    }
+
+    if (prevBtn) prevBtn.addEventListener('click', function() {
+        if (current > 0) showStep(current - 1);
+    });
+
+    if (nextBtn) nextBtn.addEventListener('click', function(e) {
+        if (current < steps.length - 1) {
+            e.preventDefault();
+            showStep(current + 1);
+        }
+    });
+
+    steps.forEach(function(step, i) {
+        step.addEventListener('click', function() {
+            if (i <= current || i === current + 1) showStep(i);
+        });
+    });
+
+    showStep(0);
+}
+
+// =============================================
+// LISTAS DINÂMICAS (TAREFAS, PEÇAS)
+// =============================================
+function initDynamicLists() {
+    document.querySelectorAll('[data-dynamic-list]').forEach(function(list) {
+        var input = list.querySelector('.dynamic-list-input .form-control');
+        var addBtn = list.querySelector('.btn-add');
+        var container = list.querySelector('.dynamic-list-items');
+        var hiddenInput = list.querySelector('input[type="hidden"]');
+
+        if (!addBtn || !container) return;
+
+        function addItem(text) {
+            text = text.trim();
+            if (!text) return;
+            var item = document.createElement('div');
+            item.className = 'dynamic-list-item';
+            item.innerHTML = '<i data-lucide="grip-vertical" class="item-grip"></i>' +
+                '<span class="item-text">' + escapeHtml(text) + '</span>' +
+                '<button type="button" class="item-remove" title="Remover"><i data-lucide="x"></i></button>';
+            item.querySelector('.item-remove').addEventListener('click', function() {
+                item.style.opacity = '0';
+                item.style.transform = 'translateX(-10px)';
+                setTimeout(function() { item.remove(); syncList(); }, 200);
+            });
+            container.appendChild(item);
+            if (typeof lucide !== 'undefined') lucide.createIcons();
+            syncList();
+            if (input) { input.value = ''; input.focus(); }
+        }
+
+        function syncList() {
+            if (!hiddenInput) return;
+            var items = container.querySelectorAll('.item-text');
+            var values = [];
+            items.forEach(function(el) { values.push(el.textContent); });
+            hiddenInput.value = values.join('\n');
+        }
+
+        if (addBtn) addBtn.addEventListener('click', function() {
+            addItem(input ? input.value : '');
+        });
+
+        if (input) input.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                addItem(input.value);
+            }
+        });
+
+        // Load existing values
+        if (hiddenInput && hiddenInput.value.trim()) {
+            hiddenInput.value.trim().split('\n').forEach(function(line) {
+                if (line.trim()) addItem(line.trim());
+            });
+        }
+    });
+}
+
+function escapeHtml(str) {
+    var div = document.createElement('div');
+    div.textContent = str;
+    return div.innerHTML;
+}
+
+// =============================================
+// SELECT CARDS (FUNCIONÁRIOS DESIGNADOS)
+// =============================================
+function initSelectCards() {
+    document.querySelectorAll('.select-card-employee').forEach(function(card) {
+        card.addEventListener('click', function() {
+            card.classList.toggle('selected');
+            var checkbox = card.querySelector('input[type="checkbox"]');
+            if (checkbox) checkbox.checked = card.classList.contains('selected');
+            var icon = card.querySelector('.emp-check svg');
+            if (icon) {
+                if (card.classList.contains('selected')) {
+                    icon.setAttribute('data-lucide', 'check');
+                } else {
+                    icon.setAttribute('data-lucide', '');
+                }
+                if (typeof lucide !== 'undefined') lucide.createIcons();
+            }
+        });
+    });
 }

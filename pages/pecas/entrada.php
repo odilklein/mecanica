@@ -1,6 +1,7 @@
 <?php
 require_once __DIR__ . '/../../includes/sessao.php';
 require_once __DIR__ . '/../../config/conexao.php';
+exigir_papel(['admin', 'secretaria']);
 
 $titulo_pagina = "Entrada de Estoque";
 require_once __DIR__ . '/../../includes/header.php';
@@ -11,11 +12,11 @@ $peca_id = isset($_GET['peca_id']) ? (int)$_GET['peca_id'] : 0;
 
 <div class="page-header">
     <div>
-        <h1><i class="fas fa-sign-in-alt text-success me-2"></i>Entrada de Estoque</h1>
+        <h1><i data-lucide="log-in" class="text-success me-2"></i>Entrada de Estoque</h1>
         <span class="page-subtitle">Registre entrada ou saída de peças</span>
     </div>
     <a href="listar.php" class="btn btn-outline-secondary btn-icon">
-        <i class="fas fa-arrow-left"></i> Voltar
+        <i data-lucide="arrow-left"></i> Voltar
     </a>
 </div>
 
@@ -59,14 +60,14 @@ $peca_id = isset($_GET['peca_id']) ? (int)$_GET['peca_id'] : 0;
                     </div>
 
                     <div class="alert alert-info mt-3 mb-0" id="infoEstoque">
-                        <i class="fas fa-info-circle me-2"></i>
+                        <i data-lucide="info" class="me-2"></i>
                         Quantidade atual na peça selecionada: <strong id="qtdAtual">-</strong>
                     </div>
 
                     <div class="d-flex justify-content-between mt-4">
                         <a href="listar.php" class="btn btn-outline-secondary">Cancelar</a>
                         <button type="submit" class="btn btn-success btn-icon">
-                            <i class="fas fa-exchange-alt"></i> Registrar Movimentação
+                            <i data-lucide="arrow-left-right"></i> Registrar Movimentação
                         </button>
                     </div>
                 </form>
@@ -79,7 +80,7 @@ $peca_id = isset($_GET['peca_id']) ? (int)$_GET['peca_id'] : 0;
 
 <div class="card">
     <div class="card-header">
-        <i class="fas fa-history me-2 text-primary"></i>Últimas Movimentações
+        <i data-lucide="history" class="me-2 text-primary"></i>Últimas Movimentações
     </div>
     <div class="card-body">
         <div class="table-responsive">

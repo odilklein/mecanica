@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . '/../../includes/sessao.php';
+require_once __DIR__ . '/../../config/empresa.php';
 
 // Se já estiver logado, redireciona para o dashboard
 if (isset($_SESSION['usuario_id'])) {
@@ -15,11 +16,11 @@ $erro = isset($_GET['erro']) ? $_GET['erro'] : '';
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="theme-color" content="#bd1804">
-    <title>Login | AutoMecânica</title>
-    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <title>Login | <?php echo EMPRESA_NOME; ?></title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <link href="../../css/style.css" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
 </head>
 <body class="auth-bg">
     <div class="auth-wrapper">
@@ -30,46 +31,50 @@ $erro = isset($_GET['erro']) ? $_GET['erro'] : '';
                         <div class="card-body p-5">
                             <div class="text-center mb-4">
                                 <div class="auth-icon">
-                                    <i class="fas fa-wrench"></i>
+                                    <i data-lucide="wrench"></i>
                                 </div>
-                                <h2 class="fw-bold mt-4" style="font-family: var(--font-main);">AutoMecânica</h2>
-                                <p class="text-muted" style="font-size:0.85rem;">Sistema de Gestão de Oficina</p>
+                                <h2 class="fw-bold mt-4" style="font-family: var(--font-main);"><?php echo EMPRESA_NOME; ?></h2>
+                                <p class="text-muted" style="font-size:0.85rem;"><?php echo EMPRESA_SLOGAN; ?></p>
                             </div>
 
                             <?php if ($erro) : ?>
                                 <div class="alert alert-danger alert-dismissible fade show" role="alert">
-                                    <i class="fas fa-exclamation-circle me-2"></i><?php echo htmlspecialchars($erro); ?>
+                                    <i data-lucide="circle-alert" class="me-2"></i><?php echo htmlspecialchars($erro); ?>
                                     <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Fechar"></button>
                                 </div>
                             <?php endif; ?>
 
                             <form method="POST" action="login_processar.php" id="formLogin">
+                                <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars(csrf_token(), ENT_QUOTES, 'UTF-8'); ?>">
                                 <div class="mb-3">
                                     <label for="email" class="form-label">Email</label>
                                     <div class="input-group">
-                                        <span class="input-group-text"><i class="fas fa-envelope"></i></span>
+                                        <span class="input-group-text"><i data-lucide="mail"></i></span>
                                         <input type="email" class="form-control" id="email" name="email" placeholder="seu@email.com" required>
                                     </div>
                                 </div>
                                 <div class="mb-4">
                                     <label for="senha" class="form-label">Senha</label>
                                     <div class="input-group">
-                                        <span class="input-group-text"><i class="fas fa-lock"></i></span>
+                                        <span class="input-group-text"><i data-lucide="lock"></i></span>
                                         <input type="password" class="form-control" id="senha" name="senha" placeholder="Digite sua senha" required>
                                         <button class="btn btn-outline-secondary" type="button" id="toggleSenha">
-                                            <i class="fas fa-eye"></i>
+                                            <i data-lucide="eye"></i>
                                         </button>
                                     </div>
                                 </div>
                                 <div class="d-grid">
                                     <button type="submit" class="btn btn-primary btn-lg fw-bold" style="background-color:#bd1804; border-color:#bd1804;">
-                                        <i class="fas fa-sign-in-alt me-2"></i>Entrar
+                                        <i data-lucide="log-in" class="me-2"></i>Entrar
                                     </button>
                                 </div>
                             </form>
 
-                            <div class="text-center mt-4">
-                                <small class="text-muted" style="font-size:0.75rem;">Login padrão: <strong>admin@mecanica.com</strong> / <strong>admin123</strong></small>
+                            <hr style="border-color: var(--border-color);">
+
+                            <div class="text-center">
+                                <small class="text-muted d-block" style="font-size:0.75rem;"><?php echo EMPRESA_ENDERECO; ?> · <?php echo EMPRESA_CIDADE; ?></small>
+                                <small class="text-muted d-block" style="font-size:0.75rem;"><?php echo EMPRESA_TELEFONE; ?> · <?php echo EMPRESA_EMAIL; ?></small>
                             </div>
                         </div>
                     </div>
@@ -80,18 +85,19 @@ $erro = isset($_GET['erro']) ? $_GET['erro'] : '';
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
+        lucide.createIcons();
+
         document.getElementById('toggleSenha').addEventListener('click', function() {
             const senha = document.getElementById('senha');
-            const icon = this.querySelector('i');
+            const icon = document.getElementById('toggleSenha').querySelector('svg');
             if (senha.type === 'password') {
                 senha.type = 'text';
-                icon.classList.remove('fa-eye');
-                icon.classList.add('fa-eye-slash');
+                icon.setAttribute('data-lucide', 'eye-off');
             } else {
                 senha.type = 'password';
-                icon.classList.remove('fa-eye-slash');
-                icon.classList.add('fa-eye');
+                icon.setAttribute('data-lucide', 'eye');
             }
+            lucide.createIcons();
         });
     </script>
 </body>

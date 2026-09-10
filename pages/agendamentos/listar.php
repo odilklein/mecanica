@@ -15,11 +15,11 @@ $filtro_data = $_GET['data'] ?? ($_POST['data'] ?? '');
 
 <div class="page-header">
     <div>
-        <h1><i class="fas fa-calendar-check text-primary me-2"></i>Agendamentos</h1>
+        <h1><i data-lucide="calendar-check" class="text-primary me-2"></i>Agendamentos</h1>
         <span class="page-subtitle">Gerencie os agendamentos da oficina</span>
     </div>
     <a href="cadastrar.php" class="btn btn-primary btn-icon">
-        <i class="fas fa-plus"></i> Novo Agendamento
+        <i data-lucide="plus"></i> Novo Agendamento
     </a>
 </div>
 
@@ -118,18 +118,18 @@ $filtro_data = $_GET['data'] ?? ($_POST['data'] ?? '');
                         <td><span class="badge badge-<?php echo $badge_status[$a['status']]; ?>"><?php echo $status_txt; ?></span></td>
                         <td class="actions-cell">
                             <a href="editar.php?id=<?php echo $a['id']; ?>" class="btn btn-outline-primary btn-sm" title="Editar">
-                                <i class="fas fa-edit"></i>
+                                <i data-lucide="pencil"></i>
                             </a>
                             <?php if ($a['status'] != 'cancelado'): ?>
                             <form method="POST" action="processar.php?acao=mudar_status" class="d-inline" id="concluir<?php echo $a['id']; ?>" onsubmit="return confirmarExclusao('concluir<?php echo $a['id']; ?>', 'Marcar este agendamento como concluído?');">
                                 <input type="hidden" name="id" value="<?php echo $a['id']; ?>">
                                 <input type="hidden" name="status" value="concluido">
-                                <button type="submit" class="btn btn-outline-success btn-sm" title="Concluir"><i class="fas fa-check"></i></button>
+                                <button type="submit" class="btn btn-outline-success btn-sm" title="Concluir"><i data-lucide="check"></i></button>
                             </form>
                             <?php endif; ?>
                             <form method="POST" action="excluir.php" id="excluirAgend<?php echo $a['id']; ?>" class="d-inline" onsubmit="return confirmarExclusao('excluirAgend<?php echo $a['id']; ?>', 'Excluir este agendamento?');">
                                 <input type="hidden" name="id" value="<?php echo $a['id']; ?>">
-                                <button type="submit" class="btn btn-outline-danger btn-sm" title="Excluir"><i class="fas fa-trash"></i></button>
+                                <button type="submit" class="btn btn-outline-danger btn-sm" title="Excluir"><i data-lucide="trash-2"></i></button>
                             </form>
                         </td>
                     </tr>
@@ -137,11 +137,11 @@ $filtro_data = $_GET['data'] ?? ($_POST['data'] ?? '');
                     <tr>
                         <td colspan="7">
                             <div class="empty-state">
-                                <i class="fas fa-calendar-times"></i>
+                                <i data-lucide="calendar-x"></i>
                                 <h4>Nenhum agendamento encontrado</h4>
                                 <p>Cadastre um novo agendamento ou altere os filtros.</p>
                                 <a href="cadastrar.php" class="btn btn-primary btn-icon">
-                                    <i class="fas fa-plus"></i> Novo Agendamento
+                                    <i data-lucide="plus"></i> Novo Agendamento
                                 </a>
                             </div>
                         </td>

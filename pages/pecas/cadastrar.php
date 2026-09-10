@@ -1,6 +1,7 @@
 <?php
 require_once __DIR__ . '/../../includes/sessao.php';
 require_once __DIR__ . '/../../config/conexao.php';
+exigir_papel(['admin', 'secretaria']);
 
 $titulo_pagina = "Nova Peça";
 require_once __DIR__ . '/../../includes/header.php';
@@ -8,11 +9,11 @@ require_once __DIR__ . '/../../includes/header.php';
 
 <div class="page-header">
     <div>
-        <h1><i class="fas fa-box-open text-primary me-2"></i>Nova Peça</h1>
+        <h1><i data-lucide="package-open" class="text-primary me-2"></i>Nova Peça</h1>
         <span class="page-subtitle">Cadastre uma nova peça no estoque</span>
     </div>
     <a href="listar.php" class="btn btn-outline-secondary btn-icon">
-        <i class="fas fa-arrow-left"></i> Voltar
+        <i data-lucide="arrow-left"></i> Voltar
     </a>
 </div>
 
@@ -76,7 +77,7 @@ require_once __DIR__ . '/../../includes/header.php';
                     <div class="d-flex justify-content-between mt-4">
                         <a href="listar.php" class="btn btn-outline-secondary">Cancelar</a>
                         <button type="submit" class="btn btn-primary btn-icon">
-                            <i class="fas fa-save"></i> Salvar Peça
+                            <i data-lucide="save"></i> Salvar Peça
                         </button>
                     </div>
                 </form>

@@ -90,7 +90,7 @@ require_once __DIR__ . '/../../includes/header.php';
 
 <div class="page-header">
     <div>
-        <h1><i class="fas fa-chart-line"></i>Relatórios</h1>
+        <h1><i data-lucide="chart-line"></i>Relatórios</h1>
         <span class="page-subtitle">Análise de desempenho da oficina - <?php echo ucfirst($mes_nome); ?> <?php echo $ano_atual; ?></span>
     </div>
 </div>
@@ -102,7 +102,7 @@ require_once __DIR__ . '/../../includes/header.php';
             <span class="stat-border"></span>
             <div class="stat-header">
                 <span class="stat-label">Orçamentos</span>
-                <span class="stat-icon"><i class="fas fa-file-invoice"></i></span>
+                <span class="stat-icon"><i data-lucide="file-text"></i></span>
             </div>
             <div class="stat-value"><?php echo $resumo['total_orcamentos']; ?></div>
             <div class="stat-delta">no mês</div>
@@ -113,10 +113,10 @@ require_once __DIR__ . '/../../includes/header.php';
             <span class="stat-border"></span>
             <div class="stat-header">
                 <span class="stat-label">Faturado</span>
-                <span class="stat-icon green"><i class="fas fa-money-bill-wave"></i></span>
+                <span class="stat-icon green"><i data-lucide="banknote"></i></span>
             </div>
             <div class="stat-value" style="font-size:1.1rem;"><?php echo formatar_moeda($resumo['faturado']); ?></div>
-            <div class="stat-delta up"><i class="fas fa-arrow-up"></i> <?php echo $resumo['aprovados']; ?> aprovados</div>
+            <div class="stat-delta up"><i data-lucide="arrow-up"></i> <?php echo $resumo['aprovados']; ?> aprovados</div>
         </div>
     </div>
     <div class="col-6 col-xl-3">
@@ -124,7 +124,7 @@ require_once __DIR__ . '/../../includes/header.php';
             <span class="stat-border"></span>
             <div class="stat-header">
                 <span class="stat-label">Em Aberto</span>
-                <span class="stat-icon yellow"><i class="fas fa-hourglass-half"></i></span>
+                <span class="stat-icon yellow"><i data-lucide="hourglass"></i></span>
             </div>
             <div class="stat-value" style="font-size:1.1rem;"><?php echo formatar_moeda($resumo['em_aberto']); ?></div>
             <div class="stat-delta">aguardando aprovação</div>
@@ -135,7 +135,7 @@ require_once __DIR__ . '/../../includes/header.php';
             <span class="stat-border"></span>
             <div class="stat-header">
                 <span class="stat-label">Taxa Aprovação</span>
-                <span class="stat-icon blue"><i class="fas fa-percent"></i></span>
+                <span class="stat-icon blue"><i data-lucide="percent"></i></span>
             </div>
             <div class="stat-value">
                 <?php
@@ -153,7 +153,7 @@ require_once __DIR__ . '/../../includes/header.php';
     <div class="col-lg-7">
         <div class="card mb-3">
             <div class="card-header">
-                <i class="fas fa-chart-column me-2"></i> Faturamento por Mês (aprovados)
+                <i data-lucide="chart-column" class="me-2"></i> Faturamento por Mês (aprovados)
             </div>
             <div class="card-body">
                 <?php if (count($faturamento_mensal) > 0): ?>
@@ -175,7 +175,7 @@ require_once __DIR__ . '/../../includes/header.php';
                 </div>
                 <?php else: ?>
                 <div class="empty-state">
-                    <i class="fas fa-chart-column"></i>
+                    <i data-lucide="chart-column"></i>
                     <h4>Sem dados de faturamento</h4>
                     <p>Aprove orçamentos para visualizar o gráfico.</p>
                 </div>
@@ -185,7 +185,7 @@ require_once __DIR__ . '/../../includes/header.php';
 
         <div class="card mb-3">
             <div class="card-header">
-                <i class="fas fa-trophy me-2"></i> Top Clientes (maior valor gasto)
+                <i data-lucide="trophy" class="me-2"></i> Top Clientes (maior valor gasto)
             </div>
             <div class="card-body p-0">
                 <?php if (count($top_clientes) > 0): ?>
@@ -213,7 +213,7 @@ require_once __DIR__ . '/../../includes/header.php';
                 </div>
                 <?php else: ?>
                 <div class="empty-state">
-                    <i class="fas fa-trophy"></i>
+                    <i data-lucide="trophy"></i>
                     <h4>Sem clientes com orçamentos aprovados</h4>
                 </div>
                 <?php endif; ?>
@@ -225,7 +225,7 @@ require_once __DIR__ . '/../../includes/header.php';
     <div class="col-lg-5">
         <div class="card mb-3">
             <div class="card-header">
-                <i class="fas fa-circle-check me-2"></i> Orçamentos por Status
+                <i data-lucide="circle-check-big" class="me-2"></i> Orçamentos por Status
             </div>
             <div class="card-body">
                 <?php if (count($orcamentos_status) > 0): ?>
@@ -249,7 +249,7 @@ require_once __DIR__ . '/../../includes/header.php';
                     </div>
                 <?php else: ?>
                 <div class="empty-state">
-                    <i class="fas fa-circle-check"></i>
+                    <i data-lucide="circle-check-big"></i>
                     <h4>Nenhum orçamento registrado</h4>
                 </div>
                 <?php endif; ?>
@@ -258,7 +258,7 @@ require_once __DIR__ . '/../../includes/header.php';
 
         <div class="card mb-3">
             <div class="card-header">
-                <i class="fas fa-wrench me-2"></i> Serviços Mais Realizados
+                <i data-lucide="wrench" class="me-2"></i> Serviços Mais Realizados
             </div>
             <div class="card-body p-0">
                 <?php if (count($top_servicos) > 0): ?>
@@ -275,7 +275,7 @@ require_once __DIR__ . '/../../includes/header.php';
                 </ul>
                 <?php else: ?>
                 <div class="empty-state">
-                    <i class="fas fa-wrench"></i>
+                    <i data-lucide="wrench"></i>
                     <h4>Sem serviços registrados</h4>
                 </div>
                 <?php endif; ?>
@@ -284,7 +284,7 @@ require_once __DIR__ . '/../../includes/header.php';
 
         <div class="card">
             <div class="card-header">
-                <i class="fas fa-boxes-stacked me-2"></i> Peças Mais Vendidas
+                <i data-lucide="boxes" class="me-2"></i> Peças Mais Vendidas
             </div>
             <div class="card-body p-0">
                 <?php if (count($top_pecas) > 0): ?>
@@ -301,7 +301,7 @@ require_once __DIR__ . '/../../includes/header.php';
                 </ul>
                 <?php else: ?>
                 <div class="empty-state">
-                    <i class="fas fa-boxes-stacked"></i>
+                    <i data-lucide="boxes"></i>
                     <h4>Sem peças vendidas</h4>
                 </div>
                 <?php endif; ?>

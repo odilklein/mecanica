@@ -1,6 +1,7 @@
 <?php
 require_once __DIR__ . '/../../includes/sessao.php';
 require_once __DIR__ . '/../../config/conexao.php';
+exigir_papel(['admin', 'secretaria', 'mecanico_chefe']);
 
 $titulo_pagina = "Clientes";
 require_once __DIR__ . '/../../includes/header.php';
@@ -9,11 +10,11 @@ require_once __DIR__ . '/../../includes/mensagens.php';
 
 <div class="page-header">
     <div>
-        <h1><i class="fas fa-users text-primary me-2"></i>Clientes</h1>
+        <h1><i data-lucide="users" class="text-primary me-2"></i>Clientes</h1>
         <span class="page-subtitle">Gerencie os clientes da oficina</span>
     </div>
     <a href="cadastrar.php" class="btn btn-primary btn-icon">
-        <i class="fas fa-plus"></i> Novo Cliente
+        <i data-lucide="plus"></i> Novo Cliente
     </a>
 </div>
 
@@ -22,7 +23,7 @@ require_once __DIR__ . '/../../includes/mensagens.php';
         <div class="row mb-3">
             <div class="col-md-6">
                 <div class="search-wrapper">
-                    <i class="fas fa-search search-icon"></i>
+                    <i data-lucide="search" class="search-icon"></i>
                     <input type="text" class="form-control" id="buscarCliente" placeholder="Buscar por nome, CPF, telefone ou email...">
                 </div>
             </div>
@@ -52,7 +53,7 @@ require_once __DIR__ . '/../../includes/mensagens.php';
                     <tr>
                         <td>
                             <div class="d-flex align-items-center">
-                                <div class="avatar-circle bg-primary text-white me-2">
+                                <div class="avatar-circle me-2">
                                     <?php echo strtoupper(substr($cliente['nome'], 0, 1)); ?>
                                 </div>
                                 <div>
@@ -73,18 +74,19 @@ require_once __DIR__ . '/../../includes/mensagens.php';
                         </td>
                         <td class="actions-cell">
                             <!-- Ver veículos -->
-                            <a href="../veiculos/listar.php?cliente_id=<?php echo $cliente['id']; ?>" class="btn btn-outline-info btn-sm" title="Veículos">
-                                <i class="fas fa-car"></i>
+                            <a href="detalhes.php?id=<?php echo $cliente['id']; ?>" class="btn btn-outline-info btn-sm" title="Cliente, veículos e histórico">
+                                <i data-lucide="car"></i>
                             </a>
                             <!-- Editar -->
                             <a href="editar.php?id=<?php echo $cliente['id']; ?>" class="btn btn-outline-primary btn-sm" title="Editar">
-                                <i class="fas fa-edit"></i>
+                                <i data-lucide="pencil"></i>
                             </a>
                             <!-- Excluir -->
                             <form method="POST" action="excluir.php" id="excluirCliente<?php echo $cliente['id']; ?>" class="d-inline" onsubmit="return confirmarExclusao('excluirCliente<?php echo $cliente['id']; ?>', 'Excluir o cliente <?php echo addslashes($cliente['nome']); ?>? Todos os dados vinculados serão removidos.');">
+                                <input type="hidden" name="csrf_token" value="<?php echo esc(csrf_token()); ?>">
                                 <input type="hidden" name="id" value="<?php echo $cliente['id']; ?>">
                                 <button type="submit" class="btn btn-outline-danger btn-sm" title="Excluir">
-                                    <i class="fas fa-trash"></i>
+                                    <i data-lucide="trash-2"></i>
                                 </button>
                             </form>
                         </td>
@@ -93,11 +95,11 @@ require_once __DIR__ . '/../../includes/mensagens.php';
                     <tr>
                         <td colspan="7">
                             <div class="empty-state">
-                                <i class="fas fa-users"></i>
+                                <div class="empty-state-icon"><i data-lucide="users"></i></div>
                                 <h4>Nenhum cliente cadastrado</h4>
-                                <p>Clique em "Novo Cliente" para começar.</p>
+                                <p>Cadastre o primeiro cliente para começar a usar o sistema.</p>
                                 <a href="cadastrar.php" class="btn btn-primary btn-icon">
-                                    <i class="fas fa-plus"></i> Cadastrar Cliente
+                                    <i data-lucide="plus"></i> Cadastrar Cliente
                                 </a>
                             </div>
                         </td>

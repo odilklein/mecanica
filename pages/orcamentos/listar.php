@@ -1,6 +1,7 @@
 <?php
 require_once __DIR__ . '/../../includes/sessao.php';
 require_once __DIR__ . '/../../config/conexao.php';
+exigir_papel(['admin', 'secretaria', 'mecanico_chefe']);
 
 $titulo_pagina = "Orçamentos";
 require_once __DIR__ . '/../../includes/header.php';
@@ -12,11 +13,11 @@ $filtro_status = $_GET['status'] ?? 'todos';
 
 <div class="page-header">
     <div>
-        <h1><i class="fas fa-file-invoice text-primary me-2"></i>Orçamentos</h1>
+        <h1><i data-lucide="file-text" class="text-primary me-2"></i>Orçamentos</h1>
         <span class="page-subtitle">Crie e gerencie orçamentos para clientes</span>
     </div>
     <a href="cadastrar.php" class="btn btn-primary btn-icon">
-        <i class="fas fa-plus"></i> Novo Orçamento
+        <i data-lucide="plus"></i> Novo Orçamento
     </a>
 </div>
 
@@ -98,7 +99,7 @@ $filtro_status = $_GET['status'] ?? 'todos';
                             <?php if ($o['data_validade']): ?>
                                 <small class="<?php echo $expirado ? 'text-danger fw-bold' : ''; ?>">
                                     <?php echo date('d/m/Y', strtotime($o['data_validade'])); ?>
-                                    <?php echo $expirado ? ' <i class="fas fa-exclamation-triangle"></i>' : ''; ?>
+                                    <?php echo $expirado ? ' <i data-lucide="triangle-alert"></i>' : ''; ?>
                                 </small>
                             <?php else: ?>-<?php endif; ?>
                         </td>
@@ -106,18 +107,19 @@ $filtro_status = $_GET['status'] ?? 'todos';
                         <td><span class="badge badge-<?php echo $badge_status[$o['status']]; ?>"><?php echo ucfirst($o['status']); ?></span></td>
                         <td class="actions-cell">
                             <a href="detalhes.php?id=<?php echo $o['id']; ?>" class="btn btn-outline-info btn-sm" title="Ver detalhes">
-                                <i class="fas fa-eye"></i>
+                                <i data-lucide="eye"></i>
                             </a>
                             <a href="imprimir.php?id=<?php echo $o['id']; ?>" target="_blank" class="btn btn-outline-dark btn-sm" title="Imprimir">
-                                <i class="fas fa-print"></i>
+                                <i data-lucide="printer"></i>
                             </a>
                             <?php if ($o['status'] == 'aberto'): ?>
                             <a href="editar.php?id=<?php echo $o['id']; ?>" class="btn btn-outline-primary btn-sm" title="Editar">
-                                <i class="fas fa-edit"></i>
+                                <i data-lucide="pencil"></i>
                             </a>
                             <form method="POST" action="processar.php?acao=excluir" id="excluirOrc<?php echo $o['id']; ?>" class="d-inline" onsubmit="return confirmarExclusao('excluirOrc<?php echo $o['id']; ?>', 'Excluir o orçamento #<?php echo str_pad($o['numero'], 4, '0', STR_PAD_LEFT); ?>?');">
+                                <input type="hidden" name="csrf_token" value="<?php echo esc(csrf_token()); ?>">
                                 <input type="hidden" name="id" value="<?php echo $o['id']; ?>">
-                                <button type="submit" class="btn btn-outline-danger btn-sm" title="Excluir"><i class="fas fa-trash"></i></button>
+                                <button type="submit" class="btn btn-outline-danger btn-sm" title="Excluir"><i data-lucide="trash-2"></i></button>
                             </form>
                             <?php endif; ?>
                         </td>
@@ -126,11 +128,11 @@ $filtro_status = $_GET['status'] ?? 'todos';
                     <tr>
                         <td colspan="8">
                             <div class="empty-state">
-                                <i class="fas fa-file-invoice-dollar"></i>
+                                <div class="empty-state-icon"><i data-lucide="receipt-text"></i></div>
                                 <h4>Nenhum orçamento encontrado</h4>
                                 <p>Crie um novo orçamento para seus clientes.</p>
                                 <a href="cadastrar.php" class="btn btn-primary btn-icon">
-                                    <i class="fas fa-plus"></i> Novo Orçamento
+                                    <i data-lucide="plus"></i> Novo Orçamento
                                 </a>
                             </div>
                         </td>

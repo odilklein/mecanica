@@ -3,6 +3,7 @@ require_once __DIR__ . '/../../includes/sessao.php';
 require_once __DIR__ . '/../../config/conexao.php';
 
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
+    validar_csrf();
     $email = limpar($_POST['email'] ?? '');
     $senha = $_POST['senha'] ?? '';
 
@@ -18,6 +19,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         $usuario = $stmt->fetch();
 
         if ($usuario && password_verify($senha, $usuario['senha'])) {
+            session_regenerate_id(true);
             $_SESSION['usuario_id'] = $usuario['id'];
             $_SESSION['usuario_nome'] = $usuario['nome'];
             $_SESSION['usuario_email'] = $usuario['email'];
@@ -30,7 +32,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             exit();
         }
     } catch (PDOException $e) {
-        header("Location: login.php?erro=Erro no sistema: " . urlencode($e->getMessage()));
+        error_log($e->getMessage());
+        header("Location: login.php?erro=Não foi possível concluir o login");
         exit();
     }
 }
