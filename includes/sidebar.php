@@ -14,77 +14,80 @@ function sidebarAtiva($modulo) {
 if (!isset($caminho_base)) {
     require_once __DIR__ . '/base_url.php';
 }
+require_once __DIR__ . '/../config/empresa.php';
 
 $url_index = $caminho_base . '/index.php';
 $url_clientes = $caminho_base . '/pages/clientes/listar.php';
 $url_veiculos = $caminho_base . '/pages/veiculos/listar.php';
-$url_pecas = $caminho_base . '/pages/pecas/listar.php';
-$url_servicos = $caminho_base . '/pages/servicos/listar.php';
-$url_agendamentos = $caminho_base . '/pages/agendamentos/listar.php';
+$url_ordens_servico = $caminho_base . '/pages/ordens_servico/listar.php';
+$url_pedidos_pecas = $caminho_base . '/pages/pedidos_pecas/listar.php';
+$url_funcionarios = $caminho_base . '/pages/funcionarios/listar.php';
 $url_orcamentos = $caminho_base . '/pages/orcamentos/listar.php';
-$url_relatorio = $caminho_base . '/pages/orcamentos/relatorio.php';
 $url_logout = $caminho_base . '/pages/auth/logout.php';
 ?>
 
 <aside class="sidebar" id="sidebar">
-    <button class="sidebar-collapse-btn" id="sidebarCollapseBtn" title="Minimizar sidebar">
-        <i class="fas fa-chevron-left"></i>
-    </button>
-
-    <div class="sidebar-brand">
-        <div class="brand-icon">
-            <i class="fas fa-wrench"></i>
+    <div class="sidebar-top">
+        <div class="sidebar-brand">
+            <div class="brand-icon">
+                <i data-lucide="wrench"></i>
+            </div>
+            <span class="brand-text">Auto Mecânica Leme</span>
         </div>
-        <span class="brand-text">AutoMecânica</span>
+        <button class="sidebar-collapse-btn" id="sidebarCollapseBtn" title="Minimizar sidebar">
+            <i data-lucide="chevron-left"></i>
+        </button>
     </div>
 
     <nav class="sidebar-nav">
         <div class="sidebar-section">
-            <div class="nav-section-title">Principal</div>
+            <div class="sidebar-section-title">Principal</div>
             <a href="<?php echo $url_index; ?>" class="sidebar-nav-item <?php echo sidebarAtiva('dashboard') ? 'active' : ''; ?>" title="Dashboard">
-                <i class="fas fa-th-large"></i>
+                <i data-lucide="layout-grid"></i>
                 <span class="nav-text">Dashboard</span>
             </a>
-            <a href="<?php echo $url_clientes; ?>" class="sidebar-nav-item <?php echo sidebarAtiva('clientes') ? 'active' : ''; ?>" title="Clientes">
-                <i class="fas fa-users"></i>
+            <?php if (tem_papel(['admin', 'secretaria', 'mecanico_chefe'])): ?><a href="<?php echo $url_clientes; ?>" class="sidebar-nav-item <?php echo sidebarAtiva('clientes') ? 'active' : ''; ?>" title="Clientes">
+                <i data-lucide="users"></i>
                 <span class="nav-text">Clientes</span>
             </a>
-            <a href="<?php echo $url_veiculos; ?>" class="sidebar-nav-item <?php echo sidebarAtiva('veiculos') ? 'active' : ''; ?>" title="Veículos">
-                <i class="fas fa-car"></i>
+            <?php endif; ?>
+            <?php if (tem_papel(['admin', 'secretaria', 'mecanico_chefe'])): ?><a href="<?php echo $url_veiculos; ?>" class="sidebar-nav-item <?php echo sidebarAtiva('veiculos') ? 'active' : ''; ?>" title="Veículos">
+                <i data-lucide="car-front"></i>
                 <span class="nav-text">Veículos</span>
-            </a>
+            </a><?php endif; ?>
+            <?php if (tem_papel(['admin', 'secretaria', 'mecanico_chefe'])): ?><a href="<?php echo $url_funcionarios; ?>" class="sidebar-nav-item <?php echo sidebarAtiva('funcionarios') ? 'active' : ''; ?>" title="Funcionários">
+                <i data-lucide="users-round"></i>
+                <span class="nav-text">Funcionários</span>
+            </a><?php endif; ?>
         </div>
 
         <div class="sidebar-section">
-            <div class="nav-section-title">Operações</div>
-            <a href="<?php echo $url_pecas; ?>" class="sidebar-nav-item <?php echo sidebarAtiva('pecas') ? 'active' : ''; ?>" title="Estoque">
-                <i class="fas fa-boxes-stacked"></i>
-                <span class="nav-text">Estoque</span>
-            </a>
-            <a href="<?php echo $url_servicos; ?>" class="sidebar-nav-item <?php echo sidebarAtiva('servicos') ? 'active' : ''; ?>" title="Serviços">
-                <i class="fas fa-wrench"></i>
-                <span class="nav-text">Serviços</span>
-            </a>
-            <a href="<?php echo $url_agendamentos; ?>" class="sidebar-nav-item <?php echo sidebarAtiva('agendamentos') ? 'active' : ''; ?>" title="Agendamentos">
-                <i class="fas fa-calendar-check"></i>
-                <span class="nav-text">Agendamentos</span>
-            </a>
+            <div class="sidebar-section-title">Operações</div>
+            <?php if (tem_papel(['admin', 'secretaria', 'mecanico_chefe', 'mecanico'])): ?><a href="<?php echo $url_ordens_servico; ?>" class="sidebar-nav-item <?php echo sidebarAtiva('ordens_servico') ? 'active' : ''; ?>" title="Ordens de serviço">
+                <i data-lucide="clipboard-list"></i>
+                <span class="nav-text">Ordens de serviço</span>
+            </a><?php endif; ?>
+            <?php if (tem_papel(['admin', 'secretaria', 'mecanico_chefe', 'mecanico'])): ?><a href="<?php echo $url_pedidos_pecas; ?>" class="sidebar-nav-item <?php echo sidebarAtiva('pedidos_pecas') ? 'active' : ''; ?>" title="Pedidos de peças">
+                <i data-lucide="truck"></i>
+                <span class="nav-text">Pedidos de peças</span>
+            </a><?php endif; ?>
         </div>
-
         <div class="sidebar-section">
-            <div class="nav-section-title">Financeiro</div>
-            <a href="<?php echo $url_orcamentos; ?>" class="sidebar-nav-item <?php echo sidebarAtiva('orcamentos') ? 'active' : ''; ?>" title="Orçamentos">
-                <i class="fas fa-file-invoice-dollar"></i>
+            <div class="sidebar-section-title">Documentos</div>
+            <?php if (tem_papel(['admin', 'secretaria', 'mecanico_chefe'])): ?><a href="<?php echo $url_orcamentos; ?>" class="sidebar-nav-item <?php echo sidebarAtiva('orcamentos') ? 'active' : ''; ?>" title="Orçamentos">
+                <i data-lucide="file-text"></i>
                 <span class="nav-text">Orçamentos</span>
-            </a>
-            <a href="<?php echo $url_relatorio; ?>" class="sidebar-nav-item <?php echo sidebarAtiva('relatorio') ? 'active' : ''; ?>" title="Relatórios">
-                <i class="fas fa-chart-line"></i>
-                <span class="nav-text">Relatórios</span>
-            </a>
+            </a><?php endif; ?>
         </div>
     </nav>
 
     <div class="sidebar-footer">
+        <div class="sidebar-empresa">
+            <span class="empresa-nome"><?php echo EMPRESA_NOME; ?></span>
+            <span class="empresa-linha"><i data-lucide="map-pin"></i> <?php echo EMPRESA_ENDERECO; ?></span>
+            <span class="empresa-linha"><i data-lucide="phone"></i> <?php echo EMPRESA_TELEFONE; ?></span>
+            <span class="empresa-linha"><i data-lucide="mail"></i> <?php echo EMPRESA_EMAIL; ?></span>
+        </div>
         <div class="sidebar-user" title="<?php echo $_SESSION['usuario_nome'] ?? 'Usuário'; ?>">
             <div class="sidebar-user-avatar">
                 <?php echo strtoupper(substr($_SESSION['usuario_nome'] ?? 'U', 0, 1)); ?>
@@ -96,13 +99,16 @@ $url_logout = $caminho_base . '/pages/auth/logout.php';
         </div>
         <div class="sidebar-actions">
             <button class="sidebar-action-btn" id="themeToggle" title="Alternar tema">
-                <i class="fas fa-moon"></i>
+                <i data-lucide="moon"></i>
                 <span class="nav-text">Tema</span>
             </button>
-            <a href="<?php echo $url_logout; ?>" class="sidebar-action-btn" title="Sair">
-                <i class="fas fa-sign-out-alt"></i>
-                <span class="nav-text">Sair</span>
-            </a>
+            <form method="POST" action="<?php echo $url_logout; ?>">
+                <input type="hidden" name="csrf_token" value="<?php echo esc(csrf_token()); ?>">
+                <button type="submit" class="sidebar-action-btn" title="Sair">
+                    <i data-lucide="log-out"></i>
+                    <span class="nav-text">Sair</span>
+                </button>
+            </form>
         </div>
     </div>
 </aside>
