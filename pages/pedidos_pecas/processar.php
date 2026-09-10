@@ -11,15 +11,20 @@ try {
         $peca_id = (int) ($_POST['peca_id'] ?? 0) ?: null;
         $descricao = limpar($_POST['descricao'] ?? '');
         $quantidade = (int) ($_POST['quantidade'] ?? 0);
-        $fornecedor = limpar($_POST['fornecedor'] ?? '');
+        $fornecedor = $_SESSION['usuario_tipo'] === 'mecanico' ? null : (limpar($_POST['fornecedor'] ?? '') ?: null);
         $previsao = $_POST['previsao_entrega'] ?? null;
         $observacoes = limpar($_POST['observacoes'] ?? '');
         if ($os_id <= 0 || $descricao === '' || $quantidade <= 0) { throw new RuntimeException('Informe a OS, a descrição e uma quantidade válida.'); }
         $stmt = $conn->prepare("SELECT id FROM ordens_servico WHERE id = :id AND status NOT IN ('entregue', 'cancelada')");
         $stmt->execute([':id' => $os_id]);
         if (!$stmt->fetchColumn()) { throw new RuntimeException('A OS não está disponível para pedido.'); }
+        if ($_SESSION['usuario_tipo'] === 'mecanico') {
+            $stmt = $conn->prepare('SELECT 1 FROM os_responsaveis WHERE os_id = :os_id AND usuario_id = :usuario_id AND concluido_em IS NULL');
+            $stmt->execute([':os_id' => $os_id, ':usuario_id' => $_SESSION['usuario_id']]);
+            if (!$stmt->fetchColumn()) throw new RuntimeException('Você só pode solicitar peças para OS atribuídas a você.');
+        }
         $conn->beginTransaction();
-        $stmt = $conn->prepare('INSERT INTO pedidos_pecas (os_id, fornecedor, previsao_entrega, observacoes, criado_por) VALUES (:os_id, :fornecedor, :previsao, :observacoes, :usuario)');
+        $stmt = $conn->prepare('INSERT INTO pedidos_pecas (os_id, fornecedor, status, previsao_entrega, observacoes, criado_por) VALUES (:os_id, :fornecedor, \'solicitado\', :previsao, :observacoes, :usuario)');
         $stmt->execute([':os_id' => $os_id, ':fornecedor' => $fornecedor ?: null, ':previsao' => $previsao ?: null, ':observacoes' => $observacoes ?: null, ':usuario' => $_SESSION['usuario_id']]);
         $pedido_id = (int) $conn->lastInsertId();
         $stmt = $conn->prepare('INSERT INTO pedido_pecas_itens (pedido_id, peca_id, descricao, quantidade) VALUES (:pedido, :peca, :descricao, :quantidade)');
@@ -38,11 +43,14 @@ try {
         exigir_papel(['admin', 'secretaria', 'mecanico_chefe']);
         $id = (int) ($_POST['id'] ?? 0);
         $status = $_POST['status'] ?? '';
-        if (!in_array($status, ['solicitado', 'pedido', 'a_caminho', 'recebido', 'cancelado'], true)) { throw new RuntimeException('Status inválido.'); }
+        if (!in_array($status, ['solicitado', 'validado', 'pedido', 'a_caminho', 'recebido', 'cancelado'], true)) { throw new RuntimeException('Status inválido.'); }
         $stmt = $conn->prepare('SELECT os_id, status FROM pedidos_pecas WHERE id = :id');
         $stmt->execute([':id' => $id]);
         $pedido = $stmt->fetch();
         if (!$pedido) { throw new RuntimeException('Pedido não encontrado.'); }
+        $transicoes = ['solicitado' => ['validado', 'cancelado'], 'validado' => ['pedido', 'cancelado'], 'pedido' => ['a_caminho', 'cancelado'], 'a_caminho' => ['recebido'], 'recebido' => [], 'cancelado' => []];
+        if ($status !== $pedido['status'] && !in_array($status, $transicoes[$pedido['status']] ?? [], true)) throw new RuntimeException('Essa alteração não é permitida para o status atual.');
+        if ($status === 'pedido' && !tem_papel(['admin', 'secretaria'])) throw new RuntimeException('Somente a secretaria pode confirmar o pedido ao fornecedor.');
         $conn->beginTransaction();
         $stmt = $conn->prepare('UPDATE pedidos_pecas SET status = :status, fornecedor = :fornecedor, previsao_entrega = :previsao, observacoes = :observacoes, recebido_por = IF(:status = \'recebido\', :usuario, recebido_por), recebido_em = IF(:status = \'recebido\', NOW(), recebido_em) WHERE id = :id');
         $stmt->execute([':status' => $status, ':fornecedor' => limpar($_POST['fornecedor'] ?? '') ?: null, ':previsao' => ($_POST['previsao_entrega'] ?? '') ?: null, ':observacoes' => limpar($_POST['observacoes'] ?? '') ?: null, ':usuario' => $_SESSION['usuario_id'], ':id' => $id]);

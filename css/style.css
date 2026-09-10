@@ -703,6 +703,14 @@ a {
     flex-wrap: wrap;
 }
 
+.page-header-actions .btn,
+.page-header > .btn,
+.page-header > .d-flex .btn {
+    min-height: 38px;
+    padding: 8px 13px;
+    font-size: 0.82rem;
+}
+
 /* ============ CARDS ============ */
 .card {
     background: var(--card-bg);
@@ -837,6 +845,19 @@ a {
     padding: 7px 14px;
     transition: all 0.2s ease;
     font-family: var(--font-main);
+}
+
+.action-button {
+    min-height: 38px;
+    font-size: 0.82rem;
+    padding: 7px 13px;
+    white-space: nowrap;
+}
+
+.action-button.btn-lg,
+.page-header .btn-lg {
+    font-size: 0.86rem;
+    padding: 8px 15px;
 }
 
 .btn-primary {

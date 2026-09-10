@@ -1,6 +1,7 @@
 <?php
 require_once __DIR__ . '/../../includes/sessao.php';
 require_once __DIR__ . '/../../config/conexao.php';
+exigir_papel(['admin', 'secretaria', 'mecanico_chefe']);
 
 $id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
 
@@ -53,6 +54,7 @@ $badge_status = [
         <?php endif; ?>
         <?php if ($orcamento['status'] == 'aberto' || $orcamento['status'] == 'reprovado'): ?>
             <form method="POST" action="processar.php?acao=mudar_status" class="d-inline">
+                <input type="hidden" name="csrf_token" value="<?php echo esc(csrf_token()); ?>">
                 <input type="hidden" name="id" value="<?php echo $orcamento['id']; ?>">
                 <input type="hidden" name="status" value="aprovado">
                 <button type="submit" class="btn btn-success btn-icon" onclick="return confirm('Aprovar este orçamento?');">
@@ -60,6 +62,7 @@ $badge_status = [
                 </button>
             </form>
             <form method="POST" action="processar.php?acao=mudar_status" class="d-inline">
+                <input type="hidden" name="csrf_token" value="<?php echo esc(csrf_token()); ?>">
                 <input type="hidden" name="id" value="<?php echo $orcamento['id']; ?>">
                 <input type="hidden" name="status" value="reprovado">
                 <button type="submit" class="btn btn-danger btn-icon" onclick="return confirm('Reprovar este orçamento?');">

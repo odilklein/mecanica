@@ -5,7 +5,7 @@ require_once __DIR__ . '/../../config/conexao.php';
 exigir_papel(['admin', 'secretaria', 'mecanico_chefe', 'mecanico']);
 $titulo_pagina = 'Ordens de serviço';
 $filtro_funcionario = $_SESSION['usuario_tipo'] === 'mecanico' ? ' JOIN os_responsaveis r ON r.os_id = os.id AND r.usuario_id = ' . (int) $_SESSION['usuario_id'] . ' AND r.concluido_em IS NULL ' : '';
-$stmt = $conn->query("SELECT os.id, os.numero, os.status, os.prioridade, os.queixa_inicial, os.data_entrada, c.nome AS cliente, c.telefone, v.marca, v.modelo, v.placa FROM ordens_servico os JOIN clientes c ON c.id = os.cliente_id LEFT JOIN veiculos v ON v.id = os.veiculo_id $filtro_funcionario WHERE os.status NOT IN ('entregue', 'cancelada') ORDER BY FIELD(os.prioridade, 'urgente', 'alta', 'normal', 'baixa'), os.data_entrada ASC");
+$stmt = $conn->query("SELECT os.id, os.numero, os.status, os.prioridade, os.queixa_inicial, os.data_entrada, c.nome AS cliente, v.marca, v.modelo, v.placa FROM ordens_servico os JOIN clientes c ON c.id = os.cliente_id LEFT JOIN veiculos v ON v.id = os.veiculo_id $filtro_funcionario WHERE os.status NOT IN ('entregue', 'cancelada') ORDER BY FIELD(os.prioridade, 'urgente', 'alta', 'normal', 'baixa'), os.data_entrada ASC");
 $ordens = $stmt->fetchAll();
 require_once __DIR__ . '/../../includes/header.php';
 require_once __DIR__ . '/../../includes/mensagens.php';
@@ -27,7 +27,7 @@ $status_nomes = ['recebida' => 'Recebida', 'triagem' => 'Triagem', 'aguardando_d
                 <?php foreach ($ordens as $ordem): ?>
                     <tr>
                         <td><a href="detalhes.php?id=<?php echo (int) $ordem['id']; ?>"><strong>#<?php echo str_pad((int) $ordem['numero'], 4, '0', STR_PAD_LEFT); ?></strong></a></td>
-                        <td><?php echo esc($ordem['cliente']); ?><br><small class="text-muted"><?php echo esc($ordem['telefone'] ?: 'Sem telefone'); ?></small></td>
+                        <td><?php echo esc($ordem['cliente']); ?></td>
                         <td><?php echo esc(trim(($ordem['marca'] ?? '') . ' ' . ($ordem['modelo'] ?? '')) ?: 'Não informado'); ?><br><small class="text-muted"><?php echo esc($ordem['placa'] ?: ''); ?></small></td>
                         <td><span title="<?php echo esc($ordem['queixa_inicial']); ?>"><?php echo esc(mb_strimwidth($ordem['queixa_inicial'], 0, 55, '...')); ?></span></td>
                         <td><?php echo esc(ucfirst($ordem['prioridade'])); ?></td>

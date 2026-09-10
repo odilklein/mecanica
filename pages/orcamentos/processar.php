@@ -1,6 +1,9 @@
 <?php
 require_once __DIR__ . '/../../includes/sessao.php';
 require_once __DIR__ . '/../../config/conexao.php';
+exigir_papel(['admin', 'secretaria', 'mecanico_chefe']);
+if ($_SERVER['REQUEST_METHOD'] !== 'POST') { header('Location: listar.php'); exit(); }
+validar_csrf();
 
 $acao = $_GET['acao'] ?? '';
 $id = isset($_POST['id']) ? (int)$_POST['id'] : 0;
@@ -70,38 +73,60 @@ try {
             $item_id = (int)$item['item_id'];
             $quantidade = (int)$item['quantidade'];
             $preco = (float)$item['preco'];
-            $subtotal = (float)$item['subtotal'];
+            $subtotal = 0;
 
             $peca_id = null;
             $servico_id = null;
             $descricao_item = '';
 
             if ($tipo == 'peca') {
-                $peca_id = $item_id;
+                $peca_id = $item_id > 0 ? $item_id : null;
+                if ($quantidade <= 0 || $preco < 0) throw new Exception('Quantidade ou valor inválido.');
+                if ($item_id === 0) {
+                    $descricao_item = limpar($item['descricao'] ?? '');
+                    if ($descricao_item === '') throw new Exception('A descrição da peça é obrigatória.');
+                    $subtotal = round($quantidade * $preco, 2);
+                    $total_pecas += $subtotal;
+                }
                 // Buscar nome da peça
-                $stmt = $conn->prepare("SELECT nome FROM pecas WHERE id = :id");
-                $stmt->bindParam(':id', $peca_id);
-                $stmt->execute();
-                $p = $stmt->fetch();
-                $descricao_item = $p ? $p['nome'] : 'Peça';
-
-                // Verificar estoque
-                $stmt = $conn->prepare("SELECT quantidade FROM pecas WHERE id = :id FOR UPDATE");
-                $stmt->bindParam(':id', $peca_id);
-                $stmt->execute();
-                $peca_atual = $stmt->fetch();
-                if (!$peca_atual || $peca_atual['quantidade'] < $quantidade) {
-                    throw new Exception("Estoque insuficiente para a peça: " . $descricao_item);
+                if ($item_id > 0) {
+                    $stmt = $conn->prepare("SELECT nome, preco_venda FROM pecas WHERE id = :id");
+                    $stmt->bindParam(':id', $peca_id);
+                    $stmt->execute();
+                    $p = $stmt->fetch();
+                    if (!$p) throw new Exception('Peça não encontrada.');
+                    $descricao_item = $p['nome'];
+                    $preco = (float) $p['preco_venda'];
+                    $subtotal = round($quantidade * $preco, 2);
                 }
 
-                $total_pecas += $subtotal;
+                // Verificar estoque
+                if ($item_id > 0) {
+                    $stmt = $conn->prepare("SELECT quantidade FROM pecas WHERE id = :id FOR UPDATE");
+                    $stmt->bindParam(':id', $peca_id);
+                    $stmt->execute();
+                    $peca_atual = $stmt->fetch();
+                    if (!$peca_atual || $peca_atual['quantidade'] < $quantidade) {
+                        throw new Exception("Estoque insuficiente para a peça: " . $descricao_item);
+                    }
+                    $total_pecas += $subtotal;
+                }
             } else {
-                $servico_id = $item_id;
-                $stmt = $conn->prepare("SELECT nome FROM servicos WHERE id = :id");
-                $stmt->bindParam(':id', $servico_id);
-                $stmt->execute();
-                $s = $stmt->fetch();
-                $descricao_item = $s ? $s['nome'] : 'Serviço';
+                $servico_id = $item_id > 0 ? $item_id : null;
+                if ($quantidade <= 0 || $preco < 0) throw new Exception('Quantidade ou valor inválido.');
+                if ($item_id > 0) {
+                    $stmt = $conn->prepare("SELECT nome, preco_mao_obra FROM servicos WHERE id = :id AND ativo = 1");
+                    $stmt->bindParam(':id', $servico_id);
+                    $stmt->execute();
+                    $s = $stmt->fetch();
+                    if (!$s) throw new Exception('Serviço não encontrado ou inativo.');
+                    $descricao_item = $s['nome'];
+                    $preco = (float) $s['preco_mao_obra'];
+                } else {
+                    $descricao_item = limpar($item['descricao'] ?? '');
+                    if ($descricao_item === '') throw new Exception('A descrição do serviço é obrigatória.');
+                }
+                $subtotal = round($quantidade * $preco, 2);
 
                 $total_servicos += $subtotal;
             }

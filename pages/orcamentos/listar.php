@@ -1,6 +1,7 @@
 <?php
 require_once __DIR__ . '/../../includes/sessao.php';
 require_once __DIR__ . '/../../config/conexao.php';
+exigir_papel(['admin', 'secretaria', 'mecanico_chefe']);
 
 $titulo_pagina = "Orçamentos";
 require_once __DIR__ . '/../../includes/header.php';
@@ -116,6 +117,7 @@ $filtro_status = $_GET['status'] ?? 'todos';
                                 <i data-lucide="pencil"></i>
                             </a>
                             <form method="POST" action="processar.php?acao=excluir" id="excluirOrc<?php echo $o['id']; ?>" class="d-inline" onsubmit="return confirmarExclusao('excluirOrc<?php echo $o['id']; ?>', 'Excluir o orçamento #<?php echo str_pad($o['numero'], 4, '0', STR_PAD_LEFT); ?>?');">
+                                <input type="hidden" name="csrf_token" value="<?php echo esc(csrf_token()); ?>">
                                 <input type="hidden" name="id" value="<?php echo $o['id']; ?>">
                                 <button type="submit" class="btn btn-outline-danger btn-sm" title="Excluir"><i data-lucide="trash-2"></i></button>
                             </form>

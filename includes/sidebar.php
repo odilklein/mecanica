@@ -18,9 +18,11 @@ require_once __DIR__ . '/../config/empresa.php';
 
 $url_index = $caminho_base . '/index.php';
 $url_clientes = $caminho_base . '/pages/clientes/listar.php';
+$url_veiculos = $caminho_base . '/pages/veiculos/listar.php';
 $url_ordens_servico = $caminho_base . '/pages/ordens_servico/listar.php';
 $url_pedidos_pecas = $caminho_base . '/pages/pedidos_pecas/listar.php';
 $url_funcionarios = $caminho_base . '/pages/funcionarios/listar.php';
+$url_orcamentos = $caminho_base . '/pages/orcamentos/listar.php';
 $url_logout = $caminho_base . '/pages/auth/logout.php';
 ?>
 
@@ -49,6 +51,10 @@ $url_logout = $caminho_base . '/pages/auth/logout.php';
                 <span class="nav-text">Clientes</span>
             </a>
             <?php endif; ?>
+            <?php if (tem_papel(['admin', 'secretaria', 'mecanico_chefe'])): ?><a href="<?php echo $url_veiculos; ?>" class="sidebar-nav-item <?php echo sidebarAtiva('veiculos') ? 'active' : ''; ?>" title="Veículos">
+                <i data-lucide="car-front"></i>
+                <span class="nav-text">Veículos</span>
+            </a><?php endif; ?>
             <?php if (tem_papel(['admin', 'secretaria', 'mecanico_chefe'])): ?><a href="<?php echo $url_funcionarios; ?>" class="sidebar-nav-item <?php echo sidebarAtiva('funcionarios') ? 'active' : ''; ?>" title="Funcionários">
                 <i data-lucide="users-round"></i>
                 <span class="nav-text">Funcionários</span>
@@ -66,6 +72,12 @@ $url_logout = $caminho_base . '/pages/auth/logout.php';
                 <span class="nav-text">Pedidos de peças</span>
             </a><?php endif; ?>
         </div>
+        <div class="sidebar-section">
+            <div class="sidebar-section-title">Documentos</div>
+            <?php if (tem_papel(['admin', 'secretaria', 'mecanico_chefe'])): ?><a href="<?php echo $url_orcamentos; ?>" class="sidebar-nav-item <?php echo sidebarAtiva('orcamentos') ? 'active' : ''; ?>" title="Orçamentos">
+                <i data-lucide="file-text"></i>
+                <span class="nav-text">Orçamentos</span>
+            </a><?php endif; ?>
         </div>
     </nav>
 

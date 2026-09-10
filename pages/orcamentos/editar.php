@@ -1,6 +1,7 @@
 <?php
 require_once __DIR__ . '/../../includes/sessao.php';
 require_once __DIR__ . '/../../config/conexao.php';
+exigir_papel(['admin', 'secretaria', 'mecanico_chefe']);
 
 $id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
 
@@ -43,6 +44,7 @@ require_once __DIR__ . '/../../includes/mensagens.php';
 <div class="row">
     <div class="col-lg-8">
         <form method="POST" action="processar.php?acao=editar" id="formOrcamento">
+            <input type="hidden" name="csrf_token" value="<?php echo esc(csrf_token()); ?>">
             <input type="hidden" name="id" value="<?php echo $id; ?>">
 
             <div class="card mb-3">

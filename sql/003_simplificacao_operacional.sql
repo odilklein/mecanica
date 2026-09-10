@@ -31,6 +31,8 @@ ALTER TABLE pedido_pecas_itens
   ADD COLUMN observacoes VARCHAR(255) NULL,
   ADD COLUMN recebido_em DATETIME NULL;
 
+ALTER TABLE pedidos_pecas MODIFY status ENUM('solicitado','validado','pedido','a_caminho','recebido','cancelado') NOT NULL DEFAULT 'solicitado';
+
 CREATE TABLE cliente_servicos_historico (
   id BIGINT AUTO_INCREMENT PRIMARY KEY,
   cliente_id INT NOT NULL,
