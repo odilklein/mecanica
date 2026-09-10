@@ -1,6 +1,7 @@
 <?php
 require_once __DIR__ . '/../../includes/sessao.php';
 require_once __DIR__ . '/../../config/conexao.php';
+exigir_papel(['admin', 'secretaria']);
 
 $acao = $_GET['acao'] ?? '';
 $id = isset($_POST['id']) ? (int)$_POST['id'] : 0;

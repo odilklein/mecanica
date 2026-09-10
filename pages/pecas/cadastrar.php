@@ -1,6 +1,7 @@
 <?php
 require_once __DIR__ . '/../../includes/sessao.php';
 require_once __DIR__ . '/../../config/conexao.php';
+exigir_papel(['admin', 'secretaria']);
 
 $titulo_pagina = "Nova Peça";
 require_once __DIR__ . '/../../includes/header.php';
