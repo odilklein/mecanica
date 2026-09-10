@@ -1,6 +1,8 @@
 <?php
 require_once __DIR__ . '/../../includes/sessao.php';
 require_once __DIR__ . '/../../config/conexao.php';
+exigir_papel(['admin', 'secretaria', 'mecanico_chefe']);
+validar_csrf();
 
 if ($_SERVER['REQUEST_METHOD'] != 'POST') {
     header("Location: listar.php");

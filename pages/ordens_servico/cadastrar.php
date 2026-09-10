@@ -3,6 +3,7 @@ require_once __DIR__ . '/../../includes/sessao.php';
 require_once __DIR__ . '/../../config/conexao.php';
 
 exigir_papel(['admin', 'secretaria', 'mecanico_chefe']);
+$mecanicos = $conn->query("SELECT id, nome, tipo FROM usuarios WHERE ativo = 1 AND tipo IN ('mecanico', 'mecanico_chefe') ORDER BY nome")->fetchAll();
 $titulo_pagina = 'Novo atendimento';
 require_once __DIR__ . '/../../includes/header.php';
 require_once __DIR__ . '/../../includes/mensagens.php';
@@ -57,6 +58,18 @@ require_once __DIR__ . '/../../includes/mensagens.php';
                         <div class="col-12">
                             <label class="form-label" for="observacoes_internas">Observações internas</label>
                             <textarea class="form-control" id="observacoes_internas" name="observacoes_internas" rows="3" maxlength="4000"></textarea>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label" for="tarefas">Tarefas do trabalho</label>
+                            <div class="input-group"><span class="input-group-text"><i data-lucide="list-checks"></i></span><textarea class="form-control" id="tarefas" name="tarefas" rows="4" placeholder="Uma tarefa por linha"></textarea></div>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label" for="funcionarios_ids">Funcionários designados</label>
+                            <div class="input-group"><span class="input-group-text"><i data-lucide="users-round"></i></span><select class="form-select" id="funcionarios_ids" name="funcionarios_ids[]" multiple><?php foreach ($mecanicos as $mecanico): ?><option value="<?php echo (int) $mecanico['id']; ?>"><?php echo esc($mecanico['nome']); ?> (<?php echo esc($mecanico['tipo']); ?>)</option><?php endforeach; ?></select></div>
+                        </div>
+                        <div class="col-md-8">
+                            <label class="form-label" for="pecas">Peças necessárias</label>
+                            <div class="input-group"><span class="input-group-text"><i data-lucide="package-search"></i></span><textarea class="form-control" id="pecas" name="pecas" rows="4" placeholder="Uma peça por linha. Ex.: Radiador | 1"></textarea></div>
                         </div>
                     </div>
                     <div class="d-flex justify-content-between mt-4">

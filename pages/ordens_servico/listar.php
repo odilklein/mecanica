@@ -4,7 +4,8 @@ require_once __DIR__ . '/../../config/conexao.php';
 
 exigir_papel(['admin', 'secretaria', 'mecanico_chefe', 'mecanico']);
 $titulo_pagina = 'Ordens de serviço';
-$stmt = $conn->query("SELECT os.id, os.numero, os.status, os.prioridade, os.queixa_inicial, os.data_entrada, c.nome AS cliente, c.telefone, v.marca, v.modelo, v.placa FROM ordens_servico os JOIN clientes c ON c.id = os.cliente_id LEFT JOIN veiculos v ON v.id = os.veiculo_id WHERE os.status NOT IN ('entregue', 'cancelada') ORDER BY FIELD(os.prioridade, 'urgente', 'alta', 'normal', 'baixa'), os.data_entrada ASC");
+$filtro_funcionario = $_SESSION['usuario_tipo'] === 'mecanico' ? ' JOIN os_responsaveis r ON r.os_id = os.id AND r.usuario_id = ' . (int) $_SESSION['usuario_id'] . ' AND r.concluido_em IS NULL ' : '';
+$stmt = $conn->query("SELECT os.id, os.numero, os.status, os.prioridade, os.queixa_inicial, os.data_entrada, c.nome AS cliente, c.telefone, v.marca, v.modelo, v.placa FROM ordens_servico os JOIN clientes c ON c.id = os.cliente_id LEFT JOIN veiculos v ON v.id = os.veiculo_id $filtro_funcionario WHERE os.status NOT IN ('entregue', 'cancelada') ORDER BY FIELD(os.prioridade, 'urgente', 'alta', 'normal', 'baixa'), os.data_entrada ASC");
 $ordens = $stmt->fetchAll();
 require_once __DIR__ . '/../../includes/header.php';
 require_once __DIR__ . '/../../includes/mensagens.php';

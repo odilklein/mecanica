@@ -1,6 +1,7 @@
 <?php
 require_once __DIR__ . '/../../includes/sessao.php';
 require_once __DIR__ . '/../../config/conexao.php';
+exigir_papel(['admin', 'secretaria', 'mecanico_chefe']);
 
 $titulo_pagina = "Novo Veículo";
 require_once __DIR__ . '/../../includes/header.php';
@@ -21,16 +22,18 @@ require_once __DIR__ . '/../../includes/header.php';
         <div class="card">
             <div class="card-body p-4">
                 <form method="POST" action="processar.php?acao=cadastrar" onsubmit="return validarFormularioVeiculo()">
+                    <input type="hidden" name="csrf_token" value="<?php echo esc(csrf_token()); ?>">
                     <div class="row g-3">
                         <div class="col-md-8">
                             <label for="cliente_id" class="form-label">Cliente *</label>
                             <select class="form-select" id="cliente_id" name="cliente_id" required>
                                 <option value="">-- Selecione o cliente --</option>
                                 <?php
+                                $cliente_preselecionado = (int) ($_GET['cliente_id'] ?? 0);
                                 $stmt = $conn->query("SELECT id, nome FROM clientes ORDER BY nome");
                                 foreach ($stmt->fetchAll() as $c):
                                 ?>
-                                    <option value="<?php echo $c['id']; ?>"><?php echo limpar($c['nome']); ?></option>
+                                    <option value="<?php echo $c['id']; ?>" <?php echo $cliente_preselecionado === (int) $c['id'] ? 'selected' : ''; ?>><?php echo limpar($c['nome']); ?></option>
                                 <?php endforeach; ?>
                             </select>
                         </div>

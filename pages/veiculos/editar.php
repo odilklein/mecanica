@@ -1,6 +1,7 @@
 <?php
 require_once __DIR__ . '/../../includes/sessao.php';
 require_once __DIR__ . '/../../config/conexao.php';
+exigir_papel(['admin', 'secretaria', 'mecanico_chefe']);
 
 $id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
 
@@ -35,6 +36,7 @@ require_once __DIR__ . '/../../includes/header.php';
         <div class="card">
             <div class="card-body p-4">
                 <form method="POST" action="processar.php?acao=editar" onsubmit="return validarFormularioVeiculo()">
+                    <input type="hidden" name="csrf_token" value="<?php echo esc(csrf_token()); ?>">
                     <input type="hidden" name="id" value="<?php echo $veiculo['id']; ?>">
                     <div class="row g-3">
                         <div class="col-md-8">

@@ -1,6 +1,7 @@
 <?php
 require_once __DIR__ . '/../../includes/sessao.php';
 require_once __DIR__ . '/../../config/conexao.php';
+exigir_papel(['admin', 'secretaria', 'mecanico_chefe']);
 
 $filtro_cliente = isset($_GET['cliente_id']) ? (int)$_GET['cliente_id'] : 0;
 
@@ -90,6 +91,7 @@ require_once __DIR__ . '/../../includes/mensagens.php';
                                 <i data-lucide="pencil"></i>
                             </a>
                             <form method="POST" action="excluir.php" id="excluirVeiculo<?php echo $v['id']; ?>" class="d-inline" onsubmit="return confirmarExclusao('excluirVeiculo<?php echo $v['id']; ?>', 'Excluir o veículo <?php echo $v['marca']; ?> <?php echo $v['modelo']; ?> - <?php echo $v['placa']; ?>?');">
+                                <input type="hidden" name="csrf_token" value="<?php echo esc(csrf_token()); ?>">
                                 <input type="hidden" name="id" value="<?php echo $v['id']; ?>">
                                 <button type="submit" class="btn btn-outline-danger btn-sm" title="Excluir">
                                     <i data-lucide="trash-2"></i>

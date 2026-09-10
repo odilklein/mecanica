@@ -9,10 +9,15 @@ require_once __DIR__ . '/includes/header.php';
 require_once __DIR__ . '/includes/mensagens.php';
 
 // ============ QUERIES PARA O DASHBOARD ============
-
+$titulo_pagina = 'Painel';
 // Totais gerais
-$total_clientes = (int) $conn->query("SELECT COUNT(*) FROM clientes")->fetchColumn();
-$total_veiculos = (int) $conn->query("SELECT COUNT(*) FROM veiculos")->fetchColumn();
+$total_funcionarios = (int) $conn->query('SELECT COUNT(*) FROM usuarios WHERE ativo = 1')->fetchColumn();
+$os_abertas = (int) $conn->query("SELECT COUNT(*) FROM ordens_servico WHERE status NOT IN ('entregue', 'cancelada')")->fetchColumn();
+$pecas_pendentes = (int) $conn->query("SELECT COUNT(*) FROM pedidos_pecas WHERE status IN ('solicitado', 'pedido', 'a_caminho')")->fetchColumn();
+$filtro_funcionario = $_SESSION['usuario_tipo'] === 'mecanico' ? ' JOIN os_responsaveis r ON r.os_id = os.id AND r.usuario_id = ' . (int) $_SESSION['usuario_id'] . ' AND r.concluido_em IS NULL ' : '';
+$stmt = $conn->query("SELECT os.id, os.numero, os.status, os.prioridade, os.data_entrada, c.nome AS cliente, v.modelo, v.placa FROM ordens_servico os $filtro_funcionario JOIN clientes c ON c.id = os.cliente_id LEFT JOIN veiculos v ON v.id = os.veiculo_id WHERE os.status NOT IN ('entregue', 'cancelada') ORDER BY FIELD(os.prioridade, 'urgente', 'alta', 'normal', 'baixa'), os.data_entrada LIMIT 10");
+$ordens = $stmt->fetchAll();
+$status_nomes = ['recebida' => 'Recebida', 'triagem' => 'Triagem', 'aguardando_diagnostico' => 'Aguardando diagnóstico', 'aguardando_orcamento' => 'Aguardando orçamento', 'aguardando_aprovacao' => 'Aguardando aprovação', 'aguardando_peca' => 'Aguardando peça', 'pronta_para_execucao' => 'Pronta para execução', 'em_execucao' => 'Em execução', 'aguardando_retorno' => 'Aguardando retorno', 'pronta_para_entrega' => 'Pronta para entrega'];
 $total_pecas = (int) $conn->query("SELECT COUNT(*) FROM pecas")->fetchColumn();
 
 // Agendamentos hoje

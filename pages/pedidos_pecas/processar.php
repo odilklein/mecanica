@@ -51,6 +51,12 @@ try {
         if ($status === 'recebido') {
             $stmt = $conn->prepare("UPDATE ordens_servico SET status = IF(status = 'aguardando_peca', 'pronta_para_execucao', status) WHERE id = :id");
             $stmt->execute([':id' => $pedido['os_id']]);
+            $stmt = $conn->prepare('SELECT usuario_id FROM os_responsaveis WHERE os_id = :os_id AND concluido_em IS NULL');
+            $stmt->execute([':os_id' => $pedido['os_id']]);
+            foreach ($stmt->fetchAll(PDO::FETCH_COLUMN) as $usuario_id) {
+                $notificacao = $conn->prepare("INSERT INTO notificacoes (usuario_id, os_id, tipo, mensagem) VALUES (:usuario_id, :os_id, 'peca_disponivel', 'A peça solicitada para uma ordem de serviço está disponível.')");
+                $notificacao->execute([':usuario_id' => $usuario_id, ':os_id' => $pedido['os_id']]);
+            }
         }
         $conn->commit();
         $_SESSION['mensagem'] = 'Pedido atualizado.';

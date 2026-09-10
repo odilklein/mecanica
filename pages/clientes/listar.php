@@ -1,6 +1,7 @@
 <?php
 require_once __DIR__ . '/../../includes/sessao.php';
 require_once __DIR__ . '/../../config/conexao.php';
+exigir_papel(['admin', 'secretaria', 'mecanico_chefe']);
 
 $titulo_pagina = "Clientes";
 require_once __DIR__ . '/../../includes/header.php';
@@ -73,7 +74,7 @@ require_once __DIR__ . '/../../includes/mensagens.php';
                         </td>
                         <td class="actions-cell">
                             <!-- Ver veículos -->
-                            <a href="../veiculos/listar.php?cliente_id=<?php echo $cliente['id']; ?>" class="btn btn-outline-info btn-sm" title="Veículos">
+                            <a href="detalhes.php?id=<?php echo $cliente['id']; ?>" class="btn btn-outline-info btn-sm" title="Cliente, veículos e histórico">
                                 <i data-lucide="car"></i>
                             </a>
                             <!-- Editar -->
@@ -82,6 +83,7 @@ require_once __DIR__ . '/../../includes/mensagens.php';
                             </a>
                             <!-- Excluir -->
                             <form method="POST" action="excluir.php" id="excluirCliente<?php echo $cliente['id']; ?>" class="d-inline" onsubmit="return confirmarExclusao('excluirCliente<?php echo $cliente['id']; ?>', 'Excluir o cliente <?php echo addslashes($cliente['nome']); ?>? Todos os dados vinculados serão removidos.');">
+                                <input type="hidden" name="csrf_token" value="<?php echo esc(csrf_token()); ?>">
                                 <input type="hidden" name="id" value="<?php echo $cliente['id']; ?>">
                                 <button type="submit" class="btn btn-outline-danger btn-sm" title="Excluir">
                                     <i data-lucide="trash-2"></i>

@@ -1008,6 +1008,7 @@ a {
     margin-bottom: 7px;
     letter-spacing: 0.2px;
 }
+.form-label-icon { width: 15px; height: 15px; vertical-align: -2px; margin-right: 3px; }
 
 .input-group-text {
     border-radius: 10px 0 0 10px;

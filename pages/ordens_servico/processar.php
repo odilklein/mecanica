@@ -54,6 +54,25 @@ if ($acao !== 'cadastrar') {
         exit();
     }
 
+    if ($acao === 'mudar_tarefa') {
+        $tarefa_id = (int) ($_POST['tarefa_id'] ?? 0);
+        $novo_status = $_POST['tarefa_status'] ?? '';
+        if (!in_array($novo_status, ['pendente', 'em_execucao', 'concluida', 'bloqueada'], true)) {
+            throw new RuntimeException('Status de tarefa inválido.');
+        }
+        $stmt = $conn->prepare('SELECT id FROM os_tarefas WHERE id = :tarefa AND os_id = :os_id');
+        $stmt->execute([':tarefa' => $tarefa_id, ':os_id' => $os_id]);
+        if (!$stmt->fetchColumn()) throw new RuntimeException('Tarefa não encontrada nesta OS.');
+        $stmt = $conn->prepare("UPDATE os_tarefas SET status = :status, concluido_por = IF(:status = 'concluida', :usuario, concluido_por), concluido_em = IF(:status = 'concluida', NOW(), concluido_em) WHERE id = :id");
+        $stmt->execute([':status' => $novo_status, ':usuario' => $_SESSION['usuario_id'], ':id' => $tarefa_id]);
+        $stmt = $conn->prepare("INSERT INTO os_eventos (os_id, tipo, descricao, criado_por) VALUES (:os_id, 'tarefa_status', :descricao, :usuario)");
+        $stmt->execute([':os_id' => $os_id, ':descricao' => 'Tarefa atualizada para ' . $novo_status, ':usuario' => $_SESSION['usuario_id']]);
+        $_SESSION['mensagem'] = 'Tarefa atualizada.';
+        $_SESSION['mensagem_tipo'] = 'success';
+        header('Location: detalhes.php?id=' . $os_id);
+        exit();
+    }
+
     if ($acao === 'mudar_status') {
         exigir_papel(['admin', 'secretaria', 'mecanico_chefe']);
         $novo_status = $_POST['status'] ?? '';
@@ -62,11 +81,40 @@ if ($acao !== 'cadastrar') {
             http_response_code(400);
             exit('Status inválido.');
         }
+        $transicoes = [
+            'recebida' => ['triagem', 'aguardando_diagnostico', 'cancelada'],
+            'triagem' => ['aguardando_diagnostico', 'aguardando_orcamento', 'cancelada'],
+            'aguardando_diagnostico' => ['aguardando_orcamento', 'aguardando_peca', 'cancelada'],
+            'aguardando_orcamento' => ['aguardando_aprovacao', 'aguardando_peca', 'cancelada'],
+            'aguardando_aprovacao' => ['aguardando_peca', 'pronta_para_execucao', 'cancelada'],
+            'aguardando_peca' => ['pronta_para_execucao', 'cancelada'],
+            'pronta_para_execucao' => ['em_execucao', 'cancelada'],
+            'em_execucao' => ['aguardando_retorno', 'pronta_para_entrega', 'aguardando_peca', 'cancelada'],
+            'aguardando_retorno' => ['em_execucao', 'pronta_para_entrega', 'cancelada'],
+            'pronta_para_entrega' => ['entregue', 'aguardando_retorno'],
+            'entregue' => [],
+            'cancelada' => []
+        ];
+        if ($novo_status !== $os_atual['status'] && !in_array($novo_status, $transicoes[$os_atual['status']] ?? [], true)) {
+            throw new RuntimeException('Essa mudança de status não é permitida para a etapa atual.');
+        }
+        if ($novo_status === 'entregue') {
+            $stmt = $conn->prepare("SELECT 1 FROM os_entregas WHERE os_id = :os_id AND status = 'concluida' LIMIT 1");
+            $stmt->execute([':os_id' => $os_id]);
+            if (!$stmt->fetchColumn()) throw new RuntimeException('Confirme a entrega ou retirada antes de encerrar a OS.');
+        }
         $conn->beginTransaction();
         $stmt = $conn->prepare('UPDATE ordens_servico SET status = :status, data_conclusao = IF(:status = \'entregue\', NOW(), data_conclusao) WHERE id = :id');
         $stmt->execute([':status' => $novo_status, ':id' => $os_id]);
         $stmt = $conn->prepare('INSERT INTO os_eventos (os_id, tipo, status_anterior, status_novo, descricao, criado_por) VALUES (:os_id, \'status\', :anterior, :novo, :descricao, :usuario)');
         $stmt->execute([':os_id' => $os_id, ':anterior' => $os_atual['status'], ':novo' => $novo_status, ':descricao' => 'Status alterado manualmente', ':usuario' => $_SESSION['usuario_id']]);
+        if ($novo_status === 'entregue') {
+            $stmt = $conn->prepare("SELECT cliente_id, veiculo_id, COALESCE(diagnostico, queixa_inicial) AS descricao FROM ordens_servico WHERE id = :id");
+            $stmt->execute([':id' => $os_id]);
+            $dados_os = $stmt->fetch();
+            $stmt = $conn->prepare('INSERT INTO cliente_servicos_historico (cliente_id, veiculo_id, os_id, descricao) VALUES (:cliente, :veiculo, :os, :descricao)');
+            $stmt->execute([':cliente' => $dados_os['cliente_id'], ':veiculo' => $dados_os['veiculo_id'], ':os' => $os_id, ':descricao' => $dados_os['descricao']]);
+        }
         $conn->commit();
         $_SESSION['mensagem'] = 'Status da OS atualizado.';
         $_SESSION['mensagem_tipo'] = 'success';
@@ -85,6 +133,8 @@ if ($acao !== 'cadastrar') {
         }
         $stmt = $conn->prepare('INSERT INTO os_responsaveis (os_id, usuario_id, atribuido_por) VALUES (:os_id, :usuario_id, :atribuido_por) ON DUPLICATE KEY UPDATE concluido_em = NULL');
         $stmt->execute([':os_id' => $os_id, ':usuario_id' => $usuario_id, ':atribuido_por' => $_SESSION['usuario_id']]);
+        $stmt = $conn->prepare("INSERT INTO notificacoes (usuario_id, os_id, tipo, mensagem) VALUES (:usuario_id, :os_id, 'os_atribuida', 'Uma nova ordem de serviço foi atribuída a você.')");
+        $stmt->execute([':usuario_id' => $usuario_id, ':os_id' => $os_id]);
         $_SESSION['mensagem'] = 'Mecânico atribuído à OS.';
         $_SESSION['mensagem_tipo'] = 'success';
         header('Location: detalhes.php?id=' . $os_id);
@@ -101,12 +151,20 @@ if ($acao !== 'cadastrar') {
             http_response_code(400);
             exit('Modalidade de entrega inválida.');
         }
-        $stmt = $conn->prepare("INSERT INTO os_entregas (os_id, modalidade, responsavel, destino, km_saida, status, criado_por) VALUES (:os_id, :modalidade, :responsavel, :destino, :km_saida, 'planejada', :usuario)");
+        if ($os_atual['status'] !== 'pronta_para_entrega') {
+            throw new RuntimeException('A OS precisa estar pronta para entrega antes da confirmação.');
+        }
+        $stmt = $conn->prepare("INSERT INTO os_entregas (os_id, modalidade, responsavel, destino, km_saida, status, criado_por, concluido_por, concluido_em) VALUES (:os_id, :modalidade, :responsavel, :destino, :km_saida, 'concluida', :usuario, :usuario, NOW())");
         $stmt->execute([':os_id' => $os_id, ':modalidade' => $modalidade, ':responsavel' => $responsavel ?: null, ':destino' => $destino ?: null, ':km_saida' => $km_saida ?: null, ':usuario' => $_SESSION['usuario_id']]);
-        $stmt = $conn->prepare("UPDATE ordens_servico SET status = IF(status IN ('em_execucao', 'aguardando_retorno'), 'pronta_para_entrega', status) WHERE id = :id");
+        $stmt = $conn->prepare("UPDATE ordens_servico SET status = 'entregue', data_conclusao = NOW() WHERE id = :id");
         $stmt->execute([':id' => $os_id]);
         $stmt = $conn->prepare("INSERT INTO os_eventos (os_id, tipo, descricao, criado_por) VALUES (:os_id, 'entrega_planejada', 'Entrega ou retirada registrada', :usuario)");
         $stmt->execute([':os_id' => $os_id, ':usuario' => $_SESSION['usuario_id']]);
+        $stmt = $conn->prepare("SELECT cliente_id, veiculo_id, COALESCE(diagnostico, queixa_inicial) AS descricao FROM ordens_servico WHERE id = :id");
+        $stmt->execute([':id' => $os_id]);
+        $dados_os = $stmt->fetch();
+        $stmt = $conn->prepare('INSERT INTO cliente_servicos_historico (cliente_id, veiculo_id, os_id, descricao) VALUES (:cliente, :veiculo, :os, :descricao)');
+        $stmt->execute([':cliente' => $dados_os['cliente_id'], ':veiculo' => $dados_os['veiculo_id'], ':os' => $os_id, ':descricao' => $dados_os['descricao']]);
         $_SESSION['mensagem'] = 'Entrega ou retirada registrada.';
         $_SESSION['mensagem_tipo'] = 'success';
         header('Location: detalhes.php?id=' . $os_id);
@@ -122,6 +180,9 @@ $placa = strtoupper(limpar($_POST['placa'] ?? ''));
 $prioridade = $_POST['prioridade'] ?? 'normal';
 $queixa = limpar($_POST['queixa_inicial'] ?? '');
 $observacoes = limpar($_POST['observacoes_internas'] ?? '');
+$tarefas = array_values(array_filter(array_map('trim', explode("\n", $_POST['tarefas'] ?? ''))));
+$funcionarios_ids = array_values(array_unique(array_map('intval', $_POST['funcionarios_ids'] ?? [])));
+$pecas_linhas = array_values(array_filter(array_map('trim', explode("\n", $_POST['pecas'] ?? ''))));
 
 if ($nome === '' || $queixa === '' || !in_array($prioridade, ['baixa', 'normal', 'alta', 'urgente'], true)) {
     $_SESSION['mensagem'] = 'Informe o nome, a queixa e uma prioridade válida.';
@@ -181,6 +242,42 @@ try {
     ]);
     $os_id = (int) $conn->lastInsertId();
     $conn->query("SELECT RELEASE_LOCK('mecanica_os_numero')");
+
+    foreach ($funcionarios_ids as $funcionario_id) {
+        $stmt = $conn->prepare("SELECT id FROM usuarios WHERE id = :id AND ativo = 1 AND tipo IN ('mecanico', 'mecanico_chefe')");
+        $stmt->execute([':id' => $funcionario_id]);
+        if (!$stmt->fetchColumn()) {
+            throw new RuntimeException('Um dos funcionários selecionados não está disponível.');
+        }
+        $stmt = $conn->prepare('INSERT INTO os_responsaveis (os_id, usuario_id, atribuido_por) VALUES (:os_id, :usuario_id, :atribuido_por)');
+        $stmt->execute([':os_id' => $os_id, ':usuario_id' => $funcionario_id, ':atribuido_por' => $_SESSION['usuario_id']]);
+    }
+
+    foreach ($tarefas as $tarefa) {
+        if (mb_strlen($tarefa) > 255) {
+            throw new RuntimeException('Cada tarefa deve ter no máximo 255 caracteres.');
+        }
+        $stmt = $conn->prepare('INSERT INTO os_tarefas (os_id, descricao, criado_por) VALUES (:os_id, :descricao, :criado_por)');
+        $stmt->execute([':os_id' => $os_id, ':descricao' => $tarefa, ':criado_por' => $_SESSION['usuario_id']]);
+    }
+
+    if ($pecas_linhas) {
+        $stmt = $conn->prepare("INSERT INTO pedidos_pecas (os_id, status, observacoes, criado_por) VALUES (:os_id, 'solicitado', 'Pedido criado automaticamente na abertura da OS.', :criado_por)");
+        $stmt->execute([':os_id' => $os_id, ':criado_por' => $_SESSION['usuario_id']]);
+        $pedido_id = (int) $conn->lastInsertId();
+        foreach ($pecas_linhas as $peca_linha) {
+            $partes = array_map('trim', explode('|', $peca_linha, 2));
+            $descricao = $partes[0] ?? '';
+            $quantidade = isset($partes[1]) ? (int) $partes[1] : 1;
+            if ($descricao === '' || $quantidade <= 0 || mb_strlen($descricao) > 200) {
+                throw new RuntimeException('Use o formato "Peça | quantidade" para cada peça.');
+            }
+            $stmt = $conn->prepare('INSERT INTO pedido_pecas_itens (pedido_id, descricao, quantidade) VALUES (:pedido_id, :descricao, :quantidade)');
+            $stmt->execute([':pedido_id' => $pedido_id, ':descricao' => $descricao, ':quantidade' => $quantidade]);
+        }
+        $stmt = $conn->prepare("UPDATE ordens_servico SET status = 'aguardando_peca' WHERE id = :id");
+        $stmt->execute([':id' => $os_id]);
+    }
 
     $stmt = $conn->prepare("INSERT INTO os_eventos (os_id, tipo, status_novo, descricao, criado_por) VALUES (:os_id, 'criacao', 'recebida', 'Atendimento criado', :criado_por)");
     $stmt->execute([':os_id' => $os_id, ':criado_por' => $_SESSION['usuario_id']]);
