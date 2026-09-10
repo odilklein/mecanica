@@ -650,7 +650,6 @@ a {
     min-height: calc(100vh - var(--topbar-height));
     padding: 24px;
     transition: margin-left 0.2s ease, background-color 0.3s ease;
-    animation: fadeIn 0.3s ease;
 }
 
 .sidebar.collapsed ~ .main-wrapper {
@@ -658,7 +657,7 @@ a {
 }
 
 @keyframes fadeIn {
-    from { opacity: 0; transform: translateY(8px); }
+    from { opacity: 0; transform: translateY(6px); }
     to { opacity: 1; transform: translateY(0); }
 }
 
@@ -1665,6 +1664,374 @@ textarea.form-control {
     height: 6px;
     border-radius: 50%;
     background: currentColor;
+}
+
+/* ============ BODY REVEAL (previne FOUT) ============ */
+body.loading { opacity: 0; }
+body.loaded { opacity: 1; transition: opacity 0.25s ease; }
+
+/* ============ GRADIENT EFFECTS ============ */
+.sidebar {
+    background: linear-gradient(180deg, var(--bg-sidebar) 0%, color-mix(in srgb, var(--bg-sidebar) 92%, var(--accent) 8%) 100%);
+}
+
+.stat-card {
+    background: linear-gradient(135deg, var(--card-bg) 0%, color-mix(in srgb, var(--card-bg) 95%, var(--accent) 5%) 100%);
+}
+
+.stat-card.border-accent .stat-border { background: linear-gradient(180deg, var(--accent), color-mix(in srgb, var(--accent) 60%, #ff6b4a)); }
+.stat-card.border-green .stat-border { background: linear-gradient(180deg, var(--success), color-mix(in srgb, var(--success) 60%, #34d399)); }
+.stat-card.border-blue .stat-border { background: linear-gradient(180deg, var(--info), color-mix(in srgb, var(--info) 60%, #7dd3fc)); }
+.stat-card.border-yellow .stat-border { background: linear-gradient(180deg, var(--warning), color-mix(in srgb, var(--warning) 60%, #fbbf24)); }
+.stat-card.border-red .stat-border { background: linear-gradient(180deg, var(--danger), color-mix(in srgb, var(--danger) 60%, #fb7185)); }
+
+.btn-primary {
+    background: linear-gradient(135deg, var(--accent) 0%, color-mix(in srgb, var(--accent) 80%, #ff4444) 100%);
+    border: none;
+}
+
+.btn-primary:hover {
+    background: linear-gradient(135deg, var(--accent-hover) 0%, color-mix(in srgb, var(--accent-hover) 80%, #ff5555) 100%);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 15px var(--accent-glow);
+}
+
+.sidebar-brand .brand-icon {
+    background: linear-gradient(135deg, var(--accent), color-mix(in srgb, var(--accent) 70%, #ff6b4a));
+    box-shadow: 0 4px 12px rgba(189, 24, 4, 0.25);
+}
+
+.sidebar-user-avatar {
+    background: linear-gradient(135deg, var(--accent), color-mix(in srgb, var(--accent) 60%, #ff6b4a));
+}
+
+.page-header {
+    border-bottom: 2px solid transparent;
+    background-image: linear-gradient(var(--bg-primary), var(--bg-primary)), linear-gradient(90deg, var(--accent), color-mix(in srgb, var(--accent) 30%, var(--info)), transparent);
+    background-origin: border-box;
+    background-clip: padding-box, border-box;
+}
+
+.card:hover {
+    box-shadow: var(--shadow-md);
+    border-color: color-mix(in srgb, var(--border-color) 70%, var(--accent) 30%);
+}
+
+/* ============ STATUS BADGES (CORES SEMÂNTICAS) ============ */
+.badge-status-recebida { background-color: #e5e7eb; color: #374151; }
+.badge-status-triagem { background-color: rgba(139, 92, 246, 0.12); color: #7c3aed; }
+.badge-status-aguardando_diagnostico { background-color: rgba(249, 115, 22, 0.12); color: #ea580c; }
+.badge-status-aguardando_orcamento { background-color: rgba(234, 179, 8, 0.12); color: #ca8a04; }
+.badge-status-aguardando_aprovacao { background-color: rgba(217, 119, 6, 0.12); color: #b45309; }
+.badge-status-aguardando_peca { background-color: rgba(239, 68, 68, 0.12); color: #dc2626; }
+.badge-status-pronta_para_execucao { background-color: rgba(20, 184, 166, 0.12); color: #0d9488; }
+.badge-status-em_execucao { background-color: rgba(59, 130, 246, 0.12); color: #2563eb; }
+.badge-status-aguardando_retorno { background-color: rgba(168, 85, 247, 0.12); color: #9333ea; }
+.badge-status-pronta_para_entrega { background-color: rgba(34, 197, 94, 0.12); color: #16a34a; }
+.badge-status-entregue { background-color: rgba(22, 163, 74, 0.15); color: #15803d; }
+.badge-status-cancelada { background-color: rgba(107, 114, 128, 0.15); color: #6b7280; }
+
+.badge-status-solicitado { background-color: rgba(249, 115, 22, 0.12); color: #ea580c; }
+.badge-status-validado { background-color: rgba(59, 130, 246, 0.12); color: #2563eb; }
+.badge-status-pedido { background-color: rgba(139, 92, 246, 0.12); color: #7c3aed; }
+.badge-status-a_caminho { background-color: rgba(234, 179, 8, 0.12); color: #ca8a04; }
+.badge-status-recebido { background-color: rgba(34, 197, 94, 0.12); color: #16a34a; }
+.badge-status-cancelado { background-color: rgba(107, 114, 128, 0.15); color: #6b7280; }
+
+/* ============ EMPTY STATE MODERNIZADO ============ */
+.empty-state {
+    padding: 3.5rem 1.5rem;
+    text-align: center;
+    color: var(--text-muted);
+    background: linear-gradient(135deg, color-mix(in srgb, var(--bg-secondary) 80%, transparent) 0%, var(--bg-secondary) 100%);
+    border-radius: var(--card-radius);
+    border: 1px dashed var(--border-color);
+}
+
+.empty-state-icon {
+    width: 72px;
+    height: 72px;
+    margin: 0 auto 1.2rem;
+    border-radius: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, var(--accent-light), color-mix(in srgb, var(--accent-light) 50%, transparent));
+    color: var(--accent);
+    opacity: 1;
+}
+
+.empty-state-icon svg,
+.empty-state-icon i {
+    width: 34px;
+    height: 34px;
+    opacity: 1;
+}
+
+.empty-state h4 {
+    color: var(--text-primary);
+    margin-bottom: 8px;
+    font-size: 1.05rem;
+    font-weight: 600;
+}
+
+.empty-state p {
+    margin-bottom: 20px;
+    font-size: 0.85rem;
+    color: var(--text-muted);
+}
+
+.empty-state .btn {
+    background: linear-gradient(135deg, var(--accent), color-mix(in srgb, var(--accent) 75%, #ff6b4a));
+    border: none;
+    color: #fff;
+    padding: 10px 22px;
+    border-radius: 10px;
+    font-weight: 600;
+    box-shadow: 0 4px 12px var(--accent-glow);
+    transition: all 0.2s ease;
+}
+
+.empty-state .btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px var(--accent-glow);
+}
+
+/* ============ FORM MODERNIZADO ============ */
+.form-group-icon {
+    position: relative;
+}
+
+.form-group-icon .form-control,
+.form-group-icon .form-select {
+    padding-left: 42px;
+}
+
+.form-group-icon .form-icon {
+    position: absolute;
+    left: 14px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--text-muted);
+    width: 18px;
+    height: 18px;
+    pointer-events: none;
+    z-index: 5;
+    transition: color 0.2s ease;
+}
+
+.form-group-icon .form-control:focus ~ .form-icon,
+.form-group-icon .form-select:focus ~ .form-icon {
+    color: var(--accent);
+}
+
+.form-label-with-icon {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-weight: 600;
+    font-size: 0.78rem;
+    color: var(--text-secondary);
+    margin-bottom: 7px;
+}
+
+.form-label-with-icon svg,
+.form-label-with-icon i {
+    width: 15px;
+    height: 15px;
+    color: var(--accent);
+}
+
+/* ============ TASK & PARTS LIST (MODERNO) ============ */
+.dynamic-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.dynamic-list-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 14px;
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+    background: var(--bg-secondary);
+    animation: fadeIn 0.2s ease;
+    transition: border-color 0.2s ease;
+}
+
+.dynamic-list-item:hover {
+    border-color: color-mix(in srgb, var(--border-color) 60%, var(--accent) 40%);
+}
+
+.dynamic-list-item .item-grip {
+    color: var(--text-muted);
+    cursor: grab;
+}
+
+.dynamic-list-item .item-text {
+    flex: 1;
+    font-size: 0.88rem;
+    font-weight: 500;
+    color: var(--text-primary);
+}
+
+.dynamic-list-item .item-remove {
+    width: 28px;
+    height: 28px;
+    border: none;
+    border-radius: 6px;
+    background: var(--danger-bg);
+    color: var(--danger);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    flex-shrink: 0;
+}
+
+.dynamic-list-item .item-remove svg {
+    width: 14px;
+    height: 14px;
+}
+
+.dynamic-list-item .item-remove:hover {
+    background: var(--danger);
+    color: #fff;
+}
+
+.dynamic-list-input {
+    display: flex;
+    gap: 8px;
+}
+
+.dynamic-list-input .form-control {
+    flex: 1;
+}
+
+.dynamic-list-input .btn-add {
+    flex-shrink: 0;
+    width: 44px;
+    height: 44px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 2px dashed var(--accent);
+    background: var(--accent-light);
+    color: var(--accent);
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.dynamic-list-input .btn-add:hover {
+    background: var(--accent);
+    color: #fff;
+    border-style: solid;
+}
+
+.dynamic-list-input .btn-add svg {
+    width: 18px;
+    height: 18px;
+}
+
+/* ============ SELECT CARDS (FUNCIONÁRIOS) ============ */
+.select-cards-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 10px;
+}
+
+.select-card-employee {
+    border: 1.5px solid var(--border-color);
+    border-radius: 12px;
+    padding: 14px;
+    cursor: pointer;
+    background: var(--bg-secondary);
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    position: relative;
+    user-select: none;
+}
+
+.select-card-employee:hover {
+    border-color: var(--accent);
+    background: var(--accent-light);
+}
+
+.select-card-employee.selected {
+    border-color: var(--accent);
+    background: var(--accent-light);
+    box-shadow: 0 0 0 2px var(--accent-light);
+}
+
+.select-card-employee .emp-avatar {
+    width: 40px;
+    height: 40px;
+    min-width: 40px;
+    border-radius: 10px;
+    background: linear-gradient(135deg, var(--accent-light), color-mix(in srgb, var(--accent-light) 30%, transparent));
+    color: var(--accent);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+    font-size: 0.85rem;
+    transition: all 0.2s ease;
+}
+
+.select-card-employee.selected .emp-avatar {
+    background: linear-gradient(135deg, var(--accent), color-mix(in srgb, var(--accent) 70%, #ff6b4a));
+    color: #fff;
+}
+
+.select-card-employee .emp-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.select-card-employee .emp-name {
+    font-weight: 600;
+    font-size: 0.88rem;
+    color: var(--text-primary);
+}
+
+.select-card-employee .emp-role {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+}
+
+.select-card-employee .emp-check {
+    width: 22px;
+    height: 22px;
+    border-radius: 6px;
+    border: 2px solid var(--border-color);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+    flex-shrink: 0;
+}
+
+.select-card-employee .emp-check svg {
+    width: 13px;
+    height: 13px;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+}
+
+.select-card-employee.selected .emp-check {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #fff;
+}
+
+.select-card-employee.selected .emp-check svg {
+    opacity: 1;
 }
 
 /* ============ UTILITÁRIOS ============ */

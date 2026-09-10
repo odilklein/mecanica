@@ -5,6 +5,7 @@ exigir_papel(['admin', 'secretaria', 'mecanico_chefe']);
 
 $titulo_pagina = "Novo Veículo";
 require_once __DIR__ . '/../../includes/header.php';
+require_once __DIR__ . '/../../includes/mensagens.php';
 ?>
 
 <div class="page-header">
@@ -25,7 +26,7 @@ require_once __DIR__ . '/../../includes/header.php';
                     <input type="hidden" name="csrf_token" value="<?php echo esc(csrf_token()); ?>">
                     <div class="row g-3">
                         <div class="col-md-8">
-                            <label for="cliente_id" class="form-label">Cliente *</label>
+                            <label for="cliente_id" class="form-label-with-icon"><i data-lucide="user"></i> Cliente *</label>
                             <select class="form-select" id="cliente_id" name="cliente_id" required>
                                 <option value="">-- Selecione o cliente --</option>
                                 <?php
@@ -38,11 +39,11 @@ require_once __DIR__ . '/../../includes/header.php';
                             </select>
                         </div>
                         <div class="col-md-4">
-                            <label for="placa" class="form-label">Placa *</label>
+                            <label for="placa" class="form-label-with-icon"><i data-lucide="hash"></i> Placa *</label>
                             <input type="text" class="form-control text-uppercase" id="placa" name="placa" placeholder="ABC-1234" oninput="formatarPlaca(this)" required>
                         </div>
                         <div class="col-md-4">
-                            <label for="marca" class="form-label">Marca *</label>
+                            <label for="marca" class="form-label-with-icon"><i data-lucide="tag"></i> Marca *</label>
                             <input type="text" class="form-control" id="marca" name="marca" list="listaMarcas" placeholder="Ex: Volkswagen" required>
                             <datalist id="listaMarcas">
                                 <option value="Fiat"><option value="Volkswagen"><option value="Chevrolet">
@@ -52,28 +53,28 @@ require_once __DIR__ . '/../../includes/header.php';
                             </datalist>
                         </div>
                         <div class="col-md-4">
-                            <label for="modelo" class="form-label">Modelo *</label>
+                            <label for="modelo" class="form-label-with-icon"><i data-lucide="car"></i> Modelo *</label>
                             <input type="text" class="form-control" id="modelo" name="modelo" placeholder="Ex: Gol" required>
                         </div>
                         <div class="col-md-4">
-                            <label for="ano" class="form-label">Ano</label>
+                            <label for="ano" class="form-label-with-icon"><i data-lucide="calendar"></i> Ano</label>
                             <input type="number" class="form-control" id="ano" name="ano" min="1950" max="2030" placeholder="Ex: 2020">
                         </div>
                         <div class="col-md-3">
-                            <label for="cor" class="form-label">Cor</label>
+                            <label for="cor" class="form-label-with-icon"><i data-lucide="palette"></i> Cor</label>
                             <input type="text" class="form-control" id="cor" name="cor" placeholder="Ex: Preto">
                         </div>
                         <div class="col-md-3">
-                            <label for="km_atual" class="form-label">KM Atual</label>
+                            <label for="km_atual" class="form-label-with-icon"><i data-lucide="gauge"></i> KM Atual</label>
                             <input type="number" class="form-control" id="km_atual" name="km_atual" min="0" placeholder="0">
                         </div>
                         <div class="col-md-6">
-                            <label for="chassi" class="form-label">Chassi (opcional)</label>
+                            <label for="chassi" class="form-label-with-icon"><i data-lucide="fingerprint"></i> Chassi (opcional)</label>
                             <input type="text" class="form-control" id="chassi" name="chassi">
                         </div>
                     </div>
                     <div class="d-flex justify-content-between mt-4">
-                        <a href="listar.php" class="btn btn-outline-secondary">Cancelar</a>
+                        <a href="listar.php" class="btn btn-outline-secondary btn-icon"><i data-lucide="arrow-left"></i> Cancelar</a>
                         <button type="submit" class="btn btn-primary btn-icon">
                             <i data-lucide="save"></i> Salvar Veículo
                         </button>

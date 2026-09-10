@@ -53,7 +53,7 @@ require_once __DIR__ . '/../../includes/mensagens.php';
                     <tr>
                         <td>
                             <div class="d-flex align-items-center">
-                                <div class="avatar-circle bg-primary text-white me-2">
+                                <div class="avatar-circle me-2">
                                     <?php echo strtoupper(substr($cliente['nome'], 0, 1)); ?>
                                 </div>
                                 <div>
@@ -95,9 +95,9 @@ require_once __DIR__ . '/../../includes/mensagens.php';
                     <tr>
                         <td colspan="7">
                             <div class="empty-state">
-                                <i data-lucide="users"></i>
+                                <div class="empty-state-icon"><i data-lucide="users"></i></div>
                                 <h4>Nenhum cliente cadastrado</h4>
-                                <p>Clique em "Novo Cliente" para começar.</p>
+                                <p>Cadastre o primeiro cliente para começar a usar o sistema.</p>
                                 <a href="cadastrar.php" class="btn btn-primary btn-icon">
                                     <i data-lucide="plus"></i> Cadastrar Cliente
                                 </a>

@@ -128,7 +128,7 @@ $filtro_status = $_GET['status'] ?? 'todos';
                     <tr>
                         <td colspan="8">
                             <div class="empty-state">
-                                <i data-lucide="receipt-text"></i>
+                                <div class="empty-state-icon"><i data-lucide="receipt-text"></i></div>
                                 <h4>Nenhum orçamento encontrado</h4>
                                 <p>Crie um novo orçamento para seus clientes.</p>
                                 <a href="cadastrar.php" class="btn btn-primary btn-icon">

@@ -103,9 +103,9 @@ require_once __DIR__ . '/../../includes/mensagens.php';
                     <tr>
                         <td colspan="7">
                             <div class="empty-state">
-                                <i data-lucide="car"></i>
+                                <div class="empty-state-icon"><i data-lucide="car"></i></div>
                                 <h4>Nenhum veículo cadastrado</h4>
-                                <p>Cadastre o primeiro veículo da oficina.</p>
+                                <p>Cadastre o primeiro veículo da oficina para começar.</p>
                                 <a href="cadastrar.php" class="btn btn-primary btn-icon">
                                     <i data-lucide="plus"></i> Cadastrar Veículo
                                 </a>
