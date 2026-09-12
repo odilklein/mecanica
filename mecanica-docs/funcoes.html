@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Funções do sistema · Documentação Auto Mecânica Leme</title>
+    <meta name="description" content="Cada módulo do sistema, o que ele faz e onde vive no código: autenticação, dashboard, clientes, OS, pedidos de peças, orçamentos e mais.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+    <link rel="stylesheet" href="assets/css/docs.css">
+</head>
+<body data-page="funcoes">
+
+    <header class="topbar" id="topbar"></header>
+
+    <div class="layout">
+        <aside class="sidebar" id="sidebar" aria-label="Menu de navegação"></aside>
+
+        <main class="content">
+            <nav class="breadcrumbs" aria-label="Trilha">
+                <a href="index.html">Início</a>
+                <span>Produto</span>
+                <span>Funções do sistema</span>
+            </nav>
+
+            <header class="page-head">
+                <span class="page-head-icon"><i data-lucide="boxes"></i></span>
+                <h1>Funções do sistema</h1>
+                <p class="page-subtitle">Cada módulo, o que ele faz e onde vive no código</p>
+            </header>
+
+            <section class="section">
+                <h2 id="mapa">Mapa de dependências</h2>
+                <p>
+                    Todos os módulos dependem da autenticação; o núcleo operacional orbita a <strong>Ordem de Serviço</strong>.
+                </p>
+                <figure class="diagram">
+                    <pre class="mermaid">
+flowchart TB
+    AUT["Autenticação e sessão"]
+    AUT --> DASH["Dashboard"]
+    AUT --> CLI["Clientes"]
+    AUT --> VEI["Veículos"]
+    AUT --> FUN["Funcionários"]
+    AUT --> OS["Ordens de serviço"]
+    OS --> TAR["Diagnóstico e tarefas"]
+    TAR --> PED["Pedidos de peças"]
+    PED --> OS
+    OS --> ENT["Entrega"]
+    OS --> ORC["Orçamentos"]
+    ORC --> OS
+    AUT --> NOT["Notificações"]
+                    </pre>
+                    <figcaption>Dependências entre os módulos do sistema.</figcaption>
+                </figure>
+            </section>
+
+            <section class="section">
+                <h2 id="modulos">Módulos por página</h2>
+                <p>Os arquivos referenciados abaixo usam caminhos relativos à raiz do projeto (ex.: <code>pages/clientes/listar.php</code>).</p>
+
+                <div class="module-row">
+                    <span class="ct-icon"><i data-lucide="log-in"></i></span>
+                    <div>
+                        <h4>Autenticação e sessão</h4>
+                        <p class="module-desc">Login com e-mail/senha, logout via POST com CSRF e sessão protegida (HttpOnly, SameSite=Lax e Secure em HTTPS).</p>
+                        <details class="module-files">
+                            <summary><i data-lucide="folder"></i> Arquivos deste módulo</summary>
+<pre><code>pages/auth/login.php
+pages/auth/login_processar.php
+pages/auth/logout.php
+pages/auth/perfil.php (Meus dados)
+pages/auth/perfil_processar.php
+includes/sessao.php</code></pre>
+                        </details>
+                    </div>
+                </div>
+
+                <div class="module-row">
+                    <span class="ct-icon"><i data-lucide="layout-grid"></i></span>
+                    <div>
+                        <h4>Dashboard (Painel)</h4>
+                        <p class="module-desc">Indicadores de clientes, funcionários ativos, OS em andamento e peças pendentes. Tabela das OS abertas ordenada por prioridade. Ações rápidas conforme o perfil.</p>
+                        <details class="module-files">
+                            <summary><i data-lucide="folder"></i> Arquivos deste módulo</summary>
+<pre><code>index.php</code></pre>
+                        </details>
+                    </div>
+                </div>
+
+                <div class="module-row">
+                    <span class="ct-icon"><i data-lucide="users"></i></span>
+                    <div>
+                        <h4>Clientes</h4>
+                        <p class="module-desc">Cadastro completo (nome, CPF, telefone, e-mail, endereço, observações). O detalhe mostra veículos vinculados e histórico de serviços. Busca em tempo real na listagem.</p>
+                        <details class="module-files">
+                            <summary><i data-lucide="folder"></i> Arquivos deste módulo</summary>
+<pre><code>pages/clientes/listar.php
+pages/clientes/cadastrar.php
+pages/clientes/editar.php
+pages/clientes/excluir.php
+pages/clientes/detalhes.php
+pages/clientes/processar.php</code></pre>
+                        </details>
+                    </div>
+                </div>
+
+                <div class="module-row">
+                    <span class="ct-icon"><i data-lucide="car-front"></i></span>
+                    <div>
+                        <h4>Veículos</h4>
+                        <p class="module-desc">CRUD de veículos vinculados a um cliente. A placa é única; o sistema impede que a mesma placa pertença a dois clientes. Veículos cadastrados direto do fluxo da OS.</p>
+                        <details class="module-files">
+                            <summary><i data-lucide="folder"></i> Arquivos deste módulo</summary>
+<pre><code>pages/veiculos/listar.php
+pages/veiculos/cadastrar.php
+pages/veiculos/editar.php
+pages/veiculos/excluir.php
+pages/veiculos/processar.php</code></pre>
+                        </details>
+                    </div>
+                </div>
+
+                <div class="module-row">
+                    <span class="ct-icon"><i data-lucide="users-round"></i></span>
+                    <div>
+                        <h4>Funcionários</h4>
+                        <p class="module-desc">Funcionários são os próprios usuários do sistema. Inclui CPF, telefone, salário, data de admissão, cargo, status ativo/inativo e perfil de acesso. Somente admin cria outro admin.</p>
+                        <details class="module-files">
+                            <summary><i data-lucide="folder"></i> Arquivos deste módulo</summary>
+<pre><code>pages/funcionarios/listar.php
+pages/funcionarios/cadastrar.php
+pages/funcionarios/editar.php
+pages/funcionarios/processar.php</code></pre>
+                        </details>
+                    </div>
+                </div>
+
+                <div class="module-row">
+                    <span class="ct-icon"><i data-lucide="clipboard-plus"></i></span>
+                    <div>
+                        <h4>Ordens de serviço</h4>
+                        <p class="module-desc">O coração do sistema. Criação via wizard de 5 passos, fila por prioridade, detalhe com diagnóstico, tarefas (com áudio), responsáveis, peças, eventos e entrega. Máquina de estados validada no backend.</p>
+                        <details class="module-files">
+                            <summary><i data-lucide="folder"></i> Arquivos deste módulo</summary>
+<pre><code>pages/ordens_servico/cadastrar.php (wizard + gravação de voz)
+pages/ordens_servico/listar.php (fila)
+pages/ordens_servico/detalhes.php
+pages/ordens_servico/processar.php (criação, status, tarefas,
+  diagnóstico, atribuição e entrega)</code></pre>
+                        </details>
+                    </div>
+                </div>
+
+                <div class="module-row">
+                    <span class="ct-icon"><i data-lucide="package-search"></i></span>
+                    <div>
+                        <h4>Pedidos de peças</h4>
+                        <p class="module-desc">Do pedido ao recebimento: solicitado → validado → pedido → a_caminho → recebido. Ao receber, a OS volta a avançar e os mecânicos são notificados.</p>
+                        <details class="module-files">
+                            <summary><i data-lucide="folder"></i> Arquivos deste módulo</summary>
+<pre><code>pages/pedidos_pecas/listar.php
+pages/pedidos_pecas/cadastrar.php
+pages/pedidos_pecas/editar.php
+pages/pedidos_pecas/processar.php</code></pre>
+                        </details>
+                    </div>
+                </div>
+
+                <div class="module-row">
+                    <span class="ct-icon"><i data-lucide="file-text"></i></span>
+                    <div>
+                        <h4>Orçamentos</h4>
+                        <p class="module-desc">Documento comercial manual (serviço ou peça), com subtotais recalculados no servidor, impressão e relatório. Vinculável a uma OS.</p>
+                        <details class="module-files">
+                            <summary><i data-lucide="folder"></i> Arquivos deste módulo</summary>
+<pre><code>pages/orcamentos/listar.php
+pages/orcamentos/cadastrar.php
+pages/orcamentos/editar.php
+pages/orcamentos/detalhes.php
+pages/orcamentos/imprimir.php
+pages/orcamentos/relatorio.php
+pages/orcamentos/processar.php</code></pre>
+                        </details>
+                    </div>
+                </div>
+
+                <div class="module-row">
+                    <span class="ct-icon"><i data-lucide="bell"></i></span>
+                    <div>
+                        <h4>Notificações</h4>
+                        <p class="module-desc">Sino no topo com contador de não lidas, atualização a cada 30 s, marcar como lida/individual/todas e link direto para a OS. Criadas por eventos (nova OS, mudança de status, peça disponível, etc.).</p>
+                        <details class="module-files">
+                            <summary><i data-lucide="folder"></i> Arquivos deste módulo</summary>
+<pre><code>includes/notificacoes.php (helpers)
+api/notificacoes.php (JSON + ações)
+includes/header.php (sino)
+js/main.js (initNotifications)</code></pre>
+                        </details>
+                    </div>
+                </div>
+
+                <div class="module-row">
+                    <span class="ct-icon"><i data-lucide="book-open"></i></span>
+                    <div>
+                        <h4>Documentação do sistema</h4>
+                        <p class="module-desc">Esta documentação: regras de negócio, perfis, funções, banco de dados, segurança, instalação e convenções. Vive em um <strong>site estático separado</strong> (pasta irmã <code>mecanica-docs/</code>), fora do repositório e sem login.</p>
+                        <details class="module-files">
+                            <summary><i data-lucide="folder"></i> Arquivos deste módulo</summary>
+<pre><code>mecanica-docs/   (pasta irmã, fora do repositório)
+  index.html          visão geral
+  regras-negocio.html regras de negócio
+  perfis.html         perfis e permissões
+  funcoes.html        funções do sistema
+  banco-dados.html    banco de dados
+  seguranca.html      segurança
+  instalacao.html     instalação
+  convencoes.html     convenções
+  assets/css/docs.css | assets/js/docs.js</code></pre>
+                        </details>
+                    </div>
+                </div>
+
+                <div class="module-row">
+                    <span class="ct-icon"><i data-lucide="archive"></i></span>
+                    <div>
+                        <h4>Módulos legados (fora do fluxo)</h4>
+                        <p class="module-desc">Peças (catálogo/estoque, restrito a admin/secretaria), serviços e agendamentos. As páginas existem no código mas não estão na navegação principal nem no fluxo do dia a dia.</p>
+                        <details class="module-files">
+                            <summary><i data-lucide="folder"></i> Arquivos deste módulo</summary>
+<pre><code>pages/pecas/...
+pages/servicos/...
+pages/agendamentos/...
+api/veiculos.php (uso de carregarVeiculos())</code></pre>
+                        </details>
+                    </div>
+                </div>
+            </section>
+
+            <section class="section">
+                <h2 id="moedas">Funcionalidades em destaque</h2>
+                <ul>
+                    <li><strong>Wizard</strong> de criação da OS com validação passo a passo e resumo final.</li>
+                    <li><strong>Gravação de voz</strong> nas tarefas (MediaRecorder + data URL → uploads/audio).</li>
+                    <li><strong>Sugestões rápidas</strong> de tarefas e peças no formulário.</li>
+                    <li><strong>Máscaras</strong> de CPF, telefone, placa e moeda em <code>js/main.js</code>.</li>
+                    <li><strong>Tema claro/escuro</strong> com preferência do sistema e persistência local.</li>
+                    <li><strong>Busca em tempo real</strong> nas listagens.</li>
+                    <li><strong>Eventos e auditoria</strong> para reconstruir o histórico do atendimento.</li>
+                </ul>
+            </section>
+
+            <section class="section">
+                <h2 id="helpers">Helpers globais</h2>
+                <div class="diagram">
+<pre><code>$conn              conexão PDO
+csrf_token()       token CSRF
+validar_csrf()     exige token em POST
+exigir_papel([..]) bloqueia por perfil
+tem_papel([..])    verifica perfil
+limpar()           trim em entrada
+esc()              escape HTML (saída)
+formatar_moeda()   R$ 1.234,56
+notificar_usuarios()        notifica IDs
+notificar_tipos()           notifica por papel
+notificar_responsaveis_os() notifica equipe da OS</code></pre>
+                </div>
+            </section>
+
+            <nav class="pager" id="pager" aria-label="Navegação entre páginas"></nav>
+
+            <footer class="site-footer">
+                <span>Auto Mecânica Leme — Documentação do sistema</span>
+                <span>Projeto Integrador · 2026</span>
+            </footer>
+        </main>
+
+        <aside class="toc">
+            <div class="toc-inner">
+                <div class="toc-title"><i data-lucide="list"></i> Nesta página</div>
+                <nav class="toc-nav" id="toc-nav" aria-label="Sumário"></nav>
+            </div>
+        </aside>
+    </div>
+
+    <script type="module" src="assets/js/docs.js"></script>
+</body>
+</html>
