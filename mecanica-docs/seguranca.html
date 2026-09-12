@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Segurança · Documentação Auto Mecânica Leme</title>
+    <meta name="description" content="Medidas de segurança do sistema: sessão, CSRF, autorização no backend, prepared statements, saída escapada e pontos de atenção.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+    <link rel="stylesheet" href="assets/css/docs.css">
+</head>
+<body data-page="seguranca">
+
+    <header class="topbar" id="topbar"></header>
+
+    <div class="layout">
+        <aside class="sidebar" id="sidebar" aria-label="Menu de navegação"></aside>
+
+        <main class="content">
+            <nav class="breadcrumbs" aria-label="Trilha">
+                <a href="index.html">Início</a>
+                <span>Referência técnica</span>
+                <span>Segurança</span>
+            </nav>
+
+            <header class="page-head">
+                <span class="page-head-icon"><i data-lucide="lock"></i></span>
+                <h1>Segurança</h1>
+                <p class="page-subtitle">Medidas aplicadas no sistema e pontos de atenção</p>
+            </header>
+
+            <section class="section">
+                <h2 id="implementado">O que já está implementado</h2>
+                <div class="grid-cards">
+                    <div class="card-tile">
+                        <span class="ct-icon"><i data-lucide="cookie"></i></span>
+                        <div><h4>Sessão segura</h4><p>Cookie com <code>HttpOnly</code>, <code>SameSite=Lax</code> e <code>Secure</code> (quando HTTPS).</p></div>
+                    </div>
+                    <div class="card-tile">
+                        <span class="ct-icon"><i data-lucide="shield-check"></i></span>
+                        <div><h4>CSRF token</h4><p>Toda ação POST exige token CSRF (<code>validar_csrf()</code>), inclusive via cabeçalho <code>X-CSRF-Token</code> no JSON.</p></div>
+                    </div>
+                    <div class="card-tile">
+                        <span class="ct-icon"><i data-lucide="user-x"></i></span>
+                        <div><h4>Autorização no backend</h4><p>Cada página/rota chama <code>exigir_papel()</code>. Acessar URL direta com papel errado retorna 403.</p></div>
+                    </div>
+                    <div class="card-tile">
+                        <span class="ct-icon"><i data-lucide="database-zap"></i></span>
+                        <div><h4>Prepared statements</h4><p>Toda consulta usa PDO com parâmetros — sem concatenação direta de entrada do usuário em SQL.</p></div>
+                    </div>
+                    <div class="card-tile">
+                        <span class="ct-icon"><i data-lucide="braces"></i></span>
+                        <div><h4>Anti-XSS na saída</h4><p>Valores exibidos passam por <code>esc()</code> (htmlspecialchars) e entradas por <code>limpar()</code>.</p></div>
+                    </div>
+                    <div class="card-tile">
+                        <span class="ct-icon"><i data-lucide="key-round"></i></span>
+                        <div><h4>Senhas com hash</h4><p>Sempre <code>password_hash()</code>; mínimo de 8 caracteres. Nunca se armazena senha em texto puro.</p></div>
+                    </div>
+                    <div class="card-tile">
+                        <span class="ct-icon"><i data-lucide="mic"></i></span>
+                        <div><h4>Upload restrito de áudio</h4><p>Só data URLs de áudio; extensão validada por mapeamento, tamanho máx. 15 MB e arquivos na pasta <code>uploads/audio</code>.</p></div>
+                    </div>
+                    <div class="card-tile">
+                        <span class="ct-icon"><i data-lucide="eye-off"></i></span>
+                        <div><h4>Erros ocultos</h4><p>PDO usa <code>ERRMODE_EXCEPTION</code>, mas exceções nunca são exibidas ao usuário — vão para <code>error_log()</code>.</p></div>
+                    </div>
+                </div>
+            </section>
+
+            <section class="section">
+                <h2 id="request">Ciclo de uma requisição protegida</h2>
+                <p>
+                    Autenticação e autorização acontecem antes de qualquer conteúdo ser renderizado. Este é o caminho de cada
+                    requisição:
+                </p>
+                <figure class="diagram">
+                    <pre class="mermaid">
+sequenceDiagram
+    autonumber
+    actor U as Usuário
+    participant N as Navegador
+    participant P as PHP (sessao.php)
+    participant B as Banco de dados
+
+    U->>N: Acessa URL protegida
+    N->>P: GET página + cookie de sessão
+    P->>B: lê usuário pelo e-mail da sessão
+    B-->>P: perfil (tipo)
+    P->>P: exigir_papel([...])
+    alt sem permissão
+        P-->>U: 403 (acesso negado)
+    else permitido
+        P-->>N: HTML + CSRF token
+    end
+    U->>N: envia POST (formulário)
+    N->>P: POST + X-CSRF-Token
+    P->>P: validar_csrf()
+    P->>B: prepared statement com parâmetros
+    B-->>P: resultado
+    P-->>U: redireciona com mensagem flash
+                    </pre>
+                    <figcaption>Autenticação, autorização e CSRF antes de processar qualquer ação.</figcaption>
+                </figure>
+
+                <h3 id="exemplo">Exemplo de proteção em uma página</h3>
+                <div class="diagram">
+<pre><code>// 1. sessão + banco
+require includes/sessao.php;
+require config/conexao.php;
+
+// 2. papel permitido (backend)
+exigir_papel(['admin', 'secretaria']);
+
+// 3. POST com CSRF
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    validar_csrf();
+    ...
+}
+
+// 4. prepared statements
+$stmt = $conn->prepare('SELECT * FROM x WHERE id = :id');
+$stmt->execute([':id' => $id]);
+
+// 5. saída escapada
+echo esc($usuario['nome']);</code></pre>
+                </div>
+            </section>
+
+            <section class="section">
+                <h2 id="manipulacao">Proteção contra manipulação de dados</h2>
+                <ul>
+                    <li><strong>Nunca confiar na interface:</strong> subtotais de orçamento, status, IDs relacionados e preços são recalculados/validados no servidor.</li>
+                    <li><strong>Transações:</strong> operações que tocam OS + pedido + evento + notificação são executadas em <code>beginTransaction/commit/rollBack</code>.</li>
+                    <li><strong>Validação de estado:</strong> mudanças de status só seguem as transições permitidas (máquina de estados).</li>
+                    <li><strong>Filtro de escopo:</strong> mecânico só enxerga OS com vínculo ativo (<code>os_responsaveis</code>).</li>
+                    <li><strong>Concorrência:</strong> a numeração da OS usa <code>GET_LOCK/RELEASE_LOCK</code> para evitar números repetidos.</li>
+                    <li><strong>Dados sensíveis:</strong> telefone/e-mail do cliente ficam ocultos para o perfil mecanico.</li>
+                </ul>
+            </section>
+
+            <section class="section">
+                <h2 id="pendencias">Pontos de atenção / pendências</h2>
+                <div class="table-wrap">
+                    <table class="docs-table">
+                        <thead><tr><th>Item</th><th>Situação</th></tr></thead>
+                        <tbody>
+                            <tr><td>Acesso em autenticação (rate limit de login)</td><td>Não implementado</td></tr>
+                            <tr><td>Política de senha mais rígida (complexidade/expiração)</td><td>Apenas mínimo de 8 caracteres</td></tr>
+                            <tr><td>Rotação de logs e rotina formal de backup</td><td>Não implementado</td></tr>
+                            <tr><td>Portal do cliente / integração WhatsApp / Pix</td><td>Fora do escopo atual</td></tr>
+                            <tr><td>Senha de teste (admin123) em banco de demonstração</td><td>Alterar/remover antes de qualquer uso externo</td></tr>
+                            <tr><td>Upload de áudio sem verificação de autenticidade do navegador</td><td>Valida extensão e tamanho; revisar em aplicações externas</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div class="note success">
+                    <i data-lucide="check-circle" class="note-ico"></i>
+                    <span>A regra do produto: <strong>toda proteção deve existir no backend</strong>, nunca apenas escondendo botões na interface.</span>
+                </div>
+            </section>
+
+            <nav class="pager" id="pager" aria-label="Navegação entre páginas"></nav>
+
+            <footer class="site-footer">
+                <span>Auto Mecânica Leme — Documentação do sistema</span>
+                <span>Projeto Integrador · 2026</span>
+            </footer>
+        </main>
+
+        <aside class="toc">
+            <div class="toc-inner">
+                <div class="toc-title"><i data-lucide="list"></i> Nesta página</div>
+                <nav class="toc-nav" id="toc-nav" aria-label="Sumário"></nav>
+            </div>
+        </aside>
+    </div>
+
+    <script type="module" src="assets/js/docs.js"></script>
+</body>
+</html>
