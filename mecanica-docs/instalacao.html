@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Instalação e ambiente · Documentação Auto Mecânica Leme</title>
+    <meta name="description" content="Como rodar o sistema localmente: requisitos, passo a passo, logins de teste e configuração do banco.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+    <link rel="stylesheet" href="assets/css/docs.css">
+</head>
+<body data-page="instalacao">
+
+    <header class="topbar" id="topbar"></header>
+
+    <div class="layout">
+        <aside class="sidebar" id="sidebar" aria-label="Menu de navegação"></aside>
+
+        <main class="content">
+            <nav class="breadcrumbs" aria-label="Trilha">
+                <a href="index.html">Início</a>
+                <span>Referência técnica</span>
+                <span>Instalação</span>
+            </nav>
+
+            <header class="page-head">
+                <span class="page-head-icon"><i data-lucide="download"></i></span>
+                <h1>Instalação e ambiente</h1>
+                <p class="page-subtitle">Como rodar o sistema localmente</p>
+            </header>
+
+            <section class="section">
+                <h2 id="requisitos">Requisitos</h2>
+                <div class="grid-cards">
+                    <div class="card-tile">
+                        <span class="ct-icon"><i data-lucide="box"></i></span>
+                        <div><h4>XAMPP / WAMP</h4><p>Apache + PHP 8.x + MySQL/MariaDB.</p></div>
+                    </div>
+                    <div class="card-tile">
+                        <span class="ct-icon"><i data-lucide="globe"></i></span>
+                        <div><h4>Navegador</h4><p>Moderno (gravação de voz usa MediaRecorder).</p></div>
+                    </div>
+                    <div class="card-tile">
+                        <span class="ct-icon"><i data-lucide="wifi"></i></span>
+                        <div><h4>Internet</h4><p>CDNs de Bootstrap, Lucide, Google Fonts, Mermaid e highlight.js.</p></div>
+                    </div>
+                </div>
+            </section>
+
+            <section class="section">
+                <h2 id="passo">Passo a passo</h2>
+                <figure class="diagram">
+                    <pre class="mermaid">
+flowchart TB
+    A["Inicie Apache e MySQL no XAMPP"] --> B["Copie o projeto para htdocs"]
+    B --> C["Abra o phpMyAdmin"]
+    C --> D["Importe sql/mecanica_teste.sql&lt;br&gt;(banco vazio, recria tudo)"]
+    D --> E["Acesse http://localhost/mecanica/"]
+    E --> F["Login com um usuário de teste"]
+                    </pre>
+                    <figcaption>Sequência de instalação em ambiente local.</figcaption>
+                </figure>
+                <ol>
+                    <li>Inicie o <strong>Apache</strong> e o <strong>MySQL</strong> no XAMPP.</li>
+                    <li>Copie o projeto para a pasta do servidor:
+                        <div class="diagram">
+<pre><code>C:\xampp\htdocs\mecanica</code></pre>
+                        </div>
+                        (neste workspace: <code>/mnt/e/New folder/htdocs/mecanica</code>)
+                    </li>
+                    <li>Abra o <strong>phpMyAdmin</strong> (<code>http://localhost/phpmyadmin</code>).</li>
+                    <li>Em um banco <strong>vazio</strong>, importe <code>sql/mecanica_teste.sql</code> (recria o banco <code>mecanica</code> com dados de teste).</li>
+                    <li>Acesse <code>http://localhost/mecanica/</code>.</li>
+                    <li>Faça login com um usuário de teste (abaixo).</li>
+                </ol>
+
+                <h3 id="logins">Logins de teste (somente ambiente local)</h3>
+                <div class="table-wrap">
+                    <table class="docs-table">
+                        <thead><tr><th>Perfil</th><th>E-mail</th><th>Senha</th></tr></thead>
+                        <tbody>
+                            <tr><td><span class="pill f-admin">admin</span></td><td>admin@mecanica.com</td><td>admin123</td></tr>
+                            <tr><td><span class="pill f-secretaria">secretaria</span></td><td>secretaria@mecanica.com</td><td>admin123</td></tr>
+                            <tr><td><span class="pill f-mecanico_chefe">mecanico_chefe</span></td><td>chefe@mecanica.com</td><td>admin123</td></tr>
+                            <tr><td><span class="pill f-mecanico">mecanico</span></td><td>mecanico1@mecanica.com</td><td>admin123</td></tr>
+                            <tr><td><span class="pill f-mecanico">mecanico</span></td><td>mecanico2@mecanica.com</td><td>admin123</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div class="note danger">
+                    <i data-lucide="alert-triangle" class="note-ico"></i>
+                    <span>Essas credenciais são apenas para demonstração. <strong>Altere a senha de qualquer usuário de teste</strong> antes de expor o sistema em rede externa.</span>
+                </div>
+            </section>
+
+            <section class="section">
+                <h2 id="configuracao">Configuração do banco</h2>
+                <p>A conexão (<code>config/conexao.php</code>) lê variáveis de ambiente:</p>
+                <div class="diagram">
+<pre><code>DB_HOST   (padrão: localhost)
+DB_USER   (padrão: root)
+DB_PASS   (padrão: vazio)
+DB_NAME   (padrão: mecanica)</code></pre>
+                </div>
+                <div class="note warn">
+                    <i data-lucide="info" class="note-ico"></i>
+                    <span>O arquivo <code>.env</code> da raiz <strong>não é carregado automaticamente pelo PHP</strong>. Escrever <code>DB_USER=...</code> ali não altera a aplicação sem configurar Apache/PHP para exportar essas variáveis. O <code>.env</code> é ignorado pelo Git e não deve receber segredos de produção.</span>
+                </div>
+                <p>Em um ambiente XAMPP padrão, os valores default já funcionam sem configuração.</p>
+            </section>
+
+            <section class="section">
+                <h2 id="uploads">Uploads (áudios)</h2>
+                <ul>
+                    <li>Os áudios gravados nas tarefas são salvos em <code>uploads/audio/</code>.</li>
+                    <li>A pasta é criada automaticamente na primeira gravação (o código usa <code>mkdir</code> recursivo em <code>ordens_servico/processar.php</code>).</li>
+                    <li>Confirme que o Apache/PHP tem permissão de escrita na pasta <code>uploads/</code>. A pasta contém conteúdo gerado pelos usuários e não deve ser versionada no Git.</li>
+                </ul>
+            </section>
+
+            <section class="section">
+                <h2 id="urls">URLs úteis</h2>
+                <div class="diagram">
+<pre><code>http://localhost/mecanica/                      sistema
+http://localhost/mecanica-docs/                 esta documentação (site separado)
+http://localhost/phpmyadmin                     banco
+http://localhost/mecanica/pages/auth/login.php  login</code></pre>
+                </div>
+                <p><strong>Teste:</strong> importar <code>mecanica_teste.sql</code> em banco vazio — recria tudo com dados de exemplo.</p>
+                <p><strong>Existente:</strong> fazer backup e executar as migrações <code>002 → 003 → 004</code> uma única vez, conferindo cada etapa.</p>
+            </section>
+
+            <nav class="pager" id="pager" aria-label="Navegação entre páginas"></nav>
+
+            <footer class="site-footer">
+                <span>Auto Mecânica Leme — Documentação do sistema</span>
+                <span>Projeto Integrador · 2026</span>
+            </footer>
+        </main>
+
+        <aside class="toc">
+            <div class="toc-inner">
+                <div class="toc-title"><i data-lucide="list"></i> Nesta página</div>
+                <nav class="toc-nav" id="toc-nav" aria-label="Sumário"></nav>
+            </div>
+        </aside>
+    </div>
+
+    <script type="module" src="assets/js/docs.js"></script>
+</body>
+</html>
