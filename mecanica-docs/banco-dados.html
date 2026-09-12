@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Banco de dados · Documentação Auto Mecânica Leme</title>
+    <meta name="description" content="Modelo de dados do sistema Auto Mecânica Leme: tabelas, relacionamentos, enums e migrações SQL.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+    <link rel="stylesheet" href="assets/css/docs.css">
+</head>
+<body data-page="banco-dados">
+
+    <header class="topbar" id="topbar"></header>
+
+    <div class="layout">
+        <aside class="sidebar" id="sidebar" aria-label="Menu de navegação"></aside>
+
+        <main class="content">
+            <nav class="breadcrumbs" aria-label="Trilha">
+                <a href="index.html">Início</a>
+                <span>Referência técnica</span>
+                <span>Banco de dados</span>
+            </nav>
+
+            <header class="page-head">
+                <span class="page-head-icon"><i data-lucide="database"></i></span>
+                <h1>Banco de dados</h1>
+                <p class="page-subtitle">Modelo de dados, tabelas e migrações</p>
+            </header>
+
+            <section class="section">
+                <h2 id="modelo">Visão do modelo</h2>
+                <p>
+                    O banco se chama <code>mecanica</code> (MySQL/MariaDB, InnoDB, utf8mb4). As tabelas
+                    centrais giram em torno da <strong>ordem de serviço</strong>:
+                </p>
+                <figure class="diagram">
+                    <pre class="mermaid">
+erDiagram
+    clientes {
+        int id PK
+        varchar nome
+        varchar cpf
+        varchar telefone
+    }
+    veiculos {
+        int id PK
+        varchar placa UK
+        varchar marca
+        varchar modelo
+        int cliente_id FK
+    }
+    usuarios {
+        int id PK
+        varchar nome
+        varchar email UK
+        varchar tipo
+        int ativo
+    }
+    ordens_servico {
+        int id PK
+        int numero UK
+        varchar status
+        varchar prioridade
+        int cliente_id FK
+        int veiculo_id FK
+        int criado_por FK
+    }
+    os_eventos {
+        int id PK
+        int os_id FK
+        varchar tipo
+        datetime criado_em
+    }
+    os_responsaveis {
+        int id PK
+        int os_id FK
+        int usuario_id FK
+        datetime concluido_em
+    }
+    os_tarefas {
+        int id PK
+        int os_id FK
+        varchar descricao
+        varchar status
+    }
+    os_tarefas_audios {
+        int id PK
+        int os_tarefa_id FK
+        varchar arquivo
+        int duracao_segundos
+    }
+    pedidos_pecas {
+        int id PK
+        int os_id FK
+        varchar status
+        int criado_por FK
+    }
+    pedido_pecas_itens {
+        int id PK
+        int pedido_id FK
+        varchar descricao
+        int quantidade
+    }
+    os_entregas {
+        int id PK
+        int os_id FK
+        varchar modalidade
+        varchar status
+        datetime concluida_em
+    }
+    cliente_servicos_historico {
+        int id PK
+        int cliente_id FK
+        int os_id FK
+    }
+    notificacoes {
+        int id PK
+        int usuario_id FK
+        int os_id FK
+        int lida
+    }
+    auditoria {
+        int id PK
+        int usuario_id FK
+        varchar entidade
+        varchar acao
+    }
+
+    clientes ||--o{ veiculos : "possui"
+    clientes ||--o{ ordens_servico : "origina"
+    veiculos ||--o{ ordens_servico : "é atendido por"
+    usuarios ||--o{ ordens_servico : "abre"
+    ordens_servico ||--o{ os_eventos : "gera"
+    ordens_servico ||--o{ os_responsaveis : "designa"
+    usuarios ||--o{ os_responsaveis : "trabalha em"
+    ordens_servico ||--o{ os_tarefas : "contém"
+    os_tarefas ||--o{ os_tarefas_audios : "grava"
+    ordens_servico ||--o{ pedidos_pecas : "abre"
+    pedidos_pecas ||--o{ pedido_pecas_itens : "possui"
+    ordens_servico ||--o{ os_entregas : "encerra"
+    ordens_servico ||--o{ cliente_servicos_historico : "vira"
+    usuarios ||--o{ notificacoes : "recebe"
+    ordens_servico ||--o{ notificacoes : "origina"
+                    </pre>
+                    <figcaption>Diagrama Entidade-Relacionamento (principais campos-chave).</figcaption>
+                </figure>
+            </section>
+
+            <section class="section">
+                <h2 id="tabelas">Tabelas e responsabilidades</h2>
+                <div class="table-wrap">
+                    <table class="docs-table">
+                        <thead><tr><th>Tabela</th><th>Responsabilidade</th></tr></thead>
+                        <tbody>
+                            <tr><td><code>usuarios</code></td><td>Login, funcionário, perfil de acesso (tipo) e dados trabalhistas</td></tr>
+                            <tr><td><code>clientes</code></td><td>Cadastro dos clientes da oficina</td></tr>
+                            <tr><td><code>veiculos</code></td><td>Veículos vinculados aos clientes (placa única)</td></tr>
+                            <tr><td><code>ordens_servico</code></td><td>Processo principal do atendimento (status, prioridade, diagnóstico)</td></tr>
+                            <tr><td><code>os_eventos</code></td><td>Histórico de mudanças da OS (criação, status, tarefa, peça)</td></tr>
+                            <tr><td><code>os_responsaveis</code></td><td>Funcionários designados à OS (vínculo ativo enquanto concluido_em IS NULL)</td></tr>
+                            <tr><td><code>os_tarefas</code></td><td>Trabalho detalhado da OS (pendente/em execução/concluída/bloqueada)</td></tr>
+                            <tr><td><code>os_tarefas_audios</code></td><td>Áudios gravados nas tarefas (arquivo em uploads/audio e duração)</td></tr>
+                            <tr><td><code>pedidos_pecas</code></td><td>Cabeçalho da solicitação/compra/recebimento de peças</td></tr>
+                            <tr><td><code>pedido_pecas_itens</code></td><td>Itens e quantidades do pedido (com recebimento por item)</td></tr>
+                            <tr><td><code>os_entregas</code></td><td>Entrega/retirada do veículo (encerra a OS)</td></tr>
+                            <tr><td><code>cliente_servicos_historico</code></td><td>Histórico final do cliente (OS encerradas)</td></tr>
+                            <tr><td><code>notificacoes</code></td><td>Avisos internos por usuário, com link à OS</td></tr>
+                            <tr><td><code>auditoria</code></td><td>Registro de ações sensíveis (usuário, entidade, ação, dados JSON)</td></tr>
+                            <tr><td><code>pecas</code></td><td>Catálogo/estoque legado, restrito à secretaria/admin</td></tr>
+                            <tr><td><code>servicos</code></td><td>Catálogo legado; não é dependência do orçamento manual</td></tr>
+                            <tr><td><code>agendamentos</code></td><td>Módulo legado fora da navegação principal</td></tr>
+                            <tr><td><code>orcamentos</code></td><td>Documento comercial manual, vinculável à OS</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <section class="section">
+                <h2 id="enums">Enums e valores controlados</h2>
+                <ul>
+                    <li><code>usuarios.tipo</code>: <code>admin</code>, <code>secretaria</code>, <code>mecanico_chefe</code>, <code>mecanico</code>.</li>
+                    <li><code>ordens_servico.status</code>: recebida, triagem, aguardando_diagnostico, aguardando_orcamento, aguardando_aprovacao, aguardando_peca, pronta_para_execucao, em_execucao, aguardando_retorno, pronta_para_entrega, entregue, cancelada.</li>
+                    <li><code>ordens_servico.prioridade</code>: baixa, normal, alta, urgente.</li>
+                    <li><code>os_tarefas.status</code>: pendente, em_execucao, concluida, bloqueada.</li>
+                    <li><code>pedidos_pecas.status</code>: solicitado, validado, pedido, a_caminho, recebido, cancelado.</li>
+                    <li><code>os_entregas.modalidade</code>: retirada, entrega.</li>
+                    <li><code>os_entregas.status</code>: planejada, em_transito, concluida, tentativa_falha, cancelada.</li>
+                </ul>
+            </section>
+
+            <section class="section">
+                <h2 id="migracoes">Migrações (sql/)</h2>
+                <div class="table-wrap">
+                    <table class="docs-table">
+                        <thead><tr><th>Arquivo</th><th>Conteúdo</th></tr></thead>
+                        <tbody>
+                            <tr><td><code>mecanica.sql</code></td><td>Estrutura original (clientes, usuários, veículos, serviços, peças, orçamentos, agendamentos).</td></tr>
+                            <tr><td><code>002_operacao_oficina.sql</code></td><td>Domínio da OS: ordens_servico, os_eventos, os_responsaveis, pedidos_pecas, os_entregas, notificacoes e auditoria; perfis de acesso.</td></tr>
+                            <tr><td><code>003_simplificacao_operacional.sql</code></td><td>Dados de funcionários (CPF, salário, admissão, ativo), os_tarefas, status <code>validado</code> no pedido, cliente_servicos_historico e índices.</td></tr>
+                            <tr><td><code>004_audio_tarefas.sql</code></td><td>Tabela <code>os_tarefas_audios</code> para os áudios das tarefas.</td></tr>
+                            <tr><td><code>mecanica_teste.sql</code></td><td>Banco completo recriado do zero com registros de teste (recomendado para ambiente de testes). Logins de teste documentados no arquivo.</td></tr>
+                            <tr><td><code>seed_mock.sql</code></td><td>Dados antigos de demonstração.</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div class="note warn">
+                    <i data-lucide="alert-triangle" class="note-ico"></i>
+                    <span>As migrações incrementais <strong>não são totalmente idempotentes</strong>. Para um banco vazio, importe <code>mecanica_teste.sql</code>. Para banco existente, faça backup e execute uma única vez na ordem.</span>
+                </div>
+            </section>
+
+            <section class="section">
+                <h2 id="campos">Campos estratégicos</h2>
+                <div class="diagram">
+<pre><code>ordens_servico.numero            numeração visível, única (MAX+1 com GET_LOCK)
+os_responsaveis.concluido_em     NULL == vínculo ativo (mecânico "vê" a OS)
+pedido_pecas_itens.recebido      permite recebimento por item
+pedido_pecas_itens.observacoes   + recebido_em (migração 003)
+os_tarefas_audios.arquivo        caminho relativo 'uploads/audio/...'
+usuarios.senha                   sempre password_hash()
+orcamentos.os_id                 vincula orçamento ao atendimento</code></pre>
+                </div>
+                <p>Índices importantes:</p>
+                <div class="diagram">
+<pre><code>idx_os_responsaveis_usuario (usuario_id, concluido_em)
+idx_os_status (status, data_atualizacao)
+idx_pedidos_status (status, criado_em)
+UNIQUE uq_os_responsavel (os_id, usuario_id)</code></pre>
+                </div>
+                <div class="note">
+                    <i data-lucide="link-2" class="note-ico"></i>
+                    <span><strong>Convenção:</strong> chave primária sempre <code>id</code> (int, auto-increment). Nomes em <em>snake_case</em>.</span>
+                </div>
+            </section>
+
+            <nav class="pager" id="pager" aria-label="Navegação entre páginas"></nav>
+
+            <footer class="site-footer">
+                <span>Auto Mecânica Leme — Documentação do sistema</span>
+                <span>Projeto Integrador · 2026</span>
+            </footer>
+        </main>
+
+        <aside class="toc">
+            <div class="toc-inner">
+                <div class="toc-title"><i data-lucide="list"></i> Nesta página</div>
+                <nav class="toc-nav" id="toc-nav" aria-label="Sumário"></nav>
+            </div>
+        </aside>
+    </div>
+
+    <script type="module" src="assets/js/docs.js"></script>
+</body>
+</html>
