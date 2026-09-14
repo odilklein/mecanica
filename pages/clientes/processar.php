@@ -1,6 +1,7 @@
 <?php
 require_once __DIR__ . '/../../includes/sessao.php';
 require_once __DIR__ . '/../../config/conexao.php';
+require_once __DIR__ . '/../../includes/auditoria.php';
 exigir_papel(['admin', 'secretaria', 'mecanico_chefe']);
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') { header('Location: listar.php'); exit(); }
 validar_csrf();
@@ -22,6 +23,14 @@ if (empty($nome)) {
     $_SESSION['mensagem'] = "O nome do cliente é obrigatório.";
     $_SESSION['mensagem_tipo'] = "warning";
     header("Location: cadastrar.php");
+    exit();
+}
+
+if (!empty($cpf) && !validar_cpf($cpf)) {
+    $_SESSION['mensagem'] = "CPF inválido.";
+    $_SESSION['mensagem_tipo'] = "warning";
+    if ($acao == 'editar') header("Location: editar.php?id=" . $id);
+    else header("Location: cadastrar.php");
     exit();
 }
 
@@ -52,6 +61,7 @@ try {
 
         $_SESSION['mensagem'] = "Cliente cadastrado com sucesso!";
         $_SESSION['mensagem_tipo'] = "success";
+        registrar_auditoria($conn, (int) $_SESSION['usuario_id'], 'cadastrar', 'cliente', (int) $conn->lastInsertId(), 'Cliente cadastrado', ['nome' => $nome]);
     } elseif ($acao == 'editar') {
         $stmt = $conn->prepare("UPDATE clientes SET nome = :nome, cpf = :cpf, telefone = :telefone, email = :email, endereco = :endereco, cidade = :cidade, observacoes = :observacoes WHERE id = :id");
         $stmt->bindParam(':nome', $nome);
@@ -66,6 +76,7 @@ try {
 
         $_SESSION['mensagem'] = "Cliente atualizado com sucesso!";
         $_SESSION['mensagem_tipo'] = "success";
+        registrar_auditoria($conn, (int) $_SESSION['usuario_id'], 'editar', 'cliente', $id, 'Cliente atualizado', ['nome' => $nome]);
     }
 
     header("Location: listar.php");
