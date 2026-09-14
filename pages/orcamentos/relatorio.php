@@ -1,6 +1,7 @@
 <?php
 require_once __DIR__ . '/../../includes/sessao.php';
 require_once __DIR__ . '/../../config/conexao.php';
+exigir_papel(['admin', 'secretaria', 'mecanico_chefe']);
 
 $titulo_pagina = "Relatórios";
 $ano_atual = date('Y');
@@ -31,27 +32,27 @@ $stmt_fat_mensal = $conn->query("
 ");
 $faturamento_mensal = $stmt_fat_mensal->fetchAll();
 
-// Serviços mais realizados
+// Serviços mais realizados (inclui itens avulsos sem vínculo com catálogo)
 $stmt_servicos = $conn->query("
-    SELECT s.nome, COUNT(oi.id) AS total, COALESCE(SUM(oi.subtotal), 0) AS receita
+    SELECT COALESCE(s.nome, oi.descricao_item) AS nome, COUNT(oi.id) AS total, COALESCE(SUM(oi.subtotal), 0) AS receita
     FROM orcamento_itens oi
-    JOIN servicos s ON s.id = oi.servico_id
+    LEFT JOIN servicos s ON s.id = oi.servico_id
     JOIN orcamentos o ON o.id = oi.orcamento_id
     WHERE o.status IN ('aprovado', 'aberto') AND oi.tipo = 'servico'
-    GROUP BY s.nome
+    GROUP BY nome
     ORDER BY total DESC
     LIMIT 5
 ");
 $top_servicos = $stmt_servicos->fetchAll();
 
-// Peças mais vendidas
+// Peças mais vendidas (inclui itens avulsos sem vínculo com catálogo)
 $stmt_pecas = $conn->query("
-    SELECT p.nome, COUNT(oi.id) AS total, COALESCE(SUM(oi.subtotal), 0) AS receita
+    SELECT COALESCE(p.nome, oi.descricao_item) AS nome, COUNT(oi.id) AS total, COALESCE(SUM(oi.subtotal), 0) AS receita
     FROM orcamento_itens oi
-    JOIN pecas p ON p.id = oi.peca_id
+    LEFT JOIN pecas p ON p.id = oi.peca_id
     JOIN orcamentos o ON o.id = oi.orcamento_id
     WHERE o.status IN ('aprovado', 'aberto') AND oi.tipo = 'peca'
-    GROUP BY p.nome
+    GROUP BY nome
     ORDER BY total DESC
     LIMIT 5
 ");

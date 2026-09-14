@@ -3,26 +3,113 @@ require_once __DIR__ . '/../../includes/sessao.php';
 require_once __DIR__ . '/../../config/conexao.php';
 exigir_papel(['admin', 'secretaria', 'mecanico_chefe']);
 $clientes = $conn->query('SELECT id, nome FROM clientes ORDER BY nome')->fetchAll();
-$veiculos = $conn->query('SELECT id, cliente_id, marca, modelo, placa FROM veiculos ORDER BY modelo, placa')->fetchAll();
+$pecas = $conn->query("SELECT id, nome, preco_venda, quantidade FROM pecas ORDER BY nome")->fetchAll();
+$servicos = $conn->query("SELECT id, nome, preco_mao_obra FROM servicos WHERE ativo = 1 ORDER BY nome")->fetchAll();
 $os_id = (int) ($_GET['os_id'] ?? 0);
 $cliente_preselecionado = (int) ($_GET['cliente_id'] ?? 0);
 $veiculo_preselecionado = (int) ($_GET['veiculo_id'] ?? 0);
 $titulo_pagina = 'Novo orçamento';
 require_once __DIR__ . '/../../includes/header.php';
 require_once __DIR__ . '/../../includes/mensagens.php';
+$scripts_extra = '<script>window.OrcamentoEditorConfig = {pecas: ' . json_encode($pecas) . ', servicos: ' . json_encode($servicos) . ', itens: []};</script><script src="' . $caminho_base . '/js/orcamento-editor.js"></script>';
+if ($veiculo_preselecionado > 0) {
+    $scripts_extra .= '<script>document.addEventListener("DOMContentLoaded", function(){ if (typeof carregarVeiculos === "function" && document.getElementById("cliente_id").value) { carregarVeiculos(document.getElementById("cliente_id").value, "veiculo_id", ' . $veiculo_preselecionado . '); } });</script>';
+}
 ?>
-<div class="page-header"><div><h1><i data-lucide="file-plus-2" class="text-primary me-2"></i>Novo orçamento</h1><span class="page-subtitle">Monte o documento com blocos livres de serviço e peça</span></div><a href="listar.php" class="btn btn-outline-secondary btn-icon action-button"><i data-lucide="arrow-left"></i>Voltar</a></div>
-<form method="POST" action="processar.php?acao=cadastrar" id="formOrcamento"><input type="hidden" name="csrf_token" value="<?php echo esc(csrf_token()); ?>"><input type="hidden" name="os_id" value="<?php echo $os_id; ?>"><div class="row g-3"><div class="col-lg-8"><div class="card mb-3"><div class="card-header"><i data-lucide="user-round" class="me-2"></i>Cliente e veículo</div><div class="card-body"><div class="row g-3"><div class="col-md-6"><label class="form-label"><i data-lucide="user" class="form-label-icon"></i>Cliente *</label><select class="form-select" id="cliente_id" name="cliente_id" required><option value="">Selecione</option><?php foreach ($clientes as $cliente): ?><option value="<?php echo (int) $cliente['id']; ?>" <?php echo $cliente_preselecionado === (int) $cliente['id'] ? 'selected' : ''; ?>><?php echo esc($cliente['nome']); ?></option><?php endforeach; ?></select></div><div class="col-md-6"><label class="form-label"><i data-lucide="car-front" class="form-label-icon"></i>Veículo</label><select class="form-select" id="veiculo_id" name="veiculo_id"><option value="">Selecione o cliente</option><?php foreach ($veiculos as $veiculo): ?><option value="<?php echo (int) $veiculo['id']; ?>" data-cliente="<?php echo (int) $veiculo['cliente_id']; ?>" <?php echo $veiculo_preselecionado === (int) $veiculo['id'] ? 'selected' : ''; ?>><?php echo esc(trim($veiculo['marca'] . ' ' . $veiculo['modelo']) . ' - ' . ($veiculo['placa'] ?: 'sem placa')); ?></option><?php endforeach; ?></select></div><div class="col-md-6"><label class="form-label"><i data-lucide="calendar-clock" class="form-label-icon"></i>Validade</label><input class="form-control" type="date" name="data_validade" value="<?php echo date('Y-m-d', strtotime('+15 days')); ?>"></div><div class="col-12"><label class="form-label"><i data-lucide="notebook-pen" class="form-label-icon"></i>Observações</label><textarea class="form-control" name="observacoes" rows="2" maxlength="4000"></textarea></div></div></div></div><div class="card"><div class="card-header d-flex justify-content-between align-items-center"><span><i data-lucide="blocks" class="me-2"></i>Itens do orçamento</span><button type="button" class="btn btn-outline-primary btn-sm action-button" id="adicionarBloco"><i data-lucide="plus"></i>Adicionar bloco</button></div><div class="card-body"><p class="text-muted small">Adicione quantos blocos precisar e descreva livremente peças, serviços e valores.</p><div id="blocos"></div><div id="blocosVazio" class="empty-state py-4"><i data-lucide="file-plus"></i><p class="mb-0">Nenhum item adicionado.</p></div></div></div></div><div class="col-lg-4"><div class="card sticky-top" style="top:80px"><div class="card-header"><i data-lucide="clipboard-check" class="me-2"></i>Revisão do orçamento</div><div class="card-body"><div id="revisaoItens" class="mb-3 text-muted">Adicione itens para revisar.</div><hr><div class="d-flex justify-content-between"><span>Peças</span><strong id="revisaoPecas">R$ 0,00</strong></div><div class="d-flex justify-content-between"><span>Serviços</span><strong id="revisaoServicos">R$ 0,00</strong></div><div class="d-flex justify-content-between mt-2 fs-5"><span>Total</span><strong class="text-primary" id="revisaoTotal">R$ 0,00</strong></div><button class="btn btn-success btn-icon action-button w-100 mt-4" type="submit"><i data-lucide="save"></i>Salvar orçamento</button></div></div></div></div></form>
-+<template id="blocoTemplate"><div class="budget-block border rounded p-3 mb-3"><div class="row g-2 align-items-end"><div class="col-md-3"><label class="form-label"><i data-lucide="tag" class="form-label-icon"></i>Tipo</label><select class="form-select item-tipo"><option value="servico">Serviço</option><option value="peca">Peça</option></select></div><div class="col-md-5"><label class="form-label"><i data-lucide="text-cursor-input" class="form-label-icon"></i>Descrição *</label><input class="form-control item-descricao" maxlength="200" required></div><div class="col-md-2"><label class="form-label"><i data-lucide="hash" class="form-label-icon"></i>Qtd.</label><input class="form-control item-quantidade" type="number" min="1" value="1" required></div><div class="col-md-2"><label class="form-label"><i data-lucide="banknote" class="form-label-icon"></i>Valor unit.</label><input class="form-control item-preco" type="number" min="0" step="0.01" value="0" required></div><div class="col-12 d-flex justify-content-between align-items-center"><small class="text-muted item-subtotal">Subtotal: R$ 0,00</small><button type="button" class="btn btn-outline-danger btn-sm remover-bloco" title="Remover bloco"><i data-lucide="trash-2"></i></button></div></div></div></template>
-+<script>
-+const moeda = valor => Number(valor || 0).toLocaleString('pt-BR', {style: 'currency', currency: 'BRL'});
-+const blocos = document.getElementById('blocos');
-+function atualizarRevisao() { let pecas = 0, servicos = 0, html = ''; document.querySelectorAll('.budget-block').forEach((bloco, index) => { const tipo = bloco.querySelector('.item-tipo').value; const descricao = bloco.querySelector('.item-descricao').value.trim() || 'Item sem descrição'; const quantidade = Number(bloco.querySelector('.item-quantidade').value) || 0; const preco = Number(bloco.querySelector('.item-preco').value) || 0; const subtotal = quantidade * preco; if (tipo === 'peca') pecas += subtotal; else servicos += subtotal; bloco.querySelector('.item-subtotal').textContent = 'Subtotal: ' + moeda(subtotal); html += '<div class="d-flex justify-content-between mb-2"><span>' + (index + 1) + '. ' + descricao + '</span><strong>' + moeda(subtotal) + '</strong></div>'; }); document.getElementById('blocosVazio').style.display = blocos.children.length ? 'none' : ''; document.getElementById('revisaoItens').innerHTML = html || 'Adicione itens para revisar.'; document.getElementById('revisaoPecas').textContent = moeda(pecas); document.getElementById('revisaoServicos').textContent = moeda(servicos); document.getElementById('revisaoTotal').textContent = moeda(pecas + servicos); }
-+function adicionarBloco() { const bloco = document.getElementById('blocoTemplate').content.cloneNode(true); bloco.querySelectorAll('input, select').forEach(elemento => elemento.addEventListener('input', atualizarRevisao)); bloco.querySelector('.remover-bloco').addEventListener('click', event => { event.currentTarget.closest('.budget-block').remove(); atualizarRevisao(); }); blocos.appendChild(bloco); lucide.createIcons(); atualizarRevisao(); }
-document.getElementById('adicionarBloco').addEventListener('click', adicionarBloco);
-document.getElementById('cliente_id').addEventListener('change', event => { document.querySelectorAll('#veiculo_id option[data-cliente]').forEach(option => { option.hidden = option.dataset.cliente !== event.target.value; }); document.getElementById('veiculo_id').value = ''; });
-document.getElementById('formOrcamento').addEventListener('submit', event => { const itens = []; document.querySelectorAll('.budget-block').forEach(bloco => { const tipo = bloco.querySelector('.item-tipo').value; const quantidade = Number(bloco.querySelector('.item-quantidade').value); const preco = Number(bloco.querySelector('.item-preco').value); itens.push(JSON.stringify({tipo, item_id: 0, descricao: bloco.querySelector('.item-descricao').value.trim(), quantidade, preco, subtotal: quantidade * preco})); }); if (!itens.length || itens.some(item => { const dado = JSON.parse(item); return !dado.descricao || dado.quantidade <= 0 || dado.preco < 0; })) { event.preventDefault(); alert('Adicione ao menos um item com descrição, quantidade e valor válidos.'); return; } itens.forEach(item => { const input = document.createElement('input'); input.type = 'hidden'; input.name = 'itens[]'; input.value = item; event.currentTarget.appendChild(input); }); });
-adicionarBloco();
-+lucide.createIcons();
-+</script>
-+<?php require_once __DIR__ . '/../../includes/footer.php'; ?>
+<div class="page-header">
+    <div>
+        <h1><i data-lucide="file-plus-2" class="text-primary me-2"></i>Novo orçamento</h1>
+        <span class="page-subtitle">Monte o documento com peças e serviços do catálogo ou itens avulsos</span>
+    </div>
+    <a href="listar.php" class="btn btn-outline-secondary btn-icon action-button"><i data-lucide="arrow-left"></i>Voltar</a>
+</div>
+
+<form method="POST" action="processar.php?acao=cadastrar" id="formOrcamento">
+<input type="hidden" name="csrf_token" value="<?php echo esc(csrf_token()); ?>">
+<input type="hidden" name="os_id" value="<?php echo $os_id; ?>">
+<div class="row g-3">
+    <div class="col-lg-8">
+        <div class="card mb-3">
+            <div class="card-header"><i data-lucide="user-round" class="me-2"></i>Cliente e veículo</div>
+            <div class="card-body">
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label class="form-label"><i data-lucide="user" class="form-label-icon"></i>Cliente *</label>
+                        <select class="form-select" id="cliente_id" name="cliente_id" required
+                                onchange="if(typeof carregarVeiculos==='function'){carregarVeiculos(this.value,'veiculo_id',null);}">
+                            <option value="">Selecione</option>
+                            <?php foreach ($clientes as $cliente): ?>
+                                <option value="<?php echo (int) $cliente['id']; ?>" <?php echo $cliente_preselecionado === (int) $cliente['id'] ? 'selected' : ''; ?>><?php echo esc($cliente['nome']); ?></option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label"><i data-lucide="car-front" class="form-label-icon"></i>Veículo</label>
+                        <select class="form-select" id="veiculo_id" name="veiculo_id">
+                            <option value="">Selecione o cliente</option>
+                        </select>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label"><i data-lucide="calendar-clock" class="form-label-icon"></i>Validade</label>
+                        <input class="form-control" type="date" name="data_validade" value="<?php echo date('Y-m-d', strtotime('+15 days')); ?>">
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label"><i data-lucide="notebook-pen" class="form-label-icon"></i>Observações</label>
+                        <textarea class="form-control" name="observacoes" rows="2" maxlength="4000"></textarea>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <span><i data-lucide="list" class="me-2"></i>Itens do orçamento</span>
+                <button type="button" class="btn btn-sm btn-outline-primary" onclick="OrcamentoEditor.adicionarItem()">
+                    <i data-lucide="plus" class="me-1"></i>Adicionar item
+                </button>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-sm align-middle">
+                        <thead>
+                            <tr>
+                                <th style="width:20%">Tipo</th>
+                                <th>Item</th>
+                                <th style="width:90px">Qtd</th>
+                                <th style="width:150px">Preço</th>
+                                <th style="width:130px">Subtotal</th>
+                                <th style="width:40px"></th>
+                            </tr>
+                        </thead>
+                        <tbody id="corpoItens"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-4">
+        <div class="card sticky-top" style="top: 80px;">
+            <div class="card-header"><i data-lucide="calculator" class="me-2 text-primary"></i>Resumo</div>
+            <div class="card-body">
+                <div class="d-flex justify-content-between mb-2">
+                    <span>Peças:</span><strong id="totalPecas">R$ 0,00</strong>
+                </div>
+                <div class="d-flex justify-content-between mb-2">
+                    <span>Mão de Obra:</span><strong id="totalServicos">R$ 0,00</strong>
+                </div>
+                <hr>
+                <div class="d-flex justify-content-between mb-3">
+                    <span class="h5 mb-0">TOTAL:</span>
+                    <strong class="h4 mb-0 text-primary" id="totalGeral">R$ 0,00</strong>
+                </div>
+                <button type="submit" class="btn btn-success btn-lg w-100 btn-icon">
+                    <i data-lucide="save"></i> Criar Orçamento
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+</form>
+
+<?php require_once __DIR__ . '/../../includes/footer.php'; ?>
