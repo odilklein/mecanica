@@ -63,9 +63,7 @@ require_once __DIR__ . '/../../includes/mensagens.php';
                     </tr>
                 </thead>
                 <tbody>
-                    <?php if (count($veiculos) > 0): foreach ($veiculos as $v):
-                        $cor_style = !empty($v['cor']) ? 'style="background-color:' . htmlspecialchars($v['cor']) . '; width:18px; height:18px; display:inline-block; border-radius:3px; border:1px solid #ccc;"' : '';
-                    ?>
+                    <?php if (count($veiculos) > 0): foreach ($veiculos as $v): ?>
                     <tr>
                         <td data-label="Veículo">
                             <i data-lucide="car" class="text-muted me-2"></i>
@@ -75,23 +73,34 @@ require_once __DIR__ . '/../../includes/mensagens.php';
                         <td data-label="Cliente"><?php echo limpar($v['cliente_nome']); ?></td>
                         <td data-label="Ano"><?php echo $v['ano']; ?></td>
                         <td data-label="Cor">
-                            <?php if (!empty($v['cor'])): ?>
-                                <span <?php echo $cor_style; ?>></span>
+                            <?php
+                            $cor_hex = cor_para_hex($v['cor']);
+                            if ($cor_hex):
+                            ?>
+                                <span class="color-badge" style="background-color:<?php echo esc($cor_hex); ?>" title="<?php echo esc($v['cor']); ?>"></span>
                                 <span class="ms-1"><?php echo limpar($v['cor']); ?></span>
                             <?php else: ?>-<?php endif; ?>
                         </td>
                         <td data-label="KM Atual"><?php echo number_format($v['km_atual'], 0, ',', '.'); ?> km</td>
                         <td data-label="Ações" class="actions-cell">
-                            <a href="editar.php?id=<?php echo $v['id']; ?>" class="btn btn-outline-primary btn-sm" title="Editar">
-                                <i data-lucide="pencil"></i>
-                            </a>
-                            <form method="POST" action="excluir.php" id="excluirVeiculo<?php echo $v['id']; ?>" class="d-inline" onsubmit="return confirmarExclusao('excluirVeiculo<?php echo $v['id']; ?>', 'Excluir o veículo <?php echo $v['marca']; ?> <?php echo $v['modelo']; ?> - <?php echo $v['placa']; ?>?');">
-                                <input type="hidden" name="csrf_token" value="<?php echo esc(csrf_token()); ?>">
-                                <input type="hidden" name="id" value="<?php echo $v['id']; ?>">
-                                <button type="submit" class="btn btn-outline-danger btn-sm" title="Excluir">
-                                    <i data-lucide="trash-2"></i>
+                            <div class="dropdown table-dropdown">
+                                <button class="table-dropdown-btn" type="button" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Ações do veículo">
+                                    <i data-lucide="more-horizontal"></i>
                                 </button>
-                            </form>
+                                <div class="dropdown-menu dropdown-menu-end table-dropdown-menu">
+                                    <h6 class="dropdown-header">Ações do veículo</h6>
+                                    <a class="dropdown-item" href="editar.php?id=<?php echo $v['id']; ?>">
+                                        <i data-lucide="pencil"></i> Editar
+                                    </a>
+                                    <form method="POST" action="excluir.php" id="excluirVeiculo<?php echo $v['id']; ?>" onsubmit="return confirmarExclusao('excluirVeiculo<?php echo $v['id']; ?>', 'Excluir o veículo <?php echo $v['marca']; ?> <?php echo $v['modelo']; ?> - <?php echo $v['placa']; ?>?');">
+                                        <input type="hidden" name="csrf_token" value="<?php echo esc(csrf_token()); ?>">
+                                        <input type="hidden" name="id" value="<?php echo $v['id']; ?>">
+                                        <button type="submit" class="dropdown-item text-danger">
+                                            <i data-lucide="trash-2"></i> Excluir
+                                        </button>
+                                    </form>
+                                </div>
+                            </div>
                         </td>
                     </tr>
                     <?php endforeach; else: ?>

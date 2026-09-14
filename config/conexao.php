@@ -83,6 +83,48 @@ function validar_placa($placa) {
     return (bool) preg_match('/^(?:[A-Z]{3}-\d{4}|[A-Z]{3}\d[A-Z0-9]\d{2})$/', $placa);
 }
 
+// Paleta padrão de cores de veículos (nome => hexadecimal)
+function cores_veiculo(): array {
+    return [
+        'Branco' => '#f2f2f2',
+        'Preto' => '#141414',
+        'Prata' => '#c4c4c4',
+        'Cinza' => '#7a7a7a',
+        'Grafite' => '#424242',
+        'Azul' => '#1e56a0',
+        'Azul Escuro' => '#15346a',
+        'Verde' => '#2e7d32',
+        'Vermelho' => '#b3261e',
+        'Vinho' => '#7b1e3f',
+        'Laranja' => '#e65c00',
+        'Amarelo' => '#f2c94c',
+        'Bege' => '#e7d6b5',
+        'Dourado' => '#c9a227',
+        'Marrom' => '#795548',
+        'Roxo' => '#5e35b1',
+        'Rosa' => '#d6839f',
+    ];
+}
+
+// Converte o valor salvo de "cor" em um hexadecimal renderizável.
+// Aceita um nome da paleta (Ex: "Prata") ou um hex customizado (#b3261e).
+function cor_para_hex(?string $cor): ?string {
+    $cor = trim((string) $cor);
+    if ($cor === '') {
+        return null;
+    }
+    if (preg_match('/^#([0-9a-fA-F]{6}|[0-9a-fA-F]{3})$/', $cor)) {
+        return strtoupper($cor);
+    }
+    $normalizado = mb_strtolower($cor);
+    foreach (cores_veiculo() as $nome => $hex) {
+        if (mb_strtolower($nome) === $normalizado) {
+            return $hex;
+        }
+    }
+    return null;
+}
+
 // Função para verificar se usuário está logado
 function verificar_sessao() {
     if (!isset($_SESSION['usuario_id'])) {

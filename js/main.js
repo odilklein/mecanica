@@ -20,6 +20,7 @@ document.addEventListener('DOMContentLoaded', function() {
     initNotifications();
     initSidebarUserMenu();
     initTableFilters();
+    initColorPicker();
 });
 
 // =============================================
@@ -930,6 +931,63 @@ function filtroDataRange(tr, coluna, valor, tipo) {
         return data >= hoje && data <= fim;
     }
     return true;
+}
+
+// =============================================
+// SELETOR DE COR DE VEÍCULO (paleta + picker)
+// =============================================
+function initColorPicker() {
+    const corInput = document.getElementById('cor');
+    const palette = document.getElementById('corPalette');
+    if (!corInput || !palette) return;
+    const picker = document.getElementById('corPicker');
+
+    const swatches = Array.from(palette.querySelectorAll('.color-swatch[data-cor]'));
+
+    function marcarAtivo(button) {
+        swatches.forEach(function (b) { b.classList.toggle('active', b === button); });
+        if (picker) picker.setAttribute('aria-pressed', button ? 'true' : 'false');
+    }
+
+    swatches.forEach(function (button) {
+        button.addEventListener('click', function () {
+            corInput.value = button.getAttribute('data-cor');
+            if (picker) picker.value = button.getAttribute('data-hex');
+            marcarAtivo(button);
+        });
+    });
+
+    if (picker) {
+        picker.addEventListener('input', function () {
+            corInput.value = picker.value.toUpperCase();
+            marcarAtivo(null);
+        });
+    }
+
+    // Pré-seleciona a cor atual ao abrir o formulário (edição)
+    const atual = (corInput.value || '').trim();
+    if (atual) {
+        const normalizado = atual.toLowerCase();
+        const achou = swatches.find(function (b) {
+            return b.getAttribute('data-cor').toLowerCase() === normalizado;
+        });
+        if (achou) {
+            marcarAtivo(achou);
+            if (picker) picker.value = achou.getAttribute('data-hex');
+        } else if (picker && /^#([0-9a-f]{6}|[0-9a-f]{3})$/i.test(atual)) {
+            picker.value = atual.toUpperCase();
+        } else if (picker && cor_hex_para_picker(corInput)) {
+            picker.value = cor_hex_para_picker(corInput);
+        }
+    }
+}
+
+// Converte um valor arbitrário para o formato aceito pelo <input type="color">
+function cor_hex_para_picker(campo) {
+    const valor = (campo.value || '').trim();
+    const m = valor.match(/^#([0-9a-fA-F]{6})$/);
+    if (!m) return null;
+    return '#' + m[1].toLowerCase();
 }
 
 // Limpa a barra de filtros de uma listagem e reaplica
