@@ -5,11 +5,11 @@
 
 require_once __DIR__ . '/env.php';
 
-$db_host = getenv('DB_HOST') ?: 'localhost';
-$db_port = getenv('DB_PORT') ?: '3306';
-$db_user = getenv('DB_USER') ?: 'root';
-$db_pass = getenv('DB_PASS') ?: '';
-$db_name = getenv('DB_NAME') ?: 'mecanica';
+$db_host = config_valor('DB_HOST', 'localhost');
+$db_port = config_valor('DB_PORT', '3306');
+$db_user = config_valor('DB_USER', 'root');
+$db_pass = config_valor('DB_PASS', '');
+$db_name = config_valor('DB_NAME', 'mecanica');
 
 $dsn = 'mysql:host=' . $db_host . ';port=' . $db_port . ';dbname=' . $db_name . ';charset=utf8mb4';
 
@@ -18,12 +18,30 @@ try {
     $conn->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
     $conn->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_ASSOC);
 } catch (PDOException $e) {
-    @error_log($e->getMessage());
-    if (is_writable(__DIR__ . '/../error.log')) {
-        @file_put_contents(__DIR__ . '/../error.log', '[' . date('Y-m-d H:i:s') . '] ' . $e->getMessage() . PHP_EOL, FILE_APPEND);
+    $fontes = [];
+    if (is_file(__DIR__ . '/config.local.php')) {
+        $fontes[] = 'config.local.php';
     }
+    if (defined('MECANICA_ENV_ARQUIVO') && MECANICA_ENV_ARQUIVO) {
+        $fontes[] = MECANICA_ENV_ARQUIVO;
+    }
+    $fonte_txt = $fontes ? implode(' + ', $fontes) : 'nenhuma (usando padroes)';
+    $detalhe = sprintf(
+        '[%s] %s | host=%s port=%s db=%s user=%s | config=%s',
+        date('Y-m-d H:i:s'),
+        $e->getMessage(),
+        $db_host,
+        $db_port,
+        $db_name,
+        $db_user,
+        $fonte_txt
+    );
+    @error_log($detalhe);
+    $log_ok = @file_put_contents(__DIR__ . '/../error.log', $detalhe . PHP_EOL, FILE_APPEND) !== false;
     http_response_code(500);
-    die("Não foi possível conectar ao banco de dados. Detalhes gravados em error.log na raiz do projeto.");
+    die($log_ok
+        ? "Não foi possível conectar ao banco de dados. Detalhes gravados em error.log na raiz do projeto."
+        : "Não foi possível conectar ao banco de dados. Verifique as credenciais do .env ou config.local.php.");
 }
 
 // Função para escapar dados e evitar XSS

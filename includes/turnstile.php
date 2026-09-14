@@ -10,7 +10,7 @@ require_once __DIR__ . '/../config/env.php';
 if (!function_exists('turnstile_secret')) {
     function turnstile_secret(): string
     {
-        return trim((string) getenv('TURNSTILE_SECRET'));
+        return trim((string) config_valor('TURNSTILE_SECRET'));
     }
 }
 
@@ -26,7 +26,7 @@ if (!function_exists('turnstile_hostnames')) {
     // Hostnames de frontend permitidos (separados por vírgula em TURNSTILE_HOSTNAMES).
     function turnstile_hostnames(): array
     {
-        $bruto = (string) getenv('TURNSTILE_HOSTNAMES');
+        $bruto = (string) config_valor('TURNSTILE_HOSTNAMES');
         return array_values(array_filter(array_map('trim', explode(',', $bruto)), 'strlen'));
     }
 }

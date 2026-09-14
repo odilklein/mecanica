@@ -25,11 +25,24 @@ Stack simples e funcional: **PHP (puro) + MySQL + JavaScript + HTML/CSS + Bootst
 
 1. Copie o projeto para `htdocs/mecanica`.
 2. Crie um banco vazio e importe `sql/mecanica_teste.sql` pelo phpMyAdmin.
-3. Copie `.env.example` para `.env` e ajuste as credenciais do banco.
+3. Configure as credenciais do banco (escolha uma das opções abaixo).
 4. Acesse `http://localhost/mecanica/` no navegador.
 
-Se preferir não usar `.env`, o sistema assume os padrões (`localhost`, usuário
-`root`, sem senha, banco `mecanica`).
+### Credenciais do banco: duas opções
+
+A precedência é: **`config/config.local.php` → `.env` → padrões**.
+
+- **Opção A (`.env`, recomendada):** copie `.env.example` para `.env` e preencha.
+- **Opção B (`config/config.local.php`):** copie `config/config.local.example.php`
+  para `config/config.local.php` e preencha.
+
+Ambos os arquivos estão no `.gitignore` — **nunca** suba credenciais para o Git.
+Sem nenhum deles, o sistema usa os padrões (`localhost`, `root`, sem senha,
+banco `mecanica`).
+
+> Em hospedagem compartilhada (ex.: InfinityFree) o `putenv()` costuma ser
+> bloqueado; o sistema já lê o `.env` sem depender dele. Se preferir simplicidade,
+> use a Opção B: é PHP puro, editável direto no servidor.
 
 ## Credenciais de teste
 

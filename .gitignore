@@ -1,5 +1,6 @@
 .env
 *.log
 vendor/
+config/config.local.php
 uploads/backups/*
 !uploads/backups/.htaccess

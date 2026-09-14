@@ -5,10 +5,12 @@
 // O secret NUNCA fica no código: vem de TURNSTILE_SECRET (.env).
 // =============================================
 
+require_once __DIR__ . '/env.php';
+
 if (!function_exists('turnstile_site_key')) {
     function turnstile_site_key(): string
     {
-        return trim((string) getenv('TURNSTILE_SITE_KEY'));
+        return trim((string) config_valor('TURNSTILE_SITE_KEY'));
     }
 }
 
