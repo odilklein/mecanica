@@ -254,6 +254,7 @@ a {
     left: 0;
     width: var(--sidebar-width);
     height: 100vh;
+    height: 100dvh;
     background: var(--bg-sidebar);
     border-right: 1px solid var(--border-color);
     z-index: 1000;
@@ -261,6 +262,7 @@ a {
     flex-direction: column;
     transition: width var(--transition), background-color 0.3s ease, border-color 0.3s ease;
     overflow: hidden;
+    overscroll-behavior: contain;
 }
 
 .sidebar.collapsed {
@@ -371,6 +373,7 @@ a {
     overflow-y: auto;
     overflow-x: hidden;
     padding: 12px 8px;
+    -webkit-overflow-scrolling: touch;
 }
 
 .sidebar-nav::-webkit-scrollbar {
@@ -619,6 +622,11 @@ a {
 
 .sidebar-overlay.active {
     display: block;
+}
+
+/* Trava o scroll do fundo enquanto o menu lateral está aberto no mobile */
+body.sidebar-open {
+    overflow: hidden;
 }
 
 /* ============ TOPBAR ============ */
@@ -940,6 +948,7 @@ a {
     margin-left: var(--sidebar-width);
     margin-top: var(--topbar-height);
     min-height: calc(100vh - var(--topbar-height));
+    min-height: calc(100dvh - var(--topbar-height));
     padding: 24px;
     transition: margin-left 0.2s ease, background-color 0.3s ease;
 }
@@ -1653,6 +1662,9 @@ textarea.form-control {
     font-weight: 600;
     font-size: 0.88rem;
     color: var(--text-primary);
+    flex: 1;
+    min-width: 0;
+    overflow-wrap: anywhere;
 }
 
 .item-lista .item-linha .item-preco {
@@ -2324,9 +2336,11 @@ body.loaded { opacity: 1; transition: opacity 0.25s ease; }
 
 .dynamic-list-item .item-text {
     flex: 1;
+    min-width: 0;
     font-size: 0.88rem;
     font-weight: 500;
     color: var(--text-primary);
+    overflow-wrap: anywhere;
 }
 
 .dynamic-list-item .item-remove {
@@ -2758,6 +2772,13 @@ body.loaded { opacity: 1; transition: opacity 0.25s ease; }
 .gap-3 { gap: 1rem; }
 
 /* ============ RESPONSIVO ============ */
+/* Evita estouro horizontal com textos longos (e-mails, descrições, placas) */
+.table-responsive td,
+.table-responsive th,
+.notification-item {
+    overflow-wrap: anywhere;
+}
+
 /* Tabelas em formato de cartão no mobile (sem scroll horizontal) */
 @media (max-width: 768px) {
     .wizard-step .step-label { display: none; }
@@ -2862,11 +2883,14 @@ body.loaded { opacity: 1; transition: opacity 0.25s ease; }
 }
 
 @media (max-width: 768px) {
+    /* ---- Sidebar em modo gaveta (off-canvas) ---- */
     .sidebar {
         width: var(--sidebar-width);
+        max-width: 86vw;
         transform: translateX(-100%);
         transition: transform 0.3s ease;
         box-shadow: var(--shadow-lg);
+        padding-bottom: env(safe-area-inset-bottom);
     }
 
     .sidebar.mobile-open {
@@ -2877,14 +2901,24 @@ body.loaded { opacity: 1; transition: opacity 0.25s ease; }
         width: var(--sidebar-width);
     }
 
+    /* Na gaveta não faz sentido minimizar a sidebar */
+    .sidebar .sidebar-collapse-btn {
+        display: none;
+    }
+
     .main-wrapper {
         margin-left: 0 !important;
         padding: 16px;
+        padding-bottom: max(16px, env(safe-area-inset-bottom));
     }
 
+    /* ---- Topbar compacta e à prova de estouro ---- */
     .topbar {
         left: 0 !important;
         padding: 0 12px;
+        padding-left: max(12px, env(safe-area-inset-left));
+        padding-right: max(12px, env(safe-area-inset-right));
+        gap: 8px;
     }
 
     .topbar-burger {
@@ -2899,6 +2933,26 @@ body.loaded { opacity: 1; transition: opacity 0.25s ease; }
         display: none;
     }
 
+    .topbar-user-avatar {
+        width: 34px;
+        height: 34px;
+    }
+
+    /* Painel de notificações ocupa a largura da tela, sem estourar */
+    .notifications-panel {
+        position: fixed;
+        top: var(--topbar-height);
+        left: 12px;
+        right: 12px;
+        width: auto;
+        max-width: none;
+    }
+
+    .notifications-list {
+        max-height: calc(100dvh - var(--topbar-height) - 70px);
+    }
+
+    /* ---- Sidebar: itens sempre expandidos na gaveta ---- */
     .sidebar-brand .brand-text,
     .sidebar .nav-text,
     .sidebar .nav-section-title,
@@ -2922,9 +2976,165 @@ body.loaded { opacity: 1; transition: opacity 0.25s ease; }
         display: flex !important;
     }
 
+    /* Ignora o estado "minimizado" deixado pelo desktop */
+    .sidebar.collapsed .sidebar-brand {
+        justify-content: flex-start;
+        padding: 13px 20px;
+    }
+
+    .sidebar.collapsed .sidebar-user {
+        justify-content: flex-start;
+        padding: 8px 6px 8px 12px;
+    }
+
+    /* ---- Cabeçalho de página ---- */
     .page-header {
         flex-direction: column;
         align-items: flex-start;
+        padding: 12px 2px;
+    }
+
+    .page-header > .d-flex {
+        flex-wrap: wrap;
+        width: 100%;
+    }
+
+    .page-header .d-flex .btn {
+        flex: 1 1 auto;
+        justify-content: center;
+    }
+
+    .page-header > .btn {
+        width: 100%;
+        justify-content: center;
+    }
+
+    /* ---- Barra de filtros ---- */
+    .filter-bar {
+        flex-direction: column;
+        align-items: stretch;
+        padding: 12px;
+        gap: 10px;
+    }
+
+    .filter-search {
+        flex: 1 1 100%;
+        min-width: 0;
+    }
+
+    .filter-group {
+        flex: 1 1 auto;
+    }
+
+    .filter-group .form-select {
+        width: 100%;
+        min-width: 0;
+    }
+
+    .filter-bar > .btn {
+        width: 100%;
+        justify-content: center;
+    }
+
+    /* ---- Revisão do wizard em uma coluna ---- */
+    .review-section {
+        flex-wrap: wrap;
+    }
+    .review-section-title {
+        min-width: 0;
+        flex: 1;
+    }
+
+    .review-section-edit {
+        margin-left: auto;
+    }
+
+    .review-section-body {
+        flex: 1 1 100%;
+    }
+
+    /* ---- Listas dinâmicas (tarefas / peças) ---- */
+    .dynamic-list-item {
+        flex-wrap: wrap;
+    }
+
+    .dynamic-list-item .form-select {
+        max-width: 100%;
+    }
+
+    /* ---- Tabelas-cartão: libera o menu de ações para não ser cortado ---- */
+    .table-responsive:has(table.responsive-card) {
+        overflow: visible;
+    }
+
+    .table-responsive table.responsive-card tbody td::before,
+    table.responsive-card tbody td::before {
+        min-width: 78px;
+    }
+
+    /* ---- Cards com menos padding ---- */
+    .card-body {
+        padding: 16px;
+    }
+
+    /* Evita o zoom automático do iOS ao focar campos */
+    .form-control,
+    .form-select {
+        font-size: 16px;
+    }
+
+    .table-dropdown-menu {
+        max-width: calc(100vw - 32px);
+    }
+
+    /* ---- Tela de login ---- */
+    .auth-bg {
+        min-height: 100dvh;
+        align-items: flex-start;
+        padding: 32px 0;
+    }
+
+    .auth-card .card-body {
+        padding: 24px !important;
+    }
+
+    /* ---- Alvos de toque maiores ---- */
+    .actions-cell .table-dropdown-btn {
+        width: 38px;
+        height: 38px;
+    }
+}
+
+/* Telas muito estreitas (celulares pequenos) */
+@media (max-width: 420px) {
+    .main-wrapper {
+        padding: 12px;
+    }
+
+    .topbar {
+        gap: 6px;
+    }
+    .filter-group {
+        flex: 1 1 100%;
+    }
+
+    .table-responsive table.responsive-card tbody td,
+    table.responsive-card tbody td {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 4px;
+    }
+
+    .table-responsive table.responsive-card tbody td::before,
+    table.responsive-card tbody td::before {
+        min-width: 0;
+    }
+
+    .table-responsive table.responsive-card tbody td.actions-cell,
+    table.responsive-card tbody td.actions-cell {
+        flex-direction: row;
+        align-items: center;
+        justify-content: flex-end;
     }
 }
 

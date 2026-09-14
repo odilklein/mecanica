@@ -104,11 +104,28 @@ function initMobileSidebar() {
     function closeMobileSidebar() {
         sidebar.classList.remove('mobile-open');
         overlay.classList.remove('active');
+        document.body.classList.remove('sidebar-open');
+    }
+
+    function openMobileSidebar() {
+        sidebar.classList.add('mobile-open');
+        overlay.classList.add('active');
+        document.body.classList.add('sidebar-open');
     }
 
     burger.addEventListener('click', function() {
-        sidebar.classList.toggle('mobile-open');
-        overlay.classList.toggle('active');
+        if (sidebar.classList.contains('mobile-open')) {
+            closeMobileSidebar();
+        } else {
+            openMobileSidebar();
+        }
+    });
+
+    // Fecha ao clicar em qualquer link de navegação do menu
+    sidebar.querySelectorAll('.sidebar-nav-item').forEach(function(item) {
+        item.addEventListener('click', function() {
+            if (window.innerWidth <= 768) closeMobileSidebar();
+        });
     });
 
     // No mobile, o botão de minimizar fecha o menu lateral

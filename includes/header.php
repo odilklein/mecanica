@@ -18,9 +18,10 @@ $url_logout = $caminho_base . '/pages/auth/logout.php';
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="<?php echo $url_css; ?>" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/lucide@0.462.0/dist/umd/lucide.min.js"></script>
-    <style>body{opacity:0;transition:opacity .25s ease}</style>
+    <script>document.documentElement.classList.add('js');</script>
+    <style>html.js body{opacity:0;transition:opacity .25s ease}</style>
 </head>
-<body class="loading">
+<body>
     <script>
         window.CAMINHO_BASE = <?php echo json_encode($caminho_base); ?>;
         window.CSRF_TOKEN = <?php echo json_encode(csrf_token() ?? ''); ?>;
