@@ -1841,6 +1841,61 @@ textarea.form-control {
     margin-bottom: 1rem;
 }
 
+/* Botão de filtros: só aparece no mobile (injetado via JS) */
+.filter-toggle {
+    display: none;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    padding: 4px 2px;
+    border: 0;
+    background: transparent;
+    color: var(--text-primary);
+    font-family: var(--font-main);
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+    text-align: left;
+}
+
+.filter-toggle svg {
+    width: 18px;
+    height: 18px;
+    color: var(--accent);
+}
+
+.filter-toggle-chevron {
+    margin-left: auto;
+    display: inline-flex;
+    transition: transform 0.2s ease;
+}
+
+.filter-toggle-badge {
+    min-width: 18px;
+    height: 18px;
+    padding: 0 5px;
+    border-radius: 9px;
+    background: var(--accent-strong);
+    color: var(--on-accent);
+    font-size: 0.68rem;
+    font-weight: 700;
+    line-height: 18px;
+    text-align: center;
+}
+
+.filter-bar.aberto .filter-toggle-chevron {
+    transform: rotate(180deg);
+}
+
+.filter-body {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    gap: 12px;
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
 .filter-search {
     position: relative;
     flex: 1 1 240px;
@@ -2779,6 +2834,26 @@ body.loaded { opacity: 1; transition: opacity 0.25s ease; }
     overflow-wrap: anywhere;
 }
 
+/* Grids de detalhe/dashboard: quando as colunas empilham, cria respiro
+   entre a coluna principal e as secundárias (não colam no limite da tela) */
+@media (max-width: 1199.98px) {
+    .main-wrapper .row.g-3 > .col-xl-4,
+    .main-wrapper .row.g-3 > .col-xl-3 {
+        padding-top: 1rem;
+    }
+}
+
+@media (max-width: 991.98px) {
+    .main-wrapper .row.g-3 {
+        --bs-gutter-y: 1.25rem;
+    }
+
+    .main-wrapper .row.g-3 > .col-lg-4,
+    .main-wrapper .row.g-3 > .col-lg-3 {
+        padding-top: 1rem;
+    }
+}
+
 /* Tabelas em formato de cartão no mobile (sem scroll horizontal) */
 @media (max-width: 768px) {
     .wizard-step .step-label { display: none; }
@@ -3009,29 +3084,44 @@ body.loaded { opacity: 1; transition: opacity 0.25s ease; }
         justify-content: center;
     }
 
-    /* ---- Barra de filtros ---- */
+    /* ---- Barra de filtros (colapsável no mobile) ---- */
     .filter-bar {
         flex-direction: column;
         align-items: stretch;
-        padding: 12px;
-        gap: 10px;
+        padding: 10px 12px;
+        gap: 0;
     }
 
-    .filter-search {
-        flex: 1 1 100%;
+    .filter-toggle {
+        display: flex;
+    }
+
+    .filter-body {
+        display: none;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+        margin-top: 10px;
+    }
+
+    .filter-bar.aberto .filter-body {
+        display: grid;
+    }
+
+    .filter-body .filter-search {
+        grid-column: 1 / -1;
         min-width: 0;
     }
 
-    .filter-group {
-        flex: 1 1 auto;
+    .filter-body .filter-group {
+        min-width: 0;
     }
 
-    .filter-group .form-select {
+    .filter-body .filter-group .form-select {
         width: 100%;
         min-width: 0;
     }
 
-    .filter-bar > .btn {
+    .filter-body .btn {
         width: 100%;
         justify-content: center;
     }
@@ -3114,10 +3204,9 @@ body.loaded { opacity: 1; transition: opacity 0.25s ease; }
     .topbar {
         gap: 6px;
     }
-    .filter-group {
-        flex: 1 1 100%;
+    .filter-body {
+        grid-template-columns: 1fr;
     }
-
     .table-responsive table.responsive-card tbody td,
     table.responsive-card tbody td {
         flex-direction: column;

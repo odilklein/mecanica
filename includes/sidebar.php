@@ -80,28 +80,33 @@ $url_logout = $caminho_base . '/pages/auth/logout.php';
                 <span class="nav-text">Pedidos de peças</span>
             </a><?php endif; ?>
         </div>
+        <?php if (tem_papel(['admin', 'secretaria', 'mecanico_chefe'])): ?>
         <div class="sidebar-section">
             <div class="sidebar-section-title">Documentos</div>
-            <?php if (tem_papel(['admin', 'secretaria', 'mecanico_chefe'])): ?><a href="<?php echo $url_orcamentos; ?>" class="sidebar-nav-item <?php echo sidebarAtiva('orcamentos') ? 'active' : ''; ?>" title="Orçamentos">
+            <a href="<?php echo $url_orcamentos; ?>" class="sidebar-nav-item <?php echo sidebarAtiva('orcamentos') ? 'active' : ''; ?>" title="Orçamentos">
                 <i data-lucide="file-text"></i>
                 <span class="nav-text">Orçamentos</span>
-            </a><?php endif; ?>
-            <?php if (tem_papel(['admin', 'secretaria', 'mecanico_chefe'])): ?><a href="<?php echo $url_relatorios; ?>" class="sidebar-nav-item <?php echo sidebarAtiva('relatorios') ? 'active' : ''; ?>" title="Relatórios">
+            </a>
+            <a href="<?php echo $url_relatorios; ?>" class="sidebar-nav-item <?php echo sidebarAtiva('relatorios') ? 'active' : ''; ?>" title="Relatórios">
                 <i data-lucide="chart-line"></i>
                 <span class="nav-text">Relatórios</span>
-            </a><?php endif; ?>
+            </a>
         </div>
+        <?php endif; ?>
+
+        <?php if (tem_papel(['admin'])): ?>
         <div class="sidebar-section">
             <div class="sidebar-section-title">Sistema</div>
-            <?php if (tem_papel(['admin'])): ?><a href="<?php echo $caminho_base; ?>/pages/backup/index.php" class="sidebar-nav-item <?php echo sidebarAtiva('backup') ? 'active' : ''; ?>" title="Backup do banco">
+            <a href="<?php echo $caminho_base; ?>/pages/backup/index.php" class="sidebar-nav-item <?php echo sidebarAtiva('backup') ? 'active' : ''; ?>" title="Backup do banco">
                 <i data-lucide="database-backup"></i>
                 <span class="nav-text">Backup</span>
-            </a><?php endif; ?>
-            <?php if (tem_papel(['admin'])): ?><a href="<?php echo $caminho_base; ?>/pages/auditoria/listar.php" class="sidebar-nav-item <?php echo sidebarAtiva('auditoria') ? 'active' : ''; ?>" title="Auditoria">
+            </a>
+            <a href="<?php echo $caminho_base; ?>/pages/auditoria/listar.php" class="sidebar-nav-item <?php echo sidebarAtiva('auditoria') ? 'active' : ''; ?>" title="Auditoria">
                 <i data-lucide="history"></i>
                 <span class="nav-text">Auditoria</span>
-            </a><?php endif; ?>
+            </a>
         </div>
+        <?php endif; ?>
     </nav>
 
     <div class="sidebar-footer">

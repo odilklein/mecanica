@@ -19,6 +19,7 @@ document.addEventListener('DOMContentLoaded', function() {
     initSelectCards();
     initNotifications();
     initSidebarUserMenu();
+    initResponsiveFilters();
     initTableFilters();
     initColorPicker();
 });
@@ -252,8 +253,75 @@ function confirmarExclusao(formId, mensagem) {
 }
 
 // =============================================
-// BUSCA EM TEMPO REAL (tabelas)
+// FILTROS RESPONSIVOS (colapsáveis no mobile)
+// Envolve o conteúdo de .filter-bar num painel e adiciona um botão
+// que só aparece no mobile. Mostra um contador de filtros ativos.
 // =============================================
+function initResponsiveFilters() {
+    document.querySelectorAll('.filter-bar').forEach(function (bar) {
+        if (bar.dataset.filtroPronto === '1') return;
+        bar.dataset.filtroPronto = '1';
+
+        const body = document.createElement('div');
+        body.className = 'filter-body';
+        while (bar.firstChild) {
+            body.appendChild(bar.firstChild);
+        }
+
+        const id = 'filtros' + Math.random().toString(36).slice(2, 8);
+        body.id = id;
+
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'filter-toggle';
+        btn.setAttribute('aria-expanded', 'false');
+        btn.setAttribute('aria-controls', id);
+        btn.innerHTML =
+            '<i data-lucide="sliders-horizontal"></i>' +
+            '<span>Filtros</span>' +
+            '<span class="filter-toggle-badge" hidden>0</span>' +
+            '<span class="filter-toggle-chevron"><i data-lucide="chevron-down"></i></span>';
+
+        bar.appendChild(btn);
+        bar.appendChild(body);
+
+        const badge = btn.querySelector('.filter-toggle-badge');
+
+        function contarAtivos() {
+            let n = 0;
+            body.querySelectorAll('input, select').forEach(function (el) {
+                if (el.type === 'hidden') return;
+                if (el.type === 'checkbox' || el.type === 'radio') {
+                    if (el.checked) n++;
+                    return;
+                }
+                if ((el.value || '').trim() !== '') n++;
+            });
+            return n;
+        }
+
+        function atualizarBadge() {
+            const n = contarAtivos();
+            badge.textContent = String(n);
+            badge.hidden = n === 0;
+        }
+
+        btn.addEventListener('click', function () {
+            const aberto = bar.classList.toggle('aberto');
+            btn.setAttribute('aria-expanded', aberto ? 'true' : 'false');
+        });
+
+        body.addEventListener('input', atualizarBadge);
+        body.addEventListener('change', atualizarBadge);
+        atualizarBadge();
+    });
+
+    if (typeof lucide !== 'undefined') {
+        lucide.createIcons();
+    }
+}
+
+
 function buscarTabela(buscaId, tabelaId) {
     const input = document.getElementById(buscaId);
     const tabela = document.getElementById(tabelaId);
