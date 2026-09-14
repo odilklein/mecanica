@@ -15,7 +15,7 @@ $erro = isset($_GET['erro']) ? $_GET['erro'] : '';
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="theme-color" content="#bd1804">
+    <meta name="theme-color" content="#b8270f">
     <title>Login | <?php echo EMPRESA_NOME; ?></title>
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -23,6 +23,16 @@ $erro = isset($_GET['erro']) ? $_GET['erro'] : '';
     <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
 </head>
 <body class="auth-bg">
+    <script>
+        // Aplica o tema salvo na página de login (sem main.js)
+        try {
+            const saved = localStorage.getItem('theme');
+            const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+            if (saved === 'dark' || (!saved && prefersDark)) {
+                document.body.classList.add('dark');
+            }
+        } catch (e) {}
+    </script>
     <div class="auth-wrapper">
         <div class="container">
             <div class="row justify-content-center">
@@ -64,7 +74,7 @@ $erro = isset($_GET['erro']) ? $_GET['erro'] : '';
                                     </div>
                                 </div>
                                 <div class="d-grid">
-                                    <button type="submit" class="btn btn-primary btn-lg fw-bold" style="background-color:#bd1804; border-color:#bd1804;">
+                                    <button type="submit" class="btn btn-primary btn-lg fw-bold">
                                         <i data-lucide="log-in" class="me-2"></i>Entrar
                                     </button>
                                 </div>

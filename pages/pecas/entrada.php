@@ -25,6 +25,7 @@ $peca_id = isset($_GET['peca_id']) ? (int)$_GET['peca_id'] : 0;
         <div class="card">
             <div class="card-body p-4">
                 <form method="POST" action="processar_movimentacao.php" onsubmit="return validarMovimentacao()">
+                    <input type="hidden" name="csrf_token" value="<?php echo esc(csrf_token()); ?>">
                     <div class="row g-3">
                         <div class="col-md-8">
                             <label for="peca_id" class="form-label">Peça *</label>
@@ -36,7 +37,7 @@ $peca_id = isset($_GET['peca_id']) ? (int)$_GET['peca_id'] : 0;
                                     $selected = ($p['id'] == $peca_id) ? 'selected' : '';
                                 ?>
                                     <option value="<?php echo $p['id']; ?>" data-qtd="<?php echo $p['quantidade']; ?>" <?php echo $selected; ?>>
-                                        <?php echo limpar($p['nome']) . ' (' . $p['quantidade'] . ' em estoque)';
+                                        <?php echo esc($p['nome']) . ' (' . $p['quantidade'] . ' em estoque)';
                                     ?></option>
                                 <?php endforeach; ?>
                             </select>
@@ -104,12 +105,12 @@ $peca_id = isset($_GET['peca_id']) ? (int)$_GET['peca_id'] : 0;
                     ?>
                     <tr>
                         <td><small><?php echo date('d/m/Y H:i', strtotime($mov['data_movimentacao'])); ?></small></td>
-                        <td><?php echo limpar($mov['peca_nome']); ?></td>
+                        <td><?php echo esc($mov['peca_nome']); ?></td>
                         <td><span class="badge badge-<?php echo $badge; ?>"><?php echo ucfirst($mov['tipo']); ?></span></td>
                         <td class="<?php echo $mov['tipo'] == 'entrada' ? 'text-success' : 'text-danger'; ?> fw-600">
                             <?php echo $mov['tipo'] == 'entrada' ? '+' : '-'; ?><?php echo $mov['quantidade']; ?>
                         </td>
-                        <td><?php echo limpar($mov['motivo'] ?: '-'); ?></td>
+                        <td><?php echo esc($mov['motivo'] ?: '-'); ?></td>
                     </tr>
                     <?php endforeach; else: ?>
                     <tr><td colspan="5" class="text-center text-muted py-4">Nenhuma movimentação registrada.</td></tr>

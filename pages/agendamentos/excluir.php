@@ -2,6 +2,9 @@
 require_once __DIR__ . '/../../includes/sessao.php';
 require_once __DIR__ . '/../../config/conexao.php';
 
+exigir_papel(['admin', 'secretaria', 'mecanico_chefe']);
+validar_csrf();
+
 if ($_SERVER['REQUEST_METHOD'] != 'POST') {
     header("Location: listar.php");
     exit();
@@ -17,7 +20,8 @@ try {
     $_SESSION['mensagem'] = "Agendamento excluído com sucesso!";
     $_SESSION['mensagem_tipo'] = "success";
 } catch (PDOException $e) {
-    $_SESSION['mensagem'] = "Erro ao excluir agendamento: " . $e->getMessage();
+    error_log($e->getMessage());
+    $_SESSION['mensagem'] = "Não foi possível excluir o agendamento.";
     $_SESSION['mensagem_tipo'] = "danger";
 }
 

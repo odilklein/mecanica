@@ -22,6 +22,7 @@ require_once __DIR__ . '/../../includes/header.php';
         <div class="card">
             <div class="card-body p-4">
                 <form method="POST" action="processar.php?acao=cadastrar">
+                    <input type="hidden" name="csrf_token" value="<?php echo esc(csrf_token()); ?>">
                     <div class="row g-3">
                         <div class="col-md-3">
                             <label for="codigo" class="form-label">Código *</label>

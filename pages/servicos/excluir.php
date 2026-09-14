@@ -1,26 +1,26 @@
 <?php
 require_once __DIR__ . '/../../includes/sessao.php';
 require_once __DIR__ . '/../../config/conexao.php';
+require_once __DIR__ . '/../../includes/auditoria.php';
+require_once __DIR__ . '/../../includes/respostas.php';
+exigir_papel(['admin', 'secretaria']);
+validar_csrf();
 
 if ($_SERVER['REQUEST_METHOD'] != 'POST') {
     header("Location: listar.php");
     exit();
 }
 
-$id = isset($_POST['id']) ? (int)$_POST['id'] : 0;
+$id = (int) ($_POST['id'] ?? 0);
 
 try {
     $stmt = $conn->prepare("DELETE FROM servicos WHERE id = :id");
     $stmt->bindParam(':id', $id);
     $stmt->execute();
 
-    $_SESSION['mensagem'] = "Serviço excluído com sucesso!";
-    $_SESSION['mensagem_tipo'] = "success";
-} catch (PDOException $e) {
-    $_SESSION['mensagem'] = "Erro ao excluir serviço: " . $e->getMessage();
-    $_SESSION['mensagem_tipo'] = "danger";
-}
+    registrar_auditoria($conn, (int) $_SESSION['usuario_id'], 'excluir', 'servico', $id, 'Serviço excluído');
 
-header("Location: listar.php");
-exit();
-?>
+    redirecionar_com_mensagem('listar.php', 'Serviço excluído com sucesso!');
+} catch (PDOException $e) {
+    redirecionar_com_mensagem('listar.php', mensagem_de_erro($e, 'Não foi possível excluir o serviço.'), 'danger');
+}

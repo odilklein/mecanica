@@ -5,7 +5,7 @@ exigir_papel(['admin', 'secretaria', 'mecanico_chefe']);
 
 $id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
 
-$stmt = $conn->prepare("SELECT o.*, c.nome as cliente_nome, c.cpf, c.telefone, c.email, c.endereco, c.cidade, v.marca, v.modelo, v.placa, v.ano, v.km_atual, u.nome as criado_por_nome FROM orcamentos o LEFT JOIN clientes c ON c.id = o.cliente_id LEFT JOIN veiculos v ON v.id = o.veiculo_id LEFT JOIN usuarios u ON u.id = o.criado_por WHERE o.id = :id");
+$stmt = $conn->prepare("SELECT o.*, c.nome as cliente_nome, c.cpf, c.telefone, c.email, c.endereco, c.cidade, v.marca, v.modelo, v.placa, v.ano, v.km_atual, u.nome as criado_por_nome, os.numero as os_numero FROM orcamentos o LEFT JOIN clientes c ON c.id = o.cliente_id LEFT JOIN veiculos v ON v.id = o.veiculo_id LEFT JOIN usuarios u ON u.id = o.criado_por LEFT JOIN ordens_servico os ON os.id = o.os_id WHERE o.id = :id");
 $stmt->bindParam(':id', $id);
 $stmt->execute();
 $orcamento = $stmt->fetch();
@@ -74,16 +74,52 @@ $badge_status = [
 </div>
 
 <div class="row mb-4">
+    <?php
+    $expirado_orc = !empty($orcamento['data_validade']) && strtotime($orcamento['data_validade']) < strtotime(date('Y-m-d')) && $orcamento['status'] == 'aberto';
+    ?>
+    <div class="col-12 col-xl-8 mb-3 mb-xl-0">
+        <div class="card h-100">
+            <div class="card-body">
+                <div class="d-flex flex-wrap align-items-center gap-3">
+                    <span class="badge badge-<?php echo $badge_status[$orcamento['status']]; ?>"><?php echo ucfirst($orcamento['status']); ?></span>
+                    <?php if ($expirado_orc): ?><span class="badge badge-warning"><i data-lucide="triangle-alert"></i> Expirado</span><?php endif; ?>
+                    <div class="text-muted small">
+                        <div><i data-lucide="calendar" class="me-1"></i>Data: <?php echo date('d/m/Y', strtotime($orcamento['data_orcamento'])); ?></div>
+                        <div><i data-lucide="clock" class="me-1"></i>Validade: <?php echo $orcamento['data_validade'] ? date('d/m/Y', strtotime($orcamento['data_validade'])) : '---'; ?></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-12 col-xl-4">
+        <div class="card h-100">
+            <div class="card-body">
+                <div class="text-muted small">
+                    <?php if (!empty($orcamento['os_numero'])): ?>
+                        <div class="mb-1">
+                            <i data-lucide="clipboard-list" class="me-1"></i>Ordem de serviço:
+                            <a href="../ordens_servico/detalhes.php?id=<?php echo (int)$orcamento['os_id']; ?>"><strong>OS #<?php echo str_pad($orcamento['os_numero'], 4, '0', STR_PAD_LEFT); ?></strong></a>
+                        </div>
+                    <?php endif; ?>
+                    <div class="mb-1"><i data-lucide="user" class="me-1"></i>Criado por: <strong><?php echo esc($orcamento['criado_por_nome'] ?: '—'); ?></strong></div>
+                    <div><i data-lucide="file-plus-2" class="me-1"></i>Nº: <strong>#<?php echo str_pad($orcamento['numero'], 4, '0', STR_PAD_LEFT); ?></strong></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mb-4">
     <div class="col-md-6">
         <div class="card h-100">
             <div class="card-header"><i data-lucide="user" class="me-2 text-primary"></i>Cliente</div>
             <div class="card-body">
-                <h5 class="mb-1"><?php echo limpar($orcamento['cliente_nome']); ?></h5>
+                <h5 class="mb-1"><?php echo esc($orcamento['cliente_nome']); ?></h5>
                 <div class="text-muted small">
-                    <div><i data-lucide="file-text" class="me-2"></i>CPF: <?php echo limpar($orcamento['cpf'] ?: '-'); ?></div>
-                    <div><i data-lucide="phone" class="me-2"></i><?php echo limpar($orcamento['telefone'] ?: '-'); ?></div>
-                    <div><i data-lucide="mail" class="me-2"></i><?php echo limpar($orcamento['email'] ?: '-'); ?></div>
-                    <div><i data-lucide="map-pin" class="me-2"></i><?php echo limpar($orcamento['endereco'] ?: '-') . ' - ' . limpar($orcamento['cidade'] ?: ''); ?></div>
+                    <div><i data-lucide="file-text" class="me-2"></i>CPF: <?php echo esc($orcamento['cpf'] ?: '-'); ?></div>
+                    <div><i data-lucide="phone" class="me-2"></i><?php echo esc($orcamento['telefone'] ?: '-'); ?></div>
+                    <div><i data-lucide="mail" class="me-2"></i><?php echo esc($orcamento['email'] ?: '-'); ?></div>
+                    <div><i data-lucide="map-pin" class="me-2"></i><?php echo esc($orcamento['endereco'] ?: '-') . ' - ' . esc($orcamento['cidade'] ?: ''); ?></div>
                 </div>
             </div>
         </div>
@@ -93,9 +129,9 @@ $badge_status = [
             <div class="card-header"><i data-lucide="car" class="me-2 text-primary"></i>Veículo</div>
             <div class="card-body">
                 <?php if ($orcamento['marca']): ?>
-                    <h5 class="mb-1"><?php echo limpar($orcamento['marca']) . ' ' . limpar($orcamento['modelo']); ?></h5>
+                    <h5 class="mb-1"><?php echo esc($orcamento['marca']) . ' ' . esc($orcamento['modelo']); ?></h5>
                     <div class="text-muted small">
-                        <div><span class="badge bg-dark"><?php echo limpar($orcamento['placa']); ?></span></div>
+                        <div><span class="badge bg-dark"><?php echo esc($orcamento['placa']); ?></span></div>
                         <div><i data-lucide="calendar" class="me-2"></i>Ano: <?php echo $orcamento['ano'] ?: '-'; ?></div>
                         <div><i data-lucide="gauge" class="me-2"></i>KM: <?php echo number_format($orcamento['km_atual'], 0, ',', '.'); ?></div>
                     </div>
@@ -126,15 +162,15 @@ $badge_status = [
                 </thead>
                 <tbody>
                     <?php foreach ($itens as $item): ?>
-                        <tr>
-                            <td>
-                                <?php if ($item['tipo'] == 'peca'): ?>
-                                    <span class="badge badge-info">Peça</span>
-                                <?php else: ?>
-                                    <span class="badge badge-success">Mão de obra</span>
-                                <?php endif; ?>
-                            </td>
-                            <td><?php echo limpar($item['tipo'] == 'peca' ? $item['peca_nome'] : $item['servico_nome']); ?></td>
+<tr>
+                        <td>
+                            <?php if ($item['tipo'] == 'peca'): ?>
+                                <span class="badge badge-info">Peça</span>
+                            <?php else: ?>
+                                <span class="badge badge-success">Mão de obra</span>
+                            <?php endif; ?>
+                        </td>
+                        <td><?php echo esc($item['descricao_item'] ?: ($item['tipo'] == 'peca' ? $item['peca_nome'] : $item['servico_nome'])); ?></td>
                             <td class="text-center"><?php echo $item['quantidade']; ?></td>
                             <td class="text-end"><?php echo formatar_moeda($item['preco_unitario']); ?></td>
                             <td class="text-end fw-600"><?php echo formatar_moeda($item['subtotal']); ?></td>
@@ -172,7 +208,7 @@ $badge_status = [
 <div class="card mt-3">
     <div class="card-header"><i data-lucide="sticky-note" class="me-2 text-primary"></i>Observações</div>
     <div class="card-body">
-        <?php echo nl2br(limpar($orcamento['observacoes'])); ?>
+        <?php echo nl2br(esc($orcamento['observacoes'])); ?>
     </div>
 </div>
 <?php endif; ?>

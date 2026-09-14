@@ -1,12 +1,15 @@
 <?php
 require_once __DIR__ . '/../../includes/sessao.php';
 require_once __DIR__ . '/../../config/conexao.php';
+require_once __DIR__ . '/../../includes/notificacoes.php';
 exigir_papel(['admin', 'secretaria']);
 
 if ($_SERVER['REQUEST_METHOD'] != 'POST') {
     header("Location: listar.php");
     exit();
 }
+
+validar_csrf();
 
 $peca_id = (int)($_POST['peca_id'] ?? 0);
 $tipo = $_POST['tipo'] ?? 'entrada';
@@ -24,7 +27,7 @@ try {
     $conn->beginTransaction();
 
     // Consulta quantidade atual
-    $stmt = $conn->prepare("SELECT quantidade FROM pecas WHERE id = :id FOR UPDATE");
+    $stmt = $conn->prepare("SELECT quantidade, nome, estoque_minimo FROM pecas WHERE id = :id FOR UPDATE");
     $stmt->bindParam(':id', $peca_id);
     $stmt->execute();
     $peca = $stmt->fetch();
@@ -67,13 +70,22 @@ try {
 
     $conn->commit();
 
+    if ($nova_quantidade < $peca['estoque_minimo']) {
+        notificar_tipos($conn, ['admin', 'secretaria', 'mecanico_chefe'], null, 'estoque', 'A peça "' . $peca['nome'] . '" está com estoque abaixo do mínimo (' . $nova_quantidade . ' un. / mínimo ' . $peca['estoque_minimo'] . ').');
+    }
+
     $_SESSION['mensagem'] = "Estoque atualizado com sucesso! Nova quantidade: " . $nova_quantidade . ".";
     $_SESSION['mensagem_tipo'] = "success";
     header("Location: entrada.php");
     exit();
 } catch (Exception $e) {
     $conn->rollBack();
-    $_SESSION['mensagem'] = "Erro: " . $e->getMessage();
+    if ($e instanceof PDOException) {
+        error_log($e->getMessage());
+        $_SESSION['mensagem'] = "Não foi possível atualizar o estoque.";
+    } else {
+        $_SESSION['mensagem'] = $e->getMessage();
+    }
     $_SESSION['mensagem_tipo'] = "danger";
     header("Location: entrada.php");
     exit();

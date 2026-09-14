@@ -29,12 +29,12 @@ $itens = $stmt->fetchAll();
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body { font-family: Arial, sans-serif; font-size: 14px; color: #333; }
         .container { max-width: 800px; margin: 0 auto; padding: 30px; }
-        .header { text-align: center; border-bottom: 3px solid #bd1804; padding-bottom: 15px; margin-bottom: 20px; }
-        .header h1 { color: #bd1804; font-size: 28px; }
+        .header { text-align: center; border-bottom: 3px solid #b8270f; padding-bottom: 15px; margin-bottom: 20px; }
+        .header h1 { color: #b8270f; font-size: 28px; }
         .header p { color: #666; }
         .header .contact-line { font-size: 12px; margin-top: 8px; line-height: 1.6; }
         .info-box { border: 1px solid #ddd; border-radius: 8px; padding: 15px; margin-bottom: 15px; }
-        .info-box h3 { font-size: 14px; color: #bd1804; margin-bottom: 8px; text-transform: uppercase; }
+        .info-box h3 { font-size: 14px; color: #b8270f; margin-bottom: 8px; text-transform: uppercase; }
         .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
         .info-grid .full { grid-column: 1 / -1; }
         .info-label { font-weight: bold; color: #666; }
@@ -46,12 +46,12 @@ $itens = $stmt->fetchAll();
         .totals { margin-left: auto; width: 300px; }
         .totals div { display: flex; justify-content: space-between; padding: 5px 0; }
         .totals .grand-total { font-size: 18px; font-weight: bold; border-top: 2px solid #000; padding-top: 10px; }
-        .totals .grand-total span { color: #bd1804; }
+        .totals .grand-total span { color: #b8270f; }
         .footer { margin-top: 40px; text-align: center; font-size: 12px; color: #666; border-top: 1px solid #ddd; padding-top: 15px; }
         .stamp { margin-top: 30px; display: flex; justify-content: space-between; }
         .stamp div { width: 45%; text-align: center; border-top: 1px solid #999; padding-top: 8px; font-size: 12px; }
         .no-print { text-align: center; margin: 20px 0; }
-        .no-print button { padding: 12px 30px; font-size: 16px; background: #bd1804; color: #fff; border: none; border-radius: 5px; cursor: pointer; }
+        .no-print button { padding: 12px 30px; font-size: 16px; background: #b8270f; color: #fff; border: none; border-radius: 5px; cursor: pointer; }
         @media print {
             .no-print { display: none; }
             body { font-size: 12px; }
@@ -60,7 +60,7 @@ $itens = $stmt->fetchAll();
 </head>
 <body>
     <div class="no-print">
-        <button onclick="window.print()">🖨️ Imprimir</button> ›   <a href="detalhes.php?id=<?php echo $id; ?>" style="margin-left:10px;">Voltar</a>
+        <button onclick="window.print()">🖨️ Imprimir</button>   <a href="detalhes.php?id=<?php echo $id; ?>" style="margin-left:10px;">Voltar</a>
     </div>
 
     <div class="container">
@@ -78,17 +78,17 @@ $itens = $stmt->fetchAll();
             <div class="info-grid">
                 <div><span class="info-label">Data:</span> <?php echo date('d/m/Y', strtotime($orcamento['data_orcamento'])); ?></div>
                 <div><span class="info-label">Validade:</span> <?php echo $orcamento['data_validade'] ? date('d/m/Y', strtotime($orcamento['data_validade'])) : '---'; ?></div>
-                <div class="full"><span class="info-label">Status:</span> <?php echo ucfirst($orcamento['status']); ?></div>
+                <div class="full"><span class="info-label">Status:</span> <?php echo esc(ucfirst($orcamento['status'])); ?></div>
             </div>
         </div>
 
         <div class="info-box">
             <h3>Dados do Cliente</h3>
             <div class="info-grid">
-                <div><span class="info-label">Cliente:</span> <?php echo $orcamento['cliente_nome']; ?></div>
-                <div><span class="info-label">Telefone:</span> <?php echo $orcamento['telefone'] ?: '-'; ?></div>
-                <div><span class="info-label">CPF:</span> <?php echo $orcamento['cpf'] ?: '-'; ?></div>
-                <div><span class="info-label">Email:</span> <?php echo $orcamento['email'] ?: '-'; ?></div>
+                <div><span class="info-label">Cliente:</span> <?php echo esc($orcamento['cliente_nome']); ?></div>
+                <div><span class="info-label">Telefone:</span> <?php echo esc($orcamento['telefone'] ?: '-'); ?></div>
+                <div><span class="info-label">CPF:</span> <?php echo esc($orcamento['cpf'] ?: '-'); ?></div>
+                <div><span class="info-label">Email:</span> <?php echo esc($orcamento['email'] ?: '-'); ?></div>
             </div>
         </div>
 
@@ -96,15 +96,15 @@ $itens = $stmt->fetchAll();
         <div class="info-box">
             <h3>Dados do Veículo</h3>
             <div class="info-grid">
-                <div><span class="info-label">Veículo:</span> <?php echo $orcamento['marca'] . ' ' . $orcamento['modelo']; ?></div>
-                <div><span class="info-label">Placa:</span> <?php echo $orcamento['placa']; ?></div>
-                <div><span class="info-label">Ano:</span> <?php echo $orcamento['ano'] ?: '-'; ?></div>
+                <div><span class="info-label">Veículo:</span> <?php echo esc($orcamento['marca'] . ' ' . $orcamento['modelo']); ?></div>
+                <div><span class="info-label">Placa:</span> <?php echo esc($orcamento['placa']); ?></div>
+                <div><span class="info-label">Ano:</span> <?php echo esc($orcamento['ano'] ?: '-'); ?></div>
                 <div><span class="info-label">KM:</span> <?php echo number_format($orcamento['km_atual'], 0, ',', '.'); ?></div>
             </div>
         </div>
         <?php endif; ?>
 
-        <h3 style="margin-top:20px; color:#bd1804; text-transform:uppercase; font-size:14px;">Descrição dos Serviços / Peças</h3>
+        <h3 style="margin-top:20px; color:#b8270f; text-transform:uppercase; font-size:14px;">Descrição dos Serviços / Peças</h3>
         <table>
             <thead>
                 <tr>
@@ -117,7 +117,7 @@ $itens = $stmt->fetchAll();
             <tbody>
                 <?php foreach ($itens as $item): ?>
                     <tr>
-                        <td class="text-center"><?php echo $item['quantidade']; ?></td>
+                        <td class="text-center"><?php echo (int) $item['quantidade']; ?></td>
                         <td>
                             <?php echo $item['tipo'] == 'peca' ? '[Peça] ' : '[Mão de Obra] '; ?>
                             <?php echo htmlspecialchars($item['descricao_item'] ?: ($item['peca_nome'] ?: $item['servico_nome'])); ?>

@@ -1,7 +1,13 @@
 <?php
 require_once __DIR__ . '/../../includes/sessao.php';
 require_once __DIR__ . '/../../config/conexao.php';
+require_once __DIR__ . '/../../includes/notificacoes.php';
 exigir_papel(['admin', 'secretaria']);
+if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+    header('Location: listar.php');
+    exit();
+}
+validar_csrf();
 
 $acao = $_GET['acao'] ?? '';
 $id = isset($_POST['id']) ? (int)$_POST['id'] : 0;
@@ -69,6 +75,10 @@ try {
         $conn->commit();
         $_SESSION['mensagem'] = "Peça cadastrada com sucesso!";
         $_SESSION['mensagem_tipo'] = "success";
+
+        if ($quantidade < $estoque_minimo) {
+            notificar_tipos($conn, ['admin', 'secretaria', 'mecanico_chefe'], null, 'estoque', 'A peça "' . $nome . '" está com estoque abaixo do mínimo (' . $quantidade . ' un. / mínimo ' . $estoque_minimo . ').');
+        }
     } elseif ($acao == 'editar') {
         $stmt = $conn->prepare("UPDATE pecas SET codigo = :codigo, nome = :nome, descricao = :descricao, categoria = :categoria, estoque_minimo = :estoque_minimo, preco_compra = :preco_compra, preco_venda = :preco_venda, fornecedor = :fornecedor, localizacao = :localizacao WHERE id = :id");
         $stmt->bindParam(':codigo', $codigo);
@@ -91,7 +101,8 @@ try {
     exit();
 } catch (PDOException $e) {
     if ($conn->inTransaction()) $conn->rollBack();
-    $_SESSION['mensagem'] = "Erro ao processar: " . $e->getMessage();
+    error_log($e->getMessage());
+    $_SESSION['mensagem'] = "Não foi possível salvar a peça.";
     $_SESSION['mensagem_tipo'] = "danger";
     if ($acao == 'editar') header("Location: editar.php?id=" . $id);
     else header("Location: cadastrar.php");

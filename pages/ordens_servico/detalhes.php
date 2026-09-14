@@ -17,6 +17,12 @@ if ($_SESSION['usuario_tipo'] === 'mecanico') {
     if (!$stmt->fetchColumn()) { http_response_code(403); exit('Esta ordem de serviço não está atribuída a você.'); }
 }
 
+if (isset($_GET['marcar_notificacao'])) {
+    $notif_id = (int) $_GET['marcar_notificacao'];
+    $stmt = $conn->prepare('UPDATE notificacoes SET lida_em = NOW() WHERE id = :id AND usuario_id = :uid AND os_id = :os_id AND lida_em IS NULL');
+    $stmt->execute([':id' => $notif_id, ':uid' => (int) $_SESSION['usuario_id'], ':os_id' => $id]);
+}
+
 $stmt = $conn->prepare('SELECT u.nome, u.tipo, r.atribuido_em FROM os_responsaveis r JOIN usuarios u ON u.id = r.usuario_id WHERE r.os_id = :id AND r.concluido_em IS NULL ORDER BY u.nome');
 $stmt->execute([':id' => $id]);
 $responsaveis = $stmt->fetchAll();

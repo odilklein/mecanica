@@ -1,5 +1,7 @@
 <?php
 require_once __DIR__ . '/../../includes/sessao.php';
+require_once __DIR__ . '/../../config/conexao.php';
+require_once __DIR__ . '/../../includes/auditoria.php';
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 	header("Location: ../../index.php");
@@ -7,6 +9,9 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 }
 
 validar_csrf();
+if (isset($_SESSION['usuario_id'])) {
+	registrar_auditoria($conn, (int) $_SESSION['usuario_id'], 'logout', 'usuario', (int) $_SESSION['usuario_id'], 'Logout realizado');
+}
 $_SESSION = [];
 if (ini_get('session.use_cookies')) {
 	$params = session_get_cookie_params();

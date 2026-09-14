@@ -1,6 +1,7 @@
 <?php
 require_once __DIR__ . '/../../includes/sessao.php';
 require_once __DIR__ . '/../../config/conexao.php';
+require_once __DIR__ . '/../../includes/auditoria.php';
 
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     validar_csrf();
@@ -13,7 +14,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     }
 
     try {
-        $stmt = $conn->prepare("SELECT * FROM usuarios WHERE email = :email");
+        $stmt = $conn->prepare("SELECT * FROM usuarios WHERE email = :email AND ativo = 1");
         $stmt->bindParam(':email', $email);
         $stmt->execute();
         $usuario = $stmt->fetch();
@@ -25,10 +26,11 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             $_SESSION['usuario_email'] = $usuario['email'];
             $_SESSION['usuario_tipo'] = $usuario['tipo'];
 
+            registrar_auditoria($conn, $usuario['id'], 'login', 'usuario', $usuario['id'], 'Login realizado');
             header("Location: ../../index.php");
             exit();
         } else {
-            header("Location: login.php?erro=Email ou senha incorretos");
+            header("Location: login.php?erro=Email ou senha incorretos ou usuário desativado");
             exit();
         }
     } catch (PDOException $e) {

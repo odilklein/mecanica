@@ -21,6 +21,7 @@ require_once __DIR__ . '/../../includes/header.php';
         <div class="card">
             <div class="card-body p-4">
                 <form method="POST" action="processar.php?acao=cadastrar" onsubmit="return validarAgendamento()">
+                    <input type="hidden" name="csrf_token" value="<?php echo esc(csrf_token()); ?>">
                     <div class="row g-3">
                         <div class="col-md-6">
                             <label for="cliente_id" class="form-label">Cliente *</label>
@@ -30,7 +31,7 @@ require_once __DIR__ . '/../../includes/header.php';
                                 $stmt = $conn->query("SELECT id, nome FROM clientes ORDER BY nome");
                                 foreach ($stmt->fetchAll() as $c):
                                 ?>
-                                    <option value="<?php echo $c['id']; ?>"><?php echo limpar($c['nome']); ?></option>
+                                    <option value="<?php echo $c['id']; ?>"><?php echo esc($c['nome']); ?></option>
                                 <?php endforeach; ?>
                             </select>
                         </div>
@@ -48,7 +49,7 @@ require_once __DIR__ . '/../../includes/header.php';
                                 $stmt = $conn->query("SELECT id, nome FROM servicos WHERE ativo = 1 ORDER BY nome");
                                 foreach ($stmt->fetchAll() as $s):
                                 ?>
-                                    <option value="<?php echo $s['id']; ?>"><?php echo limpar($s['nome']); ?></option>
+                                    <option value="<?php echo $s['id']; ?>"><?php echo esc($s['nome']); ?></option>
                                 <?php endforeach; ?>
                             </select>
                         </div>
