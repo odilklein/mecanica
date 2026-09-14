@@ -97,6 +97,10 @@ $url_logout = $caminho_base . '/pages/auth/logout.php';
                 <i data-lucide="database-backup"></i>
                 <span class="nav-text">Backup</span>
             </a><?php endif; ?>
+            <?php if (tem_papel(['admin'])): ?><a href="<?php echo $caminho_base; ?>/pages/auditoria/listar.php" class="sidebar-nav-item <?php echo sidebarAtiva('auditoria') ? 'active' : ''; ?>" title="Auditoria">
+                <i data-lucide="history"></i>
+                <span class="nav-text">Auditoria</span>
+            </a><?php endif; ?>
         </div>
     </nav>
 

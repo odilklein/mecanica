@@ -17,7 +17,7 @@ $url_logout = $caminho_base . '/pages/auth/logout.php';
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="<?php echo $url_css; ?>" rel="stylesheet">
-    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/lucide@0.462.0/dist/umd/lucide.min.js"></script>
     <style>body{opacity:0;transition:opacity .25s ease}</style>
 </head>
 <body class="loading">
@@ -38,10 +38,6 @@ $url_logout = $caminho_base . '/pages/auth/logout.php';
                 <span class="current"><?php echo $titulo_pagina ?? 'Dashboard'; ?></span>
             </div>
             <div class="topbar-flex-spacer"></div>
-            <div class="topbar-search">
-                <i data-lucide="search" class="search-icon"></i>
-                <input type="text" placeholder="Buscar...">
-            </div>
             <div class="topbar-notifications">
                 <button class="topbar-btn" id="notifBell" aria-label="Notificações" aria-expanded="false">
                     <i data-lucide="bell"></i>

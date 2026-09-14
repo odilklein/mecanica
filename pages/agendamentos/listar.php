@@ -68,7 +68,7 @@ $badge_status = [
         </div>
 
         <div class="table-responsive">
-            <table class="table table-hover align-middle" id="tabelaAgendamentos">
+            <table class="table table-hover align-middle responsive-card" id="tabelaAgendamentos">
                 <thead>
                     <tr>
                         <th>Data</th>

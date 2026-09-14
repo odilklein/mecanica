@@ -71,7 +71,7 @@ $estoque_baixo = $stmt->fetch()['total'];
         </div>
 
         <div class="table-responsive">
-            <table class="table table-hover align-middle" id="tabelaPecas">
+            <table class="table table-hover align-middle responsive-card" id="tabelaPecas">
                 <thead>
                     <tr>
                         <th>Código</th>

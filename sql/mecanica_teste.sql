@@ -262,7 +262,7 @@ CREATE TABLE auditoria (
   id BIGINT AUTO_INCREMENT PRIMARY KEY,
   usuario_id INT NULL,
   entidade VARCHAR(60) NOT NULL,
-  entidade_id BIGINT NOT NULL,
+  entidade_id BIGINT NULL,
   acao VARCHAR(40) NOT NULL,
   dados JSON NULL,
   criado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP,

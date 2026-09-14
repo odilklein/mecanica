@@ -45,7 +45,7 @@ require_once __DIR__ . '/../../includes/mensagens.php';
         </div>
 
         <div class="table-responsive">
-            <table class="table table-hover align-middle" id="tabelaServicos">
+            <table class="table table-hover align-middle responsive-card" id="tabelaServicos">
                 <thead>
                     <tr>
                         <th>Serviço</th>
