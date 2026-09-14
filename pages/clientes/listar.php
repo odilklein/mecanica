@@ -3,6 +3,10 @@ require_once __DIR__ . '/../../includes/sessao.php';
 require_once __DIR__ . '/../../config/conexao.php';
 exigir_papel(['admin', 'secretaria', 'mecanico_chefe']);
 
+$stmt = $conn->query("SELECT * FROM clientes ORDER BY nome");
+$clientes = $stmt->fetchAll();
+$cidades = $conn->query("SELECT DISTINCT cidade FROM clientes WHERE cidade IS NOT NULL AND cidade <> '' ORDER BY cidade")->fetchAll();
+
 $titulo_pagina = "Clientes";
 require_once __DIR__ . '/../../includes/header.php';
 require_once __DIR__ . '/../../includes/mensagens.php';
@@ -20,17 +24,40 @@ require_once __DIR__ . '/../../includes/mensagens.php';
 
 <div class="card">
     <div class="card-body">
-        <div class="row mb-3">
-            <div class="col-md-6">
-                <div class="search-wrapper">
-                    <i data-lucide="search" class="search-icon"></i>
-                    <input type="text" class="form-control" id="buscarCliente" placeholder="Buscar por nome, CPF, telefone ou email...">
-                </div>
+        <div class="filter-bar">
+            <div class="filter-search">
+                <i data-lucide="search" class="search-icon"></i>
+                <input type="text" class="form-control" id="buscarCliente" data-filtro-busca="tabelaClientes" placeholder="Buscar por nome, CPF, telefone ou email...">
             </div>
+            <div class="filter-group">
+                <label for="filtroCidade">Cidade</label>
+                <select class="form-select" id="filtroCidade" data-filtro-tabela="tabelaClientes" data-filtro-coluna="Cidade">
+                    <option value="">Todas</option>
+                    <?php foreach ($cidades as $c): ?>
+                        <option value="<?php echo esc($c['cidade']); ?>"><?php echo esc($c['cidade']); ?></option>
+                    <?php endforeach; ?>
+                </select>
+            </div>
+            <div class="filter-group">
+                <label for="filtroCadastro">Cadastro</label>
+                <select class="form-select" id="filtroCadastro" data-filtro-tabela="tabelaClientes" data-filtro-coluna="Cadastro" data-filtro-data-range="date">
+                    <option value="">Todos</option>
+                    <option value="hoje">Hoje</option>
+                    <option value="ultimos7">Últimos 7 dias</option>
+                    <option value="ultimos30">Últimos 30 dias</option>
+                </select>
+            </div>
+            <button class="btn btn-outline-secondary btn-reset-filters" type="button" onclick="limparFiltros('tabelaClientes')">
+                <i data-lucide="filter-x"></i> Limpar
+            </button>
+        </div>
+
+        <div class="filter-results-info">
+            <span>Exibindo <strong data-filtro-total="tabelaClientes"><?php echo count($clientes); ?></strong> de <?php echo count($clientes); ?> clientes</span>
         </div>
 
         <div class="table-responsive">
-            <table class="table table-hover align-middle" id="tabelaClientes">
+            <table class="table table-hover align-middle responsive-card" id="tabelaClientes">
                 <thead>
                     <tr>
                         <th>Cliente</th>
@@ -43,15 +70,9 @@ require_once __DIR__ . '/../../includes/mensagens.php';
                     </tr>
                 </thead>
                 <tbody>
-                    <?php
-                    $stmt = $conn->query("SELECT * FROM clientes ORDER BY nome");
-                    $clientes = $stmt->fetchAll();
-
-                    if (count($clientes) > 0):
-                        foreach ($clientes as $cliente):
-                    ?>
+                    <?php if (count($clientes) > 0): foreach ($clientes as $cliente): ?>
                     <tr>
-                        <td>
+                        <td data-label="Cliente">
                             <div class="d-flex align-items-center">
                                 <div class="avatar-circle me-2">
                                     <?php echo strtoupper(substr($cliente['nome'], 0, 1)); ?>
@@ -63,25 +84,20 @@ require_once __DIR__ . '/../../includes/mensagens.php';
                                 </div>
                             </div>
                         </td>
-                        <td><?php echo limpar($cliente['cpf']); ?></td>
-                        <td><?php echo limpar($cliente['telefone']); ?></td>
-                        <td><?php echo limpar($cliente['email']); ?></td>
-                        <td><?php echo limpar($cliente['cidade'] ?: '-'); ?></td>
-                        <td>
-                            <small class="text-muted">
-                                <?php echo date('d/m/Y', strtotime($cliente['data_cadastro'])); ?>
-                            </small>
+                        <td data-label="CPF"><?php echo limpar($cliente['cpf']); ?></td>
+                        <td data-label="Telefone"><?php echo limpar($cliente['telefone']); ?></td>
+                        <td data-label="Email"><?php echo limpar($cliente['email']); ?></td>
+                        <td data-label="Cidade"><?php echo limpar($cliente['cidade'] ?: '-'); ?></td>
+                        <td data-label="Cadastro" data-filtro-normalizado="<?php echo date('Y-m-d', strtotime($cliente['data_cadastro'])); ?>">
+                            <small class="text-muted"><?php echo date('d/m/Y', strtotime($cliente['data_cadastro'])); ?></small>
                         </td>
-                        <td class="actions-cell">
-                            <!-- Ver veículos -->
+                        <td data-label="Ações" class="actions-cell">
                             <a href="detalhes.php?id=<?php echo $cliente['id']; ?>" class="btn btn-outline-info btn-sm" title="Cliente, veículos e histórico">
                                 <i data-lucide="car"></i>
                             </a>
-                            <!-- Editar -->
                             <a href="editar.php?id=<?php echo $cliente['id']; ?>" class="btn btn-outline-primary btn-sm" title="Editar">
                                 <i data-lucide="pencil"></i>
                             </a>
-                            <!-- Excluir -->
                             <form method="POST" action="excluir.php" id="excluirCliente<?php echo $cliente['id']; ?>" class="d-inline" onsubmit="return confirmarExclusao('excluirCliente<?php echo $cliente['id']; ?>', 'Excluir o cliente <?php echo addslashes($cliente['nome']); ?>? Todos os dados vinculados serão removidos.');">
                                 <input type="hidden" name="csrf_token" value="<?php echo esc(csrf_token()); ?>">
                                 <input type="hidden" name="id" value="<?php echo $cliente['id']; ?>">
@@ -92,7 +108,7 @@ require_once __DIR__ . '/../../includes/mensagens.php';
                         </td>
                     </tr>
                     <?php endforeach; else: ?>
-                    <tr>
+                    <tr class="row-empty">
                         <td colspan="7">
                             <div class="empty-state">
                                 <div class="empty-state-icon"><i data-lucide="users"></i></div>
@@ -105,22 +121,19 @@ require_once __DIR__ . '/../../includes/mensagens.php';
                         </td>
                     </tr>
                     <?php endif; ?>
+                    <tr class="row-filtro-vazio" data-filtro-vazio="tabelaClientes" style="display:none;">
+                        <td colspan="7">
+                            <div class="empty-state">
+                                <div class="empty-state-icon"><i data-lucide="filter"></i></div>
+                                <h4>Nenhum cliente encontrado com esses filtros</h4>
+                                <p>Ajuste a busca ou limpe os filtros para ver todos os clientes.</p>
+                            </div>
+                        </td>
+                    </tr>
                 </tbody>
             </table>
         </div>
     </div>
 </div>
-
-<script>
-    // Busca em tempo real
-    document.getElementById('buscarCliente').addEventListener('keyup', function() {
-        const termo = this.value.toLowerCase();
-        const linhas = document.querySelectorAll('#tabelaClientes tbody tr');
-        linhas.forEach(linha => {
-            const texto = linha.textContent.toLowerCase();
-            linha.style.display = texto.indexOf(termo) > -1 ? '' : 'none';
-        });
-    });
-</script>
 
 <?php require_once __DIR__ . '/../../includes/footer.php'; ?>

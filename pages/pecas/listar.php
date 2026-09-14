@@ -3,6 +3,10 @@ require_once __DIR__ . '/../../includes/sessao.php';
 require_once __DIR__ . '/../../config/conexao.php';
 exigir_papel(['admin', 'secretaria']);
 
+$stmt = $conn->query("SELECT * FROM pecas ORDER BY nome");
+$pecas = $stmt->fetchAll();
+$categorias = $conn->query("SELECT DISTINCT categoria FROM pecas WHERE categoria IS NOT NULL AND categoria <> '' ORDER BY categoria")->fetchAll();
+
 $titulo_pagina = "Estoque";
 require_once __DIR__ . '/../../includes/header.php';
 require_once __DIR__ . '/../../includes/mensagens.php';
@@ -32,25 +36,40 @@ $estoque_baixo = $stmt->fetch()['total'];
     </div>
 </div>
 
-<div class="row mb-3 g-2">
-    <div class="col-md-4">
-        <div class="search-wrapper">
-            <i data-lucide="search" class="search-icon"></i>
-            <input type="text" class="form-control" id="buscarPeca" placeholder="Buscar peça...">
-        </div>
-    </div>
-    <div class="col-md-3">
-        <select class="form-select" id="filtroEstoque">
-            <option value="todos">Todos os status</option>
-            <option value="baixo">Somente estoque baixo</option>
-            <option value="zerado">Zerados</option>
-            <option value="normal">Em estoque</option>
-        </select>
-    </div>
-</div>
-
 <div class="card">
     <div class="card-body">
+        <div class="filter-bar">
+            <div class="filter-search">
+                <i data-lucide="search" class="search-icon"></i>
+                <input type="text" class="form-control" id="buscarPeca" data-filtro-busca="tabelaPecas" placeholder="Buscar por nome, código ou categoria...">
+            </div>
+            <div class="filter-group">
+                <label for="filtroCategoria">Categoria</label>
+                <select class="form-select" id="filtroCategoria" data-filtro-tabela="tabelaPecas" data-filtro-coluna="Categoria">
+                    <option value="">Todas</option>
+                    <?php foreach ($categorias as $cat): ?>
+                        <option value="<?php echo esc($cat['categoria']); ?>"><?php echo limpar($cat['categoria']); ?></option>
+                    <?php endforeach; ?>
+                </select>
+            </div>
+            <div class="filter-group">
+                <label for="filtroEstoque">Status</label>
+                <select class="form-select" id="filtroEstoque" data-filtro-tabela="tabelaPecas" data-filtro-coluna="Status">
+                    <option value="">Todos</option>
+                    <option value="Em estoque">Em estoque</option>
+                    <option value="Estoque Baixo">Estoque baixo</option>
+                    <option value="Zerado">Zerado</option>
+                </select>
+            </div>
+            <button class="btn btn-outline-secondary btn-reset-filters" type="button" onclick="limparFiltros('tabelaPecas')">
+                <i data-lucide="filter-x"></i> Limpar
+            </button>
+        </div>
+
+        <div class="filter-results-info">
+            <span>Exibindo <strong data-filtro-total="tabelaPecas"><?php echo count($pecas); ?></strong> de <?php echo count($pecas); ?> peças</span>
+        </div>
+
         <div class="table-responsive">
             <table class="table table-hover align-middle" id="tabelaPecas">
                 <thead>
@@ -67,45 +86,40 @@ $estoque_baixo = $stmt->fetch()['total'];
                     </tr>
                 </thead>
                 <tbody>
-                    <?php
-                    $stmt = $conn->query("SELECT * FROM pecas ORDER BY nome");
-                    $pecas = $stmt->fetchAll();
-
-                    if (count($pecas) > 0):
-                        foreach ($pecas as $p):
-                            $pct = $p['estoque_minimo'] > 0 ? ($p['quantidade'] / $p['estoque_minimo']) * 100 : 100;
-                            $status = '';
+                    <?php if (count($pecas) > 0): foreach ($pecas as $p):
+                        $pct = $p['estoque_minimo'] > 0 ? ($p['quantidade'] / $p['estoque_minimo']) * 100 : 100;
+                        $status = '';
+                        $status_badge = 'success';
+                        if ($p['quantidade'] <= 0) {
+                            $status = 'Zerado';
+                            $status_badge = 'danger';
+                        } elseif ($p['quantidade'] <= $p['estoque_minimo']) {
+                            $status = 'Estoque Baixo';
+                            $status_badge = 'warning';
+                        } else {
+                            $status = 'Em estoque';
                             $status_badge = 'success';
-                            if ($p['quantidade'] <= 0) {
-                                $status = 'Zerado';
-                                $status_badge = 'danger';
-                            } elseif ($p['quantidade'] <= $p['estoque_minimo']) {
-                                $status = 'Estoque Baixo';
-                                $status_badge = 'warning';
-                            } else {
-                                $status = 'Em estoque';
-                                $status_badge = 'success';
-                            }
+                        }
                     ?>
                     <tr class="<?php echo ($p['quantidade'] <= $p['estoque_minimo']) ? 'estoque-alert-row' : ''; ?>">
-                        <td><span class="badge bg-secondary"><?php echo limpar($p['codigo']); ?></span></td>
-                        <td>
+                        <td data-label="Código"><span class="badge bg-secondary"><?php echo limpar($p['codigo']); ?></span></td>
+                        <td data-label="Peça">
                             <strong><?php echo limpar($p['nome']); ?></strong>
                             <?php if ($p['descricao']): ?>
                                 <br><small class="text-muted"><?php echo limpar(substr($p['descricao'], 0, 50)) . (strlen($p['descricao']) > 50 ? '...' : ''); ?></small>
                             <?php endif; ?>
                         </td>
-                        <td><?php echo limpar($p['categoria'] ?: '-'); ?></td>
-                        <td>
+                        <td data-label="Categoria"><?php echo limpar($p['categoria'] ?: '-'); ?></td>
+                        <td data-label="Qtd">
                             <strong class="<?php echo ($p['quantidade'] <= $p['estoque_minimo']) ? 'text-warning' : ''; ?>">
                                 <?php echo $p['quantidade']; ?>
                             </strong>
                         </td>
-                        <td><?php echo $p['estoque_minimo']; ?></td>
-                        <td><?php echo formatar_moeda($p['preco_compra']); ?></td>
-                        <td class="fw-600"><?php echo formatar_moeda($p['preco_venda']); ?></td>
-                        <td><span class="badge badge-<?php echo $status_badge; ?>"><?php echo $status; ?></span></td>
-                        <td class="actions-cell">
+                        <td data-label="Estoque Mín."><?php echo $p['estoque_minimo']; ?></td>
+                        <td data-label="Preço Compra"><?php echo formatar_moeda($p['preco_compra']); ?></td>
+                        <td data-label="Preço Venda" class="fw-600"><?php echo formatar_moeda($p['preco_venda']); ?></td>
+                        <td data-label="Status"><span class="badge badge-<?php echo $status_badge; ?>"><?php echo $status; ?></span></td>
+                        <td data-label="Ações" class="actions-cell">
                             <a href="editar.php?id=<?php echo $p['id']; ?>" class="btn btn-outline-primary btn-sm" title="Editar">
                                 <i data-lucide="pencil"></i>
                             </a>
@@ -121,10 +135,10 @@ $estoque_baixo = $stmt->fetch()['total'];
                         </td>
                     </tr>
                     <?php endforeach; else: ?>
-                    <tr>
+                    <tr class="row-empty">
                         <td colspan="9">
                             <div class="empty-state">
-                                <i data-lucide="package-open"></i>
+                                <div class="empty-state-icon"><i data-lucide="package-open"></i></div>
                                 <h4>Nenhuma peça cadastrada</h4>
                                 <p>Cadastre as peças para controlar o estoque da oficina.</p>
                                 <a href="cadastrar.php" class="btn btn-primary btn-icon">
@@ -134,6 +148,15 @@ $estoque_baixo = $stmt->fetch()['total'];
                         </td>
                     </tr>
                     <?php endif; ?>
+                    <tr class="row-filtro-vazio" data-filtro-vazio="tabelaPecas" style="display:none;">
+                        <td colspan="9">
+                            <div class="empty-state">
+                                <div class="empty-state-icon"><i data-lucide="filter"></i></div>
+                                <h4>Nenhuma peça encontrada com esses filtros</h4>
+                                <p>Ajuste a busca ou limpe os filtros para ver todas as peças.</p>
+                            </div>
+                        </td>
+                    </tr>
                 </tbody>
             </table>
         </div>
@@ -148,31 +171,5 @@ $estoque_baixo = $stmt->fetch()['total'];
     background-color: rgba(255, 193, 7, 0.12) !important;
 }
 </style>
-
-<script>
-    document.getElementById('buscarPeca').addEventListener('keyup', function() {
-        const termo = this.value.toLowerCase();
-        const linhas = document.querySelectorAll('#tabelaPecas tbody tr');
-        linhas.forEach(linha => {
-            const texto = linha.textContent.toLowerCase();
-            linha.style.display = texto.indexOf(termo) > -1 ? '' : 'none';
-        });
-    });
-
-    document.getElementById('filtroEstoque').addEventListener('change', function() {
-        const filtro = this.value;
-        const linhas = document.querySelectorAll('#tabelaPecas tbody tr');
-        linhas.forEach(linha => {
-            const badge = linha.querySelector('.badge');
-            if (!badge) return;
-            const status = badge.textContent.trim();
-            let mostrar = true;
-            if (filtro === 'baixo' && status !== 'Estoque Baixo' && status !== 'Zerado') mostrar = false;
-            if (filtro === 'zerado' && status !== 'Zerado') mostrar = false;
-            if (filtro === 'normal' && (status === 'Zerado' || status === 'Estoque Baixo')) mostrar = false;
-            linha.style.display = mostrar ? '' : 'none';
-        });
-    });
-</script>
 
 <?php require_once __DIR__ . '/../../includes/footer.php'; ?>

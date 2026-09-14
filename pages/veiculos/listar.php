@@ -3,7 +3,11 @@ require_once __DIR__ . '/../../includes/sessao.php';
 require_once __DIR__ . '/../../config/conexao.php';
 exigir_papel(['admin', 'secretaria', 'mecanico_chefe']);
 
-$filtro_cliente = isset($_GET['cliente_id']) ? (int)$_GET['cliente_id'] : 0;
+$stmt_clientes = $conn->query("SELECT id, nome FROM clientes ORDER BY nome");
+$clientes_opcoes = $stmt_clientes->fetchAll();
+
+$stmt = $conn->query("SELECT v.*, c.nome as cliente_nome FROM veiculos v LEFT JOIN clientes c ON c.id = v.cliente_id ORDER BY v.marca, v.modelo");
+$veiculos = $stmt->fetchAll();
 
 $titulo_pagina = "Veículos";
 require_once __DIR__ . '/../../includes/header.php';
@@ -22,29 +26,31 @@ require_once __DIR__ . '/../../includes/mensagens.php';
 
 <div class="card">
     <div class="card-body">
-        <div class="row mb-3 g-2">
-            <div class="col-md-4">
-                <div class="search-wrapper">
-                    <i data-lucide="search" class="search-icon"></i>
-                    <input type="text" class="form-control" id="buscarVeiculo" placeholder="Buscar por placa, marca, modelo...">
-                </div>
+        <div class="filter-bar">
+            <div class="filter-search">
+                <i data-lucide="search" class="search-icon"></i>
+                <input type="text" class="form-control" id="buscarVeiculo" data-filtro-busca="tabelaVeiculos" placeholder="Buscar por placa, marca, modelo, cliente...">
             </div>
-            <div class="col-md-4">
-                <select class="form-select" id="filtroCliente" onchange="window.location.href='listar.php?cliente_id=' + this.value">
-                    <option value="0">Todos os clientes</option>
-                    <?php
-                    $stmt_clientes = $conn->query("SELECT id, nome FROM clientes ORDER BY nome");
-                    foreach ($stmt_clientes->fetchAll() as $c):
-                        $selected = ($filtro_cliente == $c['id']) ? 'selected' : '';
-                    ?>
-                        <option value="<?php echo $c['id']; ?>" <?php echo $selected; ?>><?php echo limpar($c['nome']); ?></option>
+            <div class="filter-group">
+                <label for="filtroCliente">Cliente</label>
+                <select class="form-select" id="filtroCliente" data-filtro-tabela="tabelaVeiculos" data-filtro-coluna="Cliente">
+                    <option value="">Todos</option>
+                    <?php foreach ($clientes_opcoes as $c): ?>
+                        <option value="<?php echo esc($c['nome']); ?>"><?php echo limpar($c['nome']); ?></option>
                     <?php endforeach; ?>
                 </select>
             </div>
+            <button class="btn btn-outline-secondary btn-reset-filters" type="button" onclick="limparFiltros('tabelaVeiculos')">
+                <i data-lucide="filter-x"></i> Limpar
+            </button>
+        </div>
+
+        <div class="filter-results-info">
+            <span>Exibindo <strong data-filtro-total="tabelaVeiculos"><?php echo count($veiculos); ?></strong> de <?php echo count($veiculos); ?> veículos</span>
         </div>
 
         <div class="table-responsive">
-            <table class="table table-hover align-middle" id="tabelaVeiculos">
+            <table class="table table-hover align-middle responsive-card" id="tabelaVeiculos">
                 <thead>
                     <tr>
                         <th>Veículo</th>
@@ -57,36 +63,25 @@ require_once __DIR__ . '/../../includes/mensagens.php';
                     </tr>
                 </thead>
                 <tbody>
-                    <?php
-                    if ($filtro_cliente > 0) {
-                        $stmt = $conn->prepare("SELECT v.*, c.nome as cliente_nome FROM veiculos v LEFT JOIN clientes c ON c.id = v.cliente_id WHERE v.cliente_id = :cliente_id ORDER BY v.marca, v.modelo");
-                        $stmt->bindParam(':cliente_id', $filtro_cliente);
-                        $stmt->execute();
-                    } else {
-                        $stmt = $conn->query("SELECT v.*, c.nome as cliente_nome FROM veiculos v LEFT JOIN clientes c ON c.id = v.cliente_id ORDER BY v.marca, v.modelo");
-                    }
-                    $veiculos = $stmt->fetchAll();
-
-                    if (count($veiculos) > 0):
-                        foreach ($veiculos as $v):
-                            $cor_style = !empty($v['cor']) ? 'style="background-color:' . htmlspecialchars($v['cor']) . '; width:18px; height:18px; display:inline-block; border-radius:3px; border:1px solid #ccc;"' : '';
+                    <?php if (count($veiculos) > 0): foreach ($veiculos as $v):
+                        $cor_style = !empty($v['cor']) ? 'style="background-color:' . htmlspecialchars($v['cor']) . '; width:18px; height:18px; display:inline-block; border-radius:3px; border:1px solid #ccc;"' : '';
                     ?>
                     <tr>
-                        <td>
+                        <td data-label="Veículo">
                             <i data-lucide="car" class="text-muted me-2"></i>
                             <strong><?php echo limpar($v['marca']); ?> <?php echo limpar($v['modelo']); ?></strong>
                         </td>
-                        <td><span class="badge bg-dark"><?php echo limpar($v['placa']); ?></span></td>
-                        <td><?php echo limpar($v['cliente_nome']); ?></td>
-                        <td><?php echo $v['ano']; ?></td>
-                        <td>
+                        <td data-label="Placa"><span class="badge bg-dark"><?php echo limpar($v['placa']); ?></span></td>
+                        <td data-label="Cliente"><?php echo limpar($v['cliente_nome']); ?></td>
+                        <td data-label="Ano"><?php echo $v['ano']; ?></td>
+                        <td data-label="Cor">
                             <?php if (!empty($v['cor'])): ?>
                                 <span <?php echo $cor_style; ?>></span>
                                 <span class="ms-1"><?php echo limpar($v['cor']); ?></span>
                             <?php else: ?>-<?php endif; ?>
                         </td>
-                        <td><?php echo number_format($v['km_atual'], 0, ',', '.'); ?> km</td>
-                        <td class="actions-cell">
+                        <td data-label="KM Atual"><?php echo number_format($v['km_atual'], 0, ',', '.'); ?> km</td>
+                        <td data-label="Ações" class="actions-cell">
                             <a href="editar.php?id=<?php echo $v['id']; ?>" class="btn btn-outline-primary btn-sm" title="Editar">
                                 <i data-lucide="pencil"></i>
                             </a>
@@ -100,7 +95,7 @@ require_once __DIR__ . '/../../includes/mensagens.php';
                         </td>
                     </tr>
                     <?php endforeach; else: ?>
-                    <tr>
+                    <tr class="row-empty">
                         <td colspan="7">
                             <div class="empty-state">
                                 <div class="empty-state-icon"><i data-lucide="car"></i></div>
@@ -113,21 +108,19 @@ require_once __DIR__ . '/../../includes/mensagens.php';
                         </td>
                     </tr>
                     <?php endif; ?>
+                    <tr class="row-filtro-vazio" data-filtro-vazio="tabelaVeiculos" style="display:none;">
+                        <td colspan="7">
+                            <div class="empty-state">
+                                <div class="empty-state-icon"><i data-lucide="filter"></i></div>
+                                <h4>Nenhum veículo encontrado com esses filtros</h4>
+                                <p>Ajuste a busca ou limpe os filtros para ver todos os veículos.</p>
+                            </div>
+                        </td>
+                    </tr>
                 </tbody>
             </table>
         </div>
     </div>
 </div>
-
-<script>
-    document.getElementById('buscarVeiculo').addEventListener('keyup', function() {
-        const termo = this.value.toLowerCase();
-        const linhas = document.querySelectorAll('#tabelaVeiculos tbody tr');
-        linhas.forEach(linha => {
-            const texto = linha.textContent.toLowerCase();
-            linha.style.display = texto.indexOf(termo) > -1 ? '' : 'none';
-        });
-    });
-</script>
 
 <?php require_once __DIR__ . '/../../includes/footer.php'; ?>
