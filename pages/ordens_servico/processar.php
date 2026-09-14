@@ -1,6 +1,8 @@
 <?php
 require_once __DIR__ . '/../../includes/sessao.php';
 require_once __DIR__ . '/../../config/conexao.php';
+require_once __DIR__ . '/../../includes/notificacoes.php';
+require_once __DIR__ . '/../../includes/auditoria.php';
 
 exigir_papel(['admin', 'secretaria', 'mecanico_chefe', 'mecanico']);
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
@@ -18,7 +20,7 @@ if ($acao !== 'cadastrar') {
         exit('Ordem de serviço inválida.');
     }
 
-    $stmt = $conn->prepare('SELECT id, status FROM ordens_servico WHERE id = :id');
+    $stmt = $conn->prepare('SELECT id, numero, status FROM ordens_servico WHERE id = :id');
     $stmt->execute([':id' => $os_id]);
     $os_atual = $stmt->fetch();
     if (!$os_atual) {
@@ -48,6 +50,7 @@ if ($acao !== 'cadastrar') {
         $stmt->execute([':diagnostico' => $diagnostico, ':observacoes' => $observacoes ?: null, ':id' => $os_id]);
         $stmt = $conn->prepare("INSERT INTO os_eventos (os_id, tipo, status_anterior, status_novo, descricao, criado_por) VALUES (:os_id, 'diagnostico', :anterior, 'aguardando_orcamento', 'Diagnóstico técnico atualizado', :usuario)");
         $stmt->execute([':os_id' => $os_id, ':anterior' => $os_atual['status'], ':usuario' => $_SESSION['usuario_id']]);
+        notificar_tipos($conn, ['admin', 'secretaria', 'mecanico_chefe'], $os_id, 'diagnostico', 'Diagnóstico da OS #' . $os_atual['numero'] . ' atualizado — aguardando orçamento.', (int) $_SESSION['usuario_id']);
         $_SESSION['mensagem'] = 'Diagnóstico atualizado.';
         $_SESSION['mensagem_tipo'] = 'success';
         header('Location: detalhes.php?id=' . $os_id);
@@ -67,6 +70,7 @@ if ($acao !== 'cadastrar') {
         $stmt->execute([':status' => $novo_status, ':usuario' => $_SESSION['usuario_id'], ':id' => $tarefa_id]);
         $stmt = $conn->prepare("INSERT INTO os_eventos (os_id, tipo, descricao, criado_por) VALUES (:os_id, 'tarefa_status', :descricao, :usuario)");
         $stmt->execute([':os_id' => $os_id, ':descricao' => 'Tarefa atualizada para ' . $novo_status, ':usuario' => $_SESSION['usuario_id']]);
+        notificar_tipos($conn, ['admin', 'secretaria', 'mecanico_chefe'], $os_id, 'tarefa', 'Uma tarefa da OS #' . $os_atual['numero'] . ' foi atualizada para "' . str_replace('_', ' ', $novo_status) . '".', (int) $_SESSION['usuario_id']);
         $_SESSION['mensagem'] = 'Tarefa atualizada.';
         $_SESSION['mensagem_tipo'] = 'success';
         header('Location: detalhes.php?id=' . $os_id);
@@ -108,6 +112,10 @@ if ($acao !== 'cadastrar') {
         $stmt->execute([':status' => $novo_status, ':id' => $os_id]);
         $stmt = $conn->prepare('INSERT INTO os_eventos (os_id, tipo, status_anterior, status_novo, descricao, criado_por) VALUES (:os_id, \'status\', :anterior, :novo, :descricao, :usuario)');
         $stmt->execute([':os_id' => $os_id, ':anterior' => $os_atual['status'], ':novo' => $novo_status, ':descricao' => 'Status alterado manualmente', ':usuario' => $_SESSION['usuario_id']]);
+        $num_os = str_pad((string) $os_atual['numero'], 4, '0', STR_PAD_LEFT);
+        $msg_status = 'O status da OS #' . $num_os . ' mudou para "' . str_replace('_', ' ', $novo_status) . '".';
+        notificar_responsaveis_os($conn, $os_id, 'os_status', $msg_status, (int) $_SESSION['usuario_id']);
+        notificar_tipos($conn, ['admin', 'secretaria', 'mecanico_chefe'], $os_id, 'os_status', $msg_status, (int) $_SESSION['usuario_id']);
         if ($novo_status === 'entregue') {
             $stmt = $conn->prepare("SELECT cliente_id, veiculo_id, COALESCE(diagnostico, queixa_inicial) AS descricao FROM ordens_servico WHERE id = :id");
             $stmt->execute([':id' => $os_id]);
@@ -116,6 +124,7 @@ if ($acao !== 'cadastrar') {
             $stmt->execute([':cliente' => $dados_os['cliente_id'], ':veiculo' => $dados_os['veiculo_id'], ':os' => $os_id, ':descricao' => $dados_os['descricao']]);
         }
         $conn->commit();
+        registrar_auditoria($conn, (int) $_SESSION['usuario_id'], 'status', 'ordem_servico', $os_id, 'Status alterado de ' . $os_atual['status'] . ' para ' . $novo_status, ['status_anterior' => $os_atual['status'], 'status_novo' => $novo_status]);
         $_SESSION['mensagem'] = 'Status da OS atualizado.';
         $_SESSION['mensagem_tipo'] = 'success';
         header('Location: detalhes.php?id=' . $os_id);
@@ -137,6 +146,7 @@ if ($acao !== 'cadastrar') {
         $stmt->execute([':usuario_id' => $usuario_id, ':os_id' => $os_id]);
         $_SESSION['mensagem'] = 'Mecânico atribuído à OS.';
         $_SESSION['mensagem_tipo'] = 'success';
+        registrar_auditoria($conn, (int) $_SESSION['usuario_id'], 'atribuir', 'ordem_servico', $os_id, 'Mecânico #' . $usuario_id . ' atribuído à OS', ['usuario_id' => $usuario_id]);
         header('Location: detalhes.php?id=' . $os_id);
         exit();
     }
@@ -160,6 +170,7 @@ if ($acao !== 'cadastrar') {
         $stmt->execute([':id' => $os_id]);
         $stmt = $conn->prepare("INSERT INTO os_eventos (os_id, tipo, descricao, criado_por) VALUES (:os_id, 'entrega_planejada', 'Entrega ou retirada registrada', :usuario)");
         $stmt->execute([':os_id' => $os_id, ':usuario' => $_SESSION['usuario_id']]);
+        notificar_tipos($conn, ['admin', 'secretaria', 'mecanico_chefe'], $os_id, 'entrega', 'Entrega da OS #' . str_pad((string) $os_atual['numero'], 4, '0', STR_PAD_LEFT) . ' registrada — aguardando confirmação.', (int) $_SESSION['usuario_id']);
         $stmt = $conn->prepare("SELECT cliente_id, veiculo_id, COALESCE(diagnostico, queixa_inicial) AS descricao FROM ordens_servico WHERE id = :id");
         $stmt->execute([':id' => $os_id]);
         $dados_os = $stmt->fetch();
@@ -167,6 +178,7 @@ if ($acao !== 'cadastrar') {
         $stmt->execute([':cliente' => $dados_os['cliente_id'], ':veiculo' => $dados_os['veiculo_id'], ':os' => $os_id, ':descricao' => $dados_os['descricao']]);
         $_SESSION['mensagem'] = 'Entrega ou retirada registrada.';
         $_SESSION['mensagem_tipo'] = 'success';
+        registrar_auditoria($conn, (int) $_SESSION['usuario_id'], 'entrega', 'ordem_servico', $os_id, 'Entrega/retirada registrada (' . $modalidade . ')', ['modalidade' => $modalidade]);
         header('Location: detalhes.php?id=' . $os_id);
         exit();
     }
@@ -180,7 +192,21 @@ $placa = strtoupper(limpar($_POST['placa'] ?? ''));
 $prioridade = $_POST['prioridade'] ?? 'normal';
 $queixa = limpar($_POST['queixa_inicial'] ?? '');
 $observacoes = limpar($_POST['observacoes_internas'] ?? '');
-$tarefas = array_values(array_filter(array_map('trim', explode("\n", $_POST['tarefas'] ?? ''))));
+$tarefas_json = json_decode($_POST['tarefas'] ?? '', true);
+$tarefas = [];
+$tarefas_audio = [];
+if (is_array($tarefas_json)) {
+    foreach ($tarefas_json as $item) {
+        $descricao = trim((string) ($item['d'] ?? ''));
+        if ($descricao !== '') {
+            $tarefas[] = $descricao;
+            $tarefas_audio[] = ['data' => isset($item['a']) ? (string) $item['a'] : null, 'duracao' => isset($item['s']) ? (int) $item['s'] : null];
+        }
+    }
+} else {
+    $tarefas = array_values(array_filter(array_map('trim', explode("\n", $_POST['tarefas'] ?? ''))));
+    $tarefas_audio = array_fill(0, count($tarefas), null);
+}
 $funcionarios_ids = array_values(array_unique(array_map('intval', $_POST['funcionarios_ids'] ?? [])));
 $pecas_linhas = array_values(array_filter(array_map('trim', explode("\n", $_POST['pecas'] ?? ''))));
 
@@ -189,6 +215,31 @@ if ($nome === '' || $queixa === '' || !in_array($prioridade, ['baixa', 'normal',
     $_SESSION['mensagem_tipo'] = 'warning';
     header('Location: cadastrar.php');
     exit();
+}
+
+function salvar_audio_tarefa(string $data_url, int $os_id, int $indice): ?string
+{
+    if (!preg_match('#^data:audio/([a-z0-9.+-]+);base64,(.+)$#i', $data_url, $m)) {
+        return null;
+    }
+    $ext_map = ['webm' => 'webm', 'ogg' => 'ogg', 'mp4' => 'm4a', 'mpeg' => 'mp3', 'mp3' => 'mp3', 'wav' => 'wav', 'x-wav' => 'wav', 'x-mpeg' => 'mp3'];
+    $ext = $ext_map[strtolower($m[1])] ?? null;
+    if ($ext === null) {
+        return null;
+    }
+    $bin = base64_decode($m[2], true);
+    if ($bin === false || strlen($bin) > 15 * 1024 * 1024) {
+        return null;
+    }
+    $dir = __DIR__ . '/../../uploads/audio';
+    if (!is_dir($dir) && !@mkdir($dir, 0775, true)) {
+        return null;
+    }
+    $nome = 'os' . $os_id . '_t' . $indice . '_' . bin2hex(random_bytes(4)) . '.' . $ext;
+    if (@file_put_contents($dir . '/' . $nome, $bin) === false) {
+        return null;
+    }
+    return 'uploads/audio/' . $nome;
 }
 
 try {
@@ -253,12 +304,30 @@ try {
         $stmt->execute([':os_id' => $os_id, ':usuario_id' => $funcionario_id, ':atribuido_por' => $_SESSION['usuario_id']]);
     }
 
-    foreach ($tarefas as $tarefa) {
+    $num_formatado = str_pad((string) $numero, 4, '0', STR_PAD_LEFT);
+    notificar_usuarios($conn, $funcionarios_ids, $os_id, 'os_atribuida', 'Nova OS #' . $num_formatado . ' atribuída a você.');
+    notificar_tipos($conn, ['admin', 'secretaria', 'mecanico_chefe'], $os_id, 'os_criada', 'Nova ordem de serviço #' . $num_formatado . ' criada.', (int) $_SESSION['usuario_id']);
+
+    foreach ($tarefas as $indice => $tarefa) {
         if (mb_strlen($tarefa) > 255) {
             throw new RuntimeException('Cada tarefa deve ter no máximo 255 caracteres.');
         }
         $stmt = $conn->prepare('INSERT INTO os_tarefas (os_id, descricao, criado_por) VALUES (:os_id, :descricao, :criado_por)');
         $stmt->execute([':os_id' => $os_id, ':descricao' => $tarefa, ':criado_por' => $_SESSION['usuario_id']]);
+        $tarefa_id = (int) $conn->lastInsertId();
+
+        if (!empty($tarefas_audio[$indice]['data'])) {
+            try {
+                $audio_arquivo = salvar_audio_tarefa($tarefas_audio[$indice]['data'], $os_id, $indice);
+                if ($audio_arquivo) {
+                    $duracao = $tarefas_audio[$indice]['duracao'] ?? null;
+                    $stmt = $conn->prepare('INSERT INTO os_tarefas_audios (tarefa_id, arquivo, duracao_seg) VALUES (:tarefa_id, :arquivo, :duracao)');
+                    $stmt->execute([':tarefa_id' => $tarefa_id, ':arquivo' => $audio_arquivo, ':duracao' => $duracao ?: null]);
+                }
+            } catch (Throwable $e2) {
+                error_log('Falha ao salvar áudio da tarefa: ' . $e2->getMessage());
+            }
+        }
     }
 
     if ($pecas_linhas) {
@@ -285,6 +354,7 @@ try {
 
     $_SESSION['mensagem'] = 'Ordem de serviço criada com sucesso.';
     $_SESSION['mensagem_tipo'] = 'success';
+    registrar_auditoria($conn, (int) $_SESSION['usuario_id'], 'cadastrar', 'ordem_servico', $os_id, 'OS #' . $num_formatado . ' criada', ['numero' => $numero, 'cliente_id' => $cliente_id, 'veiculo_id' => $veiculo_id]);
     header('Location: listar.php');
     exit();
 } catch (Throwable $e) {
