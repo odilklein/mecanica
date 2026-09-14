@@ -260,12 +260,12 @@ function carregarVeiculos(clienteId, selectId, servicoId) {
         return;
     }
 
-    fetch('../api/veiculos.php?cliente_id=' + clienteId)
+    fetch((window.CAMINHO_BASE || '') + '/api/veiculos.php?cliente_id=' + encodeURIComponent(clienteId))
         .then(res => res.json())
         .then(data => {
             let options = '<option value="">-- Selecione o veículo --</option>';
             data.forEach(v => {
-                options += `<option value="${v.id}">${v.marca} ${v.modelo} - ${v.placa}</option>`;
+                options += `<option value="${v.id}">${escaparHtml(v.marca)} ${escaparHtml(v.modelo)} - ${escaparHtml(v.placa)}</option>`;
             });
             document.getElementById(selectId).innerHTML = options;
 
@@ -274,6 +274,13 @@ function carregarVeiculos(clienteId, selectId, servicoId) {
             }
         })
         .catch(err => console.error('Erro ao carregar veículos:', err));
+}
+
+// Escapa texto antes de inserir via innerHTML
+function escaparHtml(texto) {
+    return String(texto ?? '').replace(/[&<>"']/g, function (c) {
+        return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+    });
 }
 
 // =============================================

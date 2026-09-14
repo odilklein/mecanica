@@ -3,12 +3,14 @@
 $uri_atual = $_SERVER['REQUEST_URI'] ?? '';
 $arquivo_atual = basename($_SERVER['PHP_SELF'] ?? '');
 
-function sidebarAtiva($modulo) {
-    global $uri_atual, $arquivo_atual;
-    if ($modulo === 'dashboard') return ($arquivo_atual === 'index.php' || $arquivo_atual === '');
-    if ($modulo === 'orcamentos' && strpos($uri_atual, 'relatorio') !== false) return false;
-    if ($modulo === 'relatorios') return strpos($uri_atual, 'relatorio') !== false;
-    return strpos($uri_atual, $modulo) !== false;
+if (!function_exists('sidebarAtiva')) {
+    function sidebarAtiva($modulo) {
+        global $uri_atual, $arquivo_atual;
+        if ($modulo === 'dashboard') return ($arquivo_atual === 'index.php' || $arquivo_atual === '');
+        if ($modulo === 'orcamentos' && strpos($uri_atual, 'relatorio') !== false) return false;
+        if ($modulo === 'relatorios') return strpos($uri_atual, 'relatorio') !== false;
+        return strpos($uri_atual, $modulo) !== false;
+    }
 }
 
 // Configurar URLs relativas ao contexto

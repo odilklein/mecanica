@@ -51,4 +51,12 @@ function exigir_papel($papeis) {
 function tem_papel($papeis) {
     return isset($_SESSION['usuario_tipo']) && in_array($_SESSION['usuario_tipo'], (array) $papeis, true);
 }
+
+function verificar_sessao() {
+    if (!isset($_SESSION['usuario_id'])) {
+        $base = $GLOBALS['caminho_base'] ?? '';
+        header("Location: " . $base . "/pages/auth/login.php");
+        exit();
+    }
+}
 ?>

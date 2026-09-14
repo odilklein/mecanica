@@ -133,12 +133,4 @@ function cor_para_hex(?string $cor): ?string {
     }
     return null;
 }
-
-// Função para verificar se usuário está logado
-function verificar_sessao() {
-    if (!isset($_SESSION['usuario_id'])) {
-        header("Location: ../pages/auth/login.php");
-        exit();
-    }
-}
 ?>

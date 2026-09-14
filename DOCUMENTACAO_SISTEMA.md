@@ -110,7 +110,6 @@ pages/
   agendamentos/                 Modulo legado, fora da navegacao principal
 sql/
   mecanica_teste.sql            Banco completo recriado com dados de demonstracao e logins
-  seed_mock.sql                 Mesmos dados de demonstracao, para aplicar em banco ja criado
 uploads/
   audio/                        Audios gravados nas tarefas das OS
   backups/                      Arquivos .sql gerados pela tela de backup
@@ -459,7 +458,7 @@ O arquivo unico de referencia e `sql/mecanica_teste.sql`. Ele:
 - Insere clientes, veiculos, funcionarios, OS, tarefas, pedidos, eventos, orcamentos, entregas e notificacoes de demonstracao.
 - Documenta os logins de teste no proprio arquivo.
 
-Para ambiente de teste, basta importar `mecanica_teste.sql` em um banco vazio no phpMyAdmin. O `sql/seed_mock.sql` mantem os mesmos dados para quem ja tem o schema criado e quer apenas preencher os registros.
+Para ambiente de teste, basta importar `mecanica_teste.sql` em um banco vazio no phpMyAdmin.
 
 As migracoes incrementais antigas (`sql/mecanica.sql`, `002_operacao_oficina.sql`, `003_simplificacao_operacional.sql`, `004_audio_tarefas.sql`) foram consolidadas no `mecanica_teste.sql` e nao sao mais entregues separadamente.
 
