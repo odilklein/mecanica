@@ -88,7 +88,7 @@ require_once __DIR__ . '/../../includes/mensagens.php';
                                     <a class="dropdown-item" href="editar.php?id=<?php echo $s['id']; ?>">
                                         <i data-lucide="pencil"></i> Editar
                                     </a>
-                                    <form method="POST" action="excluir.php" id="excluirServico<?php echo $s['id']; ?>" onsubmit="return confirmarExclusao('excluirServico<?php echo $s['id']; ?>', 'Excluir o serviço <?php echo addslashes($s['nome']); ?>?');">
+                                    <form method="POST" action="excluir.php" id="excluirServico<?php echo $s['id']; ?>" onsubmit="return confirmarExclusao('excluirServico<?php echo $s['id']; ?>', 'Excluir o serviço <?php echo esc(addslashes($s['nome'])); ?>?');">
                                         <input type="hidden" name="csrf_token" value="<?php echo esc(csrf_token()); ?>">
                                         <input type="hidden" name="id" value="<?php echo $s['id']; ?>">
                                         <button type="submit" class="dropdown-item text-danger">

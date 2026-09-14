@@ -176,7 +176,7 @@ require_once __DIR__ . '/../../includes/mensagens.php';
                                     <a class="dropdown-item" href="editar.php?id=<?php echo (int) $p['id']; ?>">
                                         <i data-lucide="pencil"></i> Editar
                                     </a>
-                                    <form method="POST" action="excluir.php" id="excluirPeca<?php echo (int) $p['id']; ?>" onsubmit="return confirmarExclusao('excluirPeca<?php echo (int) $p['id']; ?>', 'Excluir a peça <?php echo addslashes($p['nome']); ?>?');">
+                                    <form method="POST" action="excluir.php" id="excluirPeca<?php echo (int) $p['id']; ?>" onsubmit="return confirmarExclusao('excluirPeca<?php echo (int) $p['id']; ?>', 'Excluir a peça <?php echo esc(addslashes($p['nome'])); ?>?');">
                                         <input type="hidden" name="csrf_token" value="<?php echo esc(csrf_token()); ?>">
                                         <input type="hidden" name="id" value="<?php echo (int) $p['id']; ?>">
                                         <button type="submit" class="dropdown-item text-danger">
