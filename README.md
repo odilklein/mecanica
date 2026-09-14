@@ -62,3 +62,32 @@ uploads/     áudios das tarefas e backups gerados
 - Token CSRF nos formulários e endpoints de escrita.
 - Controle de acesso por perfil (`exigir_papel`).
 - `.htaccess` bloqueando `.env`, `.sql`, logs e acesso direto a `config/` e `sql/`.
+- **Cloudflare Turnstile** no login (ver abaixo).
+
+## Cloudflare Turnstile (anti-bot no login)
+
+O widget já está embutido no formulário de login e o backend valida o token
+via `siteverify` antes de conferir as credenciais.
+
+1. No painel da Cloudflare → **Turnstile** → seu widget, confira os domínios
+   (inclua `localhost` e `127.0.0.1` para desenvolvimento e o domínio de produção).
+2. Copie a **Secret Key** do widget.
+3. Preencha no `.env` (nunca commite este arquivo — ele já está no `.gitignore`):
+
+   ```
+   TURNSTILE_SITE_KEY=<sua-site-key>
+   TURNSTILE_SECRET=<sua-secret-key>
+   TURNSTILE_HOSTNAMES=localhost,127.0.0.1
+   ```
+
+   Em produção, use `TURNSTILE_HOSTNAMES` apenas com o domínio real
+   (remova `localhost`/`127.0.0.1`).
+
+Enquanto `TURNSTILE_SECRET` estiver vazio, a verificação fica **desativada**
+(o login continua funcionando) para não travar o ambiente. A verificação é
+aplicada automaticamente assim que o secret é preenchido.
+
+Arquivos: `config/turnstile.php` (site key pública), `includes/turnstile.php`
+(siteverify server-side) e `pages/auth/login.php` / `login_processar.php`
+(widget + gate).
+
