@@ -1,7 +1,9 @@
 <?php
 require_once __DIR__ . '/../../includes/sessao.php';
 require_once __DIR__ . '/../../config/conexao.php';
+require_once __DIR__ . '/../../includes/auditoria.php';
 exigir_papel(['admin', 'secretaria']);
+validar_csrf();
 
 if ($_SERVER['REQUEST_METHOD'] != 'POST') {
     header("Location: listar.php");
@@ -14,6 +16,8 @@ try {
     $stmt = $conn->prepare("DELETE FROM pecas WHERE id = :id");
     $stmt->bindParam(':id', $id);
     $stmt->execute();
+
+    registrar_auditoria($conn, (int) $_SESSION['usuario_id'], 'excluir', 'peca', $id, 'Peça excluída');
 
     $_SESSION['mensagem'] = "Peça excluída com sucesso!";
     $_SESSION['mensagem_tipo'] = "success";
