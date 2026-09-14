@@ -75,9 +75,11 @@ $erro = isset($_GET['erro']) ? $_GET['erro'] : '';
                                         </button>
                                     </div>
                                 </div>
+                                <?php if (turnstile_configurado()): ?>
                                 <div class="mb-4">
                                     <div class="cf-turnstile" data-sitekey="<?php echo htmlspecialchars(turnstile_site_key(), ENT_QUOTES, 'UTF-8'); ?>" data-action="login" data-theme="auto"></div>
                                 </div>
+                                <?php endif; ?>
                                 <div class="d-grid">
                                     <button type="submit" class="btn btn-primary btn-lg fw-bold">
                                         <i data-lucide="log-in" class="me-2"></i>Entrar
