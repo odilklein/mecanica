@@ -6,6 +6,29 @@
 
 USE mecanica;
 
+SET NAMES utf8mb4;
+SET FOREIGN_KEY_CHECKS = 0;
+
+-- USUARIOS DE TESTE
+-- Senha de todos os usuarios: admin123
+INSERT INTO usuarios (nome, email, senha, tipo, cpf, telefone, cargo, ativo) VALUES
+('Administrador', 'admin@mecanica.com', '$2y$12$sHoNQoIMhbrFjz8KgXTS2e0cA6jfLaijNEpjLNRRm.8Tor3p4XVfW', 'admin', '111.111.111-11', '(11) 99999-0001', 'Administrador', 1),
+('Secretaria', 'secretaria@mecanica.com', '$2y$12$sHoNQoIMhbrFjz8KgXTS2e0cA6jfLaijNEpjLNRRm.8Tor3p4XVfW', 'secretaria', '222.222.222-22', '(11) 99999-0002', 'Secretaria', 1),
+('Chefe da Oficina', 'chefe@mecanica.com', '$2y$12$sHoNQoIMhbrFjz8KgXTS2e0cA6jfLaijNEpjLNRRm.8Tor3p4XVfW', 'mecanico_chefe', '333.333.333-33', '(11) 99999-0003', 'Mecanico chefe', 1),
+('Mecanico 1', 'mecanico1@mecanica.com', '$2y$12$sHoNQoIMhbrFjz8KgXTS2e0cA6jfLaijNEpjLNRRm.8Tor3p4XVfW', 'mecanico', '444.444.444-44', '(11) 99999-0004', 'Mecanico', 1),
+('Mecanico 2', 'mecanico2@mecanica.com', '$2y$12$sHoNQoIMhbrFjz8KgXTS2e0cA6jfLaijNEpjLNRRm.8Tor3p4XVfW', 'mecanico', '555.555.555-55', '(11) 99999-0005', 'Mecanico', 1);
+
+-- SERVICOS BASE (os IDs sao usados pelos dados abaixo)
+INSERT INTO servicos (nome, descricao, preco_mao_obra, tempo_estimado) VALUES
+('Troca de Oleo', 'Troca de oleo e filtro do motor', 80.00, 45),
+('Alinhamento', 'Alinhamento da direcao', 70.00, 60),
+('Balanceamento', 'Balanceamento das rodas', 50.00, 45),
+('Troca de Pastilhas de Freio', 'Substituicao das pastilhas de freio', 120.00, 90),
+('Revisao dos 60.000 km', 'Revisao preventiva completa', 250.00, 180),
+('Troca de Correia Dentada', 'Substituicao da correia dentada e tensores', 350.00, 240),
+('Troca de Bateria', 'Substituicao da bateria do veiculo', 60.00, 30),
+('Diagnostico Eletronico', 'Analise com scanner profissional', 100.00, 60);
+
 -- =============================================
 -- CLIENTES (10 registros)
 -- =============================================
@@ -93,6 +116,73 @@ INSERT INTO agendamentos (cliente_id, veiculo_id, servico_id, data_agendamento, 
 (8, 9, 12, CURDATE() + INTERVAL 7 DAY, '10:00', 'agendado', 'Ar condicionado não gela');
 
 -- =============================================
+-- ORDENS DE SERVICO (8 registros)
+-- =============================================
+INSERT INTO ordens_servico (numero, cliente_id, veiculo_id, agendamento_id, status, prioridade, queixa_inicial, diagnostico, observacoes_internas, responsavel_chefe_id, criado_por, data_entrada, data_conclusao) VALUES
+(1001, 1, 1, 1, 'entregue', 'normal', 'Troca de oleo e filtro do motor', 'Revisao realizada sem anomalias.', 'Veiculo liberado para o cliente.', 3, 2, NOW() - INTERVAL 12 DAY, NOW() - INTERVAL 10 DAY),
+(1002, 2, 3, 2, 'pronta_para_entrega', 'alta', 'Veiculo puxando para a direita', 'Alinhamento e balanceamento executados.', 'Aguardando retirada do cliente.', 3, 2, NOW() - INTERVAL 8 DAY, NULL),
+(1003, 3, 4, 3, 'em_execucao', 'normal', 'Barulho nas rodas dianteiras', 'Pastilhas e disco dianteiros com desgaste.', 'Substituicao autorizada no orcamento.', 3, 1, NOW() - INTERVAL 5 DAY, NULL),
+(1004, 5, 6, 5, 'aguardando_peca', 'alta', 'Revisao dos 60.000 km', 'Correia dentada proxima do limite de uso.', 'Aguardando kit de correia do fornecedor.', 3, 2, NOW() - INTERVAL 3 DAY, NULL),
+(1005, 4, 5, 4, 'aguardando_aprovacao', 'normal', 'Pastilhas dianteiras desgastadas', 'Pastilhas abaixo da espessura recomendada.', 'Orcamento enviado para aprovacao.', 3, 2, NOW() - INTERVAL 2 DAY, NULL),
+(1006, 7, 8, 7, 'cancelada', 'baixa', 'Troca de bateria e revisao eletrica', 'Bateria sem capacidade de carga.', 'Cliente cancelou o servico.', 3, 2, NOW() - INTERVAL 12 DAY, NULL),
+(1007, 9, 10, 8, 'pronta_para_execucao', 'urgente', 'Motor fazendo ruido metalico', 'Correia e tensores precisam ser substituidos.', 'Pecas recebidas e separadas para execucao.', 3, 1, NOW() - INTERVAL 7 DAY, NULL),
+(1008, 10, 12, 10, 'aguardando_diagnostico', 'normal', 'Embreagem patinando', NULL, 'Realizar teste de rodagem e diagnostico.', 3, 2, NOW() - INTERVAL 1 DAY, NULL);
+
+UPDATE agendamentos SET os_id = CASE id WHEN 1 THEN 1 WHEN 2 THEN 2 WHEN 3 THEN 3 WHEN 4 THEN 5 WHEN 5 THEN 4 WHEN 7 THEN 6 WHEN 8 THEN 7 WHEN 10 THEN 8 ELSE os_id END;
+UPDATE ordens_servico SET agendamento_id = CASE id WHEN 1 THEN 1 WHEN 2 THEN 2 WHEN 3 THEN 3 WHEN 4 THEN 5 WHEN 5 THEN 4 WHEN 6 THEN 7 WHEN 7 THEN 8 WHEN 8 THEN 10 ELSE agendamento_id END;
+
+-- RESPONSAVEIS, TAREFAS E EVENTOS DA OS
+INSERT INTO os_responsaveis (os_id, usuario_id, atribuido_por, atribuido_em, concluido_em, observacoes) VALUES
+(1, 4, 3, NOW() - INTERVAL 12 DAY, NOW() - INTERVAL 10 DAY, 'Servico concluido.'),
+(2, 4, 3, NOW() - INTERVAL 8 DAY, NULL, 'Conferir liberacao do veiculo.'),
+(3, 5, 3, NOW() - INTERVAL 5 DAY, NULL, 'Executar troca de freios.'),
+(4, 4, 3, NOW() - INTERVAL 3 DAY, NULL, 'Aguardar recebimento do kit.'),
+(5, 5, 3, NOW() - INTERVAL 2 DAY, NULL, 'Aguardar aprovacao.'),
+(7, 4, 3, NOW() - INTERVAL 7 DAY, NULL, 'Pecas separadas para execucao.'),
+(8, 5, 3, NOW() - INTERVAL 1 DAY, NULL, 'Iniciar diagnostico.');
+
+INSERT INTO os_tarefas (os_id, descricao, status, criado_por, concluido_por, criado_em, concluido_em) VALUES
+(1, 'Realizar troca de oleo e filtro', 'concluida', 2, 4, NOW() - INTERVAL 12 DAY, NOW() - INTERVAL 11 DAY),
+(1, 'Conferir nivel e vazamentos', 'concluida', 2, 4, NOW() - INTERVAL 12 DAY, NOW() - INTERVAL 10 DAY),
+(2, 'Executar alinhamento', 'concluida', 2, 4, NOW() - INTERVAL 8 DAY, NOW() - INTERVAL 7 DAY),
+(2, 'Confirmar retirada com cliente', 'pendente', 2, NULL, NOW() - INTERVAL 8 DAY, NULL),
+(3, 'Remover conjunto de freio', 'em_execucao', 1, NULL, NOW() - INTERVAL 5 DAY, NULL),
+(4, 'Receber kit de correia dentada', 'bloqueada', 2, NULL, NOW() - INTERVAL 3 DAY, NULL),
+(7, 'Separar pecas recebidas', 'concluida', 1, 4, NOW() - INTERVAL 7 DAY, NOW() - INTERVAL 1 DAY),
+(8, 'Realizar teste de rodagem', 'pendente', 2, NULL, NOW() - INTERVAL 1 DAY, NULL);
+
+INSERT INTO os_eventos (os_id, tipo, status_anterior, status_novo, descricao, criado_por, criado_em) VALUES
+(1, 'criacao', NULL, 'recebida', 'Atendimento criado', 2, NOW() - INTERVAL 12 DAY),
+(1, 'diagnostico', 'aguardando_diagnostico', 'aguardando_orcamento', 'Diagnostico concluido', 4, NOW() - INTERVAL 11 DAY),
+(1, 'status', 'pronta_para_entrega', 'entregue', 'Veiculo retirado pelo cliente', 2, NOW() - INTERVAL 10 DAY),
+(2, 'criacao', NULL, 'recebida', 'Atendimento criado', 2, NOW() - INTERVAL 8 DAY),
+(2, 'status', 'em_execucao', 'pronta_para_entrega', 'Servico concluido', 4, NOW() - INTERVAL 1 DAY),
+(3, 'criacao', NULL, 'recebida', 'Atendimento criado', 1, NOW() - INTERVAL 5 DAY),
+(3, 'diagnostico', 'aguardando_diagnostico', 'aguardando_orcamento', 'Diagnostico dos freios registrado', 5, NOW() - INTERVAL 4 DAY),
+(3, 'status', 'aguardando_aprovacao', 'em_execucao', 'Orcamento aprovado e servico iniciado', 1, NOW() - INTERVAL 1 DAY),
+(4, 'peca_solicitada', NULL, NULL, 'Pedido de kit de correia criado', 2, NOW() - INTERVAL 2 DAY),
+(4, 'status', 'aguardando_orcamento', 'aguardando_peca', 'OS aguardando recebimento de peca', 2, NOW() - INTERVAL 2 DAY),
+(5, 'status', 'aguardando_orcamento', 'aguardando_aprovacao', 'Orcamento enviado para aprovacao', 2, NOW() - INTERVAL 1 DAY),
+(7, 'peca_status', NULL, NULL, 'Pedido de pecas recebido', 2, NOW() - INTERVAL 1 DAY),
+(7, 'status', 'aguardando_peca', 'pronta_para_execucao', 'Pecas disponiveis para execucao', 2, NOW() - INTERVAL 1 DAY),
+(8, 'criacao', NULL, 'recebida', 'Atendimento criado', 2, NOW() - INTERVAL 1 DAY);
+
+INSERT INTO os_entregas (os_id, modalidade, responsavel, destino, km_saida, checklist, observacoes, status, criado_por, concluido_por, criado_em, concluido_em) VALUES
+(1, 'retirada', 'Carlos Alberto Silva', NULL, 35000, 'Oleo conferido; ferramentas retiradas; veiculo limpo.', 'Entrega concluida sem ocorrencias.', 'concluida', 2, 2, NOW() - INTERVAL 10 DAY, NOW() - INTERVAL 10 DAY);
+
+-- PEDIDOS DE PECAS (seguem o fluxo solicitado > validado > pedido > a_caminho > recebido)
+INSERT INTO pedidos_pecas (os_id, fornecedor, status, previsao_entrega, observacoes, criado_por, recebido_por, criado_em, recebido_em) VALUES
+(4, 'CorreiasPro', 'a_caminho', CURDATE() + INTERVAL 2 DAY, 'Kit completo para revisao da correia dentada.', 2, NULL, NOW() - INTERVAL 2 DAY, NULL),
+(7, 'FreiosMaster', 'recebido', CURDATE() - INTERVAL 1 DAY, 'Disco e pastilhas conferidos no recebimento.', 2, 2, NOW() - INTERVAL 5 DAY, NOW() - INTERVAL 1 DAY),
+(3, 'FreiosMaster', 'solicitado', CURDATE() + INTERVAL 4 DAY, 'Aguardando validacao da secretaria.', 5, NULL, NOW() - INTERVAL 1 DAY, NULL);
+
+INSERT INTO pedido_pecas_itens (pedido_id, peca_id, descricao, quantidade, custo_unitario, recebido, observacoes, recebido_em) VALUES
+(1, 5, 'Correia Dentada Kit Completo', 1, 180.00, 0, 'Kit com correia e tensores.', NULL),
+(2, 3, 'Pastilha de Freio Dianteira Universal', 2, 85.00, 2, 'Conferido sem avarias.', NOW() - INTERVAL 1 DAY),
+(2, 4, 'Disco de Freio Dianteiro 280mm', 1, 120.00, 1, 'Conferido sem avarias.', NOW() - INTERVAL 1 DAY),
+(3, 4, 'Disco de Freio Dianteiro 280mm', 1, 120.00, 0, NULL, NULL);
+
+-- =============================================
 -- ORÇAMENTOS (8 registros)
 -- =============================================
 INSERT INTO orcamentos (numero, cliente_id, veiculo_id, data_orcamento, data_validade, status, total_pecas, total_mao_obra, total_geral, desconto, observacoes, criado_por) VALUES
@@ -104,6 +194,8 @@ INSERT INTO orcamentos (numero, cliente_id, veiculo_id, data_orcamento, data_val
 (6, 7, 8, CURDATE() - INTERVAL 12 DAY, CURDATE() + INTERVAL 18 DAY, 'reprovado', 450.00, 60.00, 510.00, 0.00, 'Troca de bateria e revisão elétrica', 1),
 (7, 9, 10, CURDATE() - INTERVAL 7 DAY, CURDATE() + INTERVAL 23 DAY, 'aberto', 800.00, 450.00, 1250.00, 50.00, 'Kit embreagem completo', 1),
 (8, 10, 12, CURDATE(), CURDATE() + INTERVAL 30 DAY, 'aberto', 160.00, 180.00, 340.00, 0.00, 'Revisão suspensão dianteira', 1);
+
+UPDATE orcamentos SET os_id = id;
 
 -- =============================================
 -- ITENS DE ORÇAMENTO (18 registros)
@@ -142,3 +234,5 @@ INSERT INTO movimentacoes_estoque (peca_id, tipo, quantidade, motivo) VALUES
 (5, 'entrada', 10, 'Compra de correias'),
 (5, 'saida', 1, 'Orçamento #4'),
 (9, 'ajuste', -2, 'Ajuste por contagem física - 2 unidades danificadas');
+
+SET FOREIGN_KEY_CHECKS = 1;
