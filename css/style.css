@@ -65,6 +65,8 @@
     --c-green: #15803d;
     --c-gray: #4b5563;
     --transition: 200ms ease;
+    /* Cor de texto sobre superfícies coloridas (botões, avatares, badges) */
+    --on-accent: #ffffff;
 
     /* Mapeia variáveis do Bootstrap 5 para o tema (light) */
     --bs-body-color: var(--text-primary);
@@ -293,7 +295,7 @@ a {
 
 .sidebar-collapse-btn:hover {
     background: var(--accent-strong);
-    color: #fff;
+    color: var(--on-accent);
 }
 
 .sidebar-collapse-btn svg {
@@ -338,7 +340,7 @@ a {
     display: flex;
     align-items: center;
     justify-content: center;
-    color: #fff;
+    color: var(--on-accent);
 }
 
 .sidebar-brand .brand-icon svg {
@@ -473,7 +475,7 @@ a {
     min-width: 34px;
     border-radius: 50%;
     background: linear-gradient(135deg, var(--accent-strong), var(--accent-strong-hover));
-    color: #fff;
+    color: var(--on-accent);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -731,7 +733,7 @@ a {
     padding: 0 5px;
     border-radius: 9px;
     background: var(--danger-strong);
-    color: #fff;
+    color: var(--on-accent);
     font-size: 0.65rem;
     font-weight: 700;
     line-height: 18px;
@@ -804,7 +806,7 @@ a {
 
 .notifications-header button:hover {
     background: var(--accent-strong);
-    color: #fff;
+    color: var(--on-accent);
 }
 
 .notifications-list {
@@ -918,7 +920,7 @@ a {
     height: 32px;
     border-radius: 50%;
     background: linear-gradient(135deg, var(--accent-strong), var(--accent-strong-hover));
-    color: #fff;
+    color: var(--on-accent);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -1403,7 +1405,7 @@ textarea.form-control {
 .select-card.selected .check-badge {
     background: var(--accent-strong);
     border-color: var(--accent-strong);
-    color: #fff;
+    color: var(--on-accent);
 }
 
 .select-card .check-badge svg {
@@ -1542,12 +1544,12 @@ textarea.form-control {
 
 .wizard-step.active .step-num {
     background: var(--accent-strong);
-    color: #fff;
+    color: var(--on-accent);
 }
 
 .wizard-step.completed .step-num {
     background: var(--success-strong);
-    color: #fff;
+    color: var(--on-accent);
 }
 
 .wizard-step .step-label {
@@ -1782,7 +1784,7 @@ textarea.form-control {
     font-size: 0.85rem;
     margin-right: 10px;
     background: linear-gradient(135deg, var(--accent-strong), var(--accent-strong-hover)) !important;
-    color: #fff !important;
+    color: var(--on-accent) !important;
 }
 
 /* ============ EMPTY STATE ============ */
@@ -1893,6 +1895,34 @@ textarea.form-control {
     color: var(--text-primary);
 }
 
+/* Paginação (Bootstrap) com as cores do tema */
+.pagination {
+    --bs-pagination-color: var(--accent);
+    --bs-pagination-bg: var(--card-bg);
+    --bs-pagination-border-color: var(--border-color);
+    --bs-pagination-hover-color: var(--accent-strong);
+    --bs-pagination-hover-bg: var(--accent-light);
+    --bs-pagination-hover-border-color: var(--border-color);
+    --bs-pagination-focus-color: var(--accent-strong);
+    --bs-pagination-focus-bg: var(--accent-light);
+    --bs-pagination-focus-box-shadow: 0 0 0 2px var(--accent-light);
+    --bs-pagination-active-color: var(--on-accent);
+    --bs-pagination-active-bg: var(--accent-strong);
+    --bs-pagination-active-border-color: var(--accent-strong);
+    --bs-pagination-disabled-color: var(--text-muted);
+    --bs-pagination-disabled-bg: var(--card-bg);
+    --bs-pagination-disabled-border-color: var(--border-color);
+}
+
+.pagination .page-link {
+    border-radius: 8px;
+    margin: 0 2px;
+}
+
+.pagination .page-item.active .page-link {
+    font-weight: 600;
+}
+
 /* Nenhum resultado ao filtrar */
 tr.row-filtro-vazio td {
     padding: 0 !important;
@@ -1908,6 +1938,14 @@ tr.row-filtro-vazio .empty-state {
     color: var(--warning);
     font-weight: 500;
     border-left: 3px solid var(--warning);
+}
+
+.estoque-alert-row {
+    background-color: var(--warning-bg);
+}
+
+.estoque-alert-row:hover {
+    background-color: color-mix(in srgb, var(--warning) 14%, transparent) !important;
 }
 
 /* ============ QUICK ACTIONS ============ */
@@ -2044,7 +2082,7 @@ tr.row-filtro-vazio .empty-state {
 .auth-icon svg {
     width: 36px;
     height: 36px;
-    color: #fff;
+    color: var(--on-accent);
 }
 
 .auth-card h2 {
@@ -2197,7 +2235,7 @@ body.loaded { opacity: 1; transition: opacity 0.25s ease; }
 .empty-state .btn {
     background: linear-gradient(135deg, var(--accent-strong), color-mix(in srgb, var(--accent-strong) 75%, #fff));
     border: none;
-    color: #fff;
+    color: var(--on-accent);
     padding: 7px 14px;
     border-radius: 8px;
     font-weight: 500;
@@ -2313,7 +2351,7 @@ body.loaded { opacity: 1; transition: opacity 0.25s ease; }
 
 .dynamic-list-item .item-remove:hover {
     background: var(--danger-strong);
-    color: #fff;
+    color: var(--on-accent);
 }
 
 .dynamic-list-input {
@@ -2342,7 +2380,7 @@ body.loaded { opacity: 1; transition: opacity 0.25s ease; }
 
 .dynamic-list-input .btn-add:hover {
     background: var(--accent-strong);
-    color: #fff;
+    color: var(--on-accent);
     border-style: solid;
 }
 
@@ -2485,7 +2523,7 @@ body.loaded { opacity: 1; transition: opacity 0.25s ease; }
     border-style: solid;
     border-color: var(--danger-strong);
     background: var(--danger-strong);
-    color: #fff;
+    color: var(--on-accent);
     animation: pulseRed 1.1s infinite;
 }
 
@@ -2658,7 +2696,7 @@ body.loaded { opacity: 1; transition: opacity 0.25s ease; }
 
 .select-card-employee.selected .emp-avatar {
     background: linear-gradient(135deg, var(--accent-strong), color-mix(in srgb, var(--accent-strong) 70%, #fff));
-    color: #fff;
+    color: var(--on-accent);
 }
 
 .select-card-employee .emp-info {
@@ -2704,7 +2742,7 @@ body.loaded { opacity: 1; transition: opacity 0.25s ease; }
 }
 .nav-pills .nav-link.active {
     background-color: var(--accent-strong);
-    color: #fff;
+    color: var(--on-accent);
 }
 
 .section-title {
@@ -2966,7 +3004,7 @@ body.loaded { opacity: 1; transition: opacity 0.25s ease; }
 .color-picker-swatch .color-picker-icon {
     width: 14px;
     height: 14px;
-    color: #fff;
+    color: var(--on-accent);
     mix-blend-mode: difference;
     pointer-events: none;
 }

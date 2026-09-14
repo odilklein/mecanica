@@ -1,6 +1,7 @@
 <?php
 require_once __DIR__ . '/../../includes/sessao.php';
 require_once __DIR__ . '/../../config/conexao.php';
+require_once __DIR__ . '/../../includes/paginacao.php';
 exigir_papel(['admin']);
 
 $entidade = limpar($_GET['entidade'] ?? '');
@@ -37,6 +38,7 @@ $registros = $st->fetchAll();
 
 $entidades = $conn->query('SELECT DISTINCT entidade FROM auditoria ORDER BY entidade')->fetchAll(PDO::FETCH_COLUMN);
 $acoes = $conn->query('SELECT DISTINCT acao FROM auditoria ORDER BY acao')->fetchAll(PDO::FETCH_COLUMN);
+$filtros_pag = array_filter(['acao' => $acao, 'entidade' => $entidade, 'busca' => $busca], fn($v) => $v !== '');
 
 $titulo_pagina = 'Auditoria';
 require_once __DIR__ . '/../../includes/header.php';
@@ -85,7 +87,7 @@ require_once __DIR__ . '/../../includes/mensagens.php';
 <?php endforeach; ?>
 <?php if (!$registros): ?><tr class="row-empty"><td colspan="6"><div class="empty-state"><div class="empty-state-icon"><i data-lucide="history"></i></div><h4>Nenhum registro</h4><p>Nenhuma ação de auditoria encontrada com os filtros atuais.</p></div></td></tr><?php endif; ?>
 </tbody></table></div>
-<?php if ($total_paginas > 1): ?><nav class="pagination-nav"><ul class="pagination justify-content-center my-3"><?php for ($p = 1; $p <= $total_paginas; $p++): ?><li class="page-item <?php echo $p === $pagina ? 'active' : ''; ?>"><a class="page-link" href="listar.php?pagina=<?php echo $p; ?>&acao=<?php echo esc(urlencode($acao)); ?>&entidade=<?php echo esc(urlencode($entidade)); ?>&busca=<?php echo esc(urlencode($busca)); ?>"><?php echo $p; ?></a></li><?php endfor; ?></ul></nav><?php endif; ?>
+<?php echo paginacao_links($pagina, $total_paginas, $filtros_pag); ?>
 </div></div>
 <script>
 (function () {
