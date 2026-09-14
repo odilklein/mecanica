@@ -29,8 +29,16 @@ if (!function_exists('carregar_env')) {
 
 if (!defined('MECANICA_ENV_CARREGADO')) {
     define('MECANICA_ENV_CARREGADO', true);
-    $arquivo_env = __DIR__ . '/../.env';
-    if (is_file($arquivo_env)) {
-        carregar_env($arquivo_env);
+    // Procura o .env na raiz do projeto e, se não achar, um nível acima
+    // (permite guardá-lo fora do webroot, ex.: htdocs/../.env na hospedagem).
+    $candidatos_env = [
+        __DIR__ . '/../.env',
+        __DIR__ . '/../../.env',
+    ];
+    foreach ($candidatos_env as $arquivo_env) {
+        if (is_file($arquivo_env)) {
+            carregar_env($arquivo_env);
+            break;
+        }
     }
 }
