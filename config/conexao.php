@@ -19,7 +19,10 @@ if (!function_exists('carregar_env') && is_file(__DIR__ . '/../.env')) {
             $chave = trim($chave);
             $valor = trim($valor, " \t\r\n\"'");
             if (!getenv($chave)) {
-                putenv($chave . '=' . $valor);
+                if (function_exists('putenv')) {
+                    putenv($chave . '=' . $valor);
+                }
+                $_ENV[$chave] = $valor;
             }
         }
     }
@@ -27,18 +30,24 @@ if (!function_exists('carregar_env') && is_file(__DIR__ . '/../.env')) {
 }
 
 $db_host = getenv('DB_HOST') ?: 'localhost';
+$db_port = getenv('DB_PORT') ?: '3306';
 $db_user = getenv('DB_USER') ?: 'root';
 $db_pass = getenv('DB_PASS') ?: '';
 $db_name = getenv('DB_NAME') ?: 'mecanica';
 
+$dsn = 'mysql:host=' . $db_host . ';port=' . $db_port . ';dbname=' . $db_name . ';charset=utf8mb4';
+
 try {
-    $conn = new PDO("mysql:host=" . $db_host . ";dbname=" . $db_name . ";charset=utf8mb4", $db_user, $db_pass);
+    $conn = new PDO($dsn, $db_user, $db_pass);
     $conn->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
     $conn->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_ASSOC);
 } catch (PDOException $e) {
-    error_log($e->getMessage());
+    @error_log($e->getMessage());
+    if (is_writable(__DIR__ . '/../error.log')) {
+        @file_put_contents(__DIR__ . '/../error.log', '[' . date('Y-m-d H:i:s') . '] ' . $e->getMessage() . PHP_EOL, FILE_APPEND);
+    }
     http_response_code(500);
-    die("Não foi possível conectar ao banco de dados.");
+    die("Não foi possível conectar ao banco de dados. Detalhes gravados em error.log na raiz do projeto.");
 }
 
 // Função para escapar dados e evitar XSS
