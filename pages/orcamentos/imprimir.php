@@ -78,17 +78,17 @@ $itens = $stmt->fetchAll();
             <div class="info-grid">
                 <div><span class="info-label">Data:</span> <?php echo date('d/m/Y', strtotime($orcamento['data_orcamento'])); ?></div>
                 <div><span class="info-label">Validade:</span> <?php echo $orcamento['data_validade'] ? date('d/m/Y', strtotime($orcamento['data_validade'])) : '---'; ?></div>
-                <div class="full"><span class="info-label">Status:</span> <?php echo ucfirst($orcamento['status']); ?></div>
+                <div class="full"><span class="info-label">Status:</span> <?php echo esc(ucfirst($orcamento['status'])); ?></div>
             </div>
         </div>
 
         <div class="info-box">
             <h3>Dados do Cliente</h3>
             <div class="info-grid">
-                <div><span class="info-label">Cliente:</span> <?php echo $orcamento['cliente_nome']; ?></div>
-                <div><span class="info-label">Telefone:</span> <?php echo $orcamento['telefone'] ?: '-'; ?></div>
-                <div><span class="info-label">CPF:</span> <?php echo $orcamento['cpf'] ?: '-'; ?></div>
-                <div><span class="info-label">Email:</span> <?php echo $orcamento['email'] ?: '-'; ?></div>
+                <div><span class="info-label">Cliente:</span> <?php echo esc($orcamento['cliente_nome']); ?></div>
+                <div><span class="info-label">Telefone:</span> <?php echo esc($orcamento['telefone'] ?: '-'); ?></div>
+                <div><span class="info-label">CPF:</span> <?php echo esc($orcamento['cpf'] ?: '-'); ?></div>
+                <div><span class="info-label">Email:</span> <?php echo esc($orcamento['email'] ?: '-'); ?></div>
             </div>
         </div>
 
@@ -96,9 +96,9 @@ $itens = $stmt->fetchAll();
         <div class="info-box">
             <h3>Dados do Veículo</h3>
             <div class="info-grid">
-                <div><span class="info-label">Veículo:</span> <?php echo $orcamento['marca'] . ' ' . $orcamento['modelo']; ?></div>
-                <div><span class="info-label">Placa:</span> <?php echo $orcamento['placa']; ?></div>
-                <div><span class="info-label">Ano:</span> <?php echo $orcamento['ano'] ?: '-'; ?></div>
+                <div><span class="info-label">Veículo:</span> <?php echo esc($orcamento['marca'] . ' ' . $orcamento['modelo']); ?></div>
+                <div><span class="info-label">Placa:</span> <?php echo esc($orcamento['placa']); ?></div>
+                <div><span class="info-label">Ano:</span> <?php echo esc($orcamento['ano'] ?: '-'); ?></div>
                 <div><span class="info-label">KM:</span> <?php echo number_format($orcamento['km_atual'], 0, ',', '.'); ?></div>
             </div>
         </div>
@@ -117,7 +117,7 @@ $itens = $stmt->fetchAll();
             <tbody>
                 <?php foreach ($itens as $item): ?>
                     <tr>
-                        <td class="text-center"><?php echo $item['quantidade']; ?></td>
+                        <td class="text-center"><?php echo (int) $item['quantidade']; ?></td>
                         <td>
                             <?php echo $item['tipo'] == 'peca' ? '[Peça] ' : '[Mão de Obra] '; ?>
                             <?php echo htmlspecialchars($item['descricao_item'] ?: ($item['peca_nome'] ?: $item['servico_nome'])); ?>

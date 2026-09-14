@@ -30,7 +30,8 @@ try {
     $stmt = $conn->query("SELECT v.*, c.nome as cliente_nome FROM veiculos v LEFT JOIN clientes c ON c.id = v.cliente_id ORDER BY v.marca, v.modelo");
     echo json_encode($stmt->fetchAll());
 } catch (PDOException $e) {
+    error_log($e->getMessage());
     http_response_code(500);
-    echo json_encode(['erro' => $e->getMessage()]);
+    echo json_encode(['erro' => 'Não foi possível carregar os veículos.']);
 }
 ?>

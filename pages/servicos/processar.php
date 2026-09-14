@@ -2,6 +2,13 @@
 require_once __DIR__ . '/../../includes/sessao.php';
 require_once __DIR__ . '/../../config/conexao.php';
 
+exigir_papel(['admin', 'secretaria']);
+if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+    header('Location: listar.php');
+    exit();
+}
+validar_csrf();
+
 $acao = $_GET['acao'] ?? '';
 $id = isset($_POST['id']) ? (int)$_POST['id'] : 0;
 
@@ -48,7 +55,8 @@ try {
     header("Location: listar.php");
     exit();
 } catch (PDOException $e) {
-    $_SESSION['mensagem'] = "Erro ao processar: " . $e->getMessage();
+    error_log($e->getMessage());
+    $_SESSION['mensagem'] = "Não foi possível salvar o serviço.";
     $_SESSION['mensagem_tipo'] = "danger";
     if ($acao == 'editar') header("Location: editar.php?id=" . $id);
     else header("Location: cadastrar.php");

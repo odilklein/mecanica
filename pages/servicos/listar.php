@@ -59,8 +59,8 @@ require_once __DIR__ . '/../../includes/mensagens.php';
                 <tbody>
                     <?php if (count($servicos) > 0): foreach ($servicos as $s): ?>
                     <tr>
-                        <td data-label="Serviço"><strong><?php echo limpar($s['nome']); ?></strong></td>
-                        <td data-label="Descrição"><?php echo limpar(substr($s['descricao'] ?: '-', 0, 60)); ?></td>
+                        <td data-label="Serviço"><strong><?php echo esc($s['nome']); ?></strong></td>
+                        <td data-label="Descrição"><?php echo esc(substr($s['descricao'] ?: '-', 0, 60)); ?></td>
                         <td data-label="Preço de Mão de Obra" class="fw-600 text-success"><?php echo formatar_moeda($s['preco_mao_obra']); ?></td>
                         <td data-label="Tempo Estimado">
                             <?php
@@ -89,6 +89,7 @@ require_once __DIR__ . '/../../includes/mensagens.php';
                                         <i data-lucide="pencil"></i> Editar
                                     </a>
                                     <form method="POST" action="excluir.php" id="excluirServico<?php echo $s['id']; ?>" onsubmit="return confirmarExclusao('excluirServico<?php echo $s['id']; ?>', 'Excluir o serviço <?php echo addslashes($s['nome']); ?>?');">
+                                        <input type="hidden" name="csrf_token" value="<?php echo esc(csrf_token()); ?>">
                                         <input type="hidden" name="id" value="<?php echo $s['id']; ?>">
                                         <button type="submit" class="dropdown-item text-danger">
                                             <i data-lucide="trash-2"></i> Excluir

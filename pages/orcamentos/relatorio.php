@@ -204,7 +204,7 @@ require_once __DIR__ . '/../../includes/header.php';
                             <?php foreach ($top_clientes as $i => $tc): ?>
                             <tr>
                                 <td><span class="badge badge-secondary"><?php echo $i + 1; ?>º</span></td>
-                                <td><strong><?php echo limpar($tc['nome']); ?></strong></td>
+                                <td><strong><?php echo esc($tc['nome']); ?></strong></td>
                                 <td><?php echo $tc['total_orcamentos']; ?></td>
                                 <td class="text-end fw-600 text-success"><?php echo formatar_moeda($tc['total_gasto']); ?></td>
                             </tr>
@@ -267,7 +267,7 @@ require_once __DIR__ . '/../../includes/header.php';
                     <?php foreach ($top_servicos as $s): ?>
                     <li class="list-group-item d-flex justify-content-between align-items-center" style="background:transparent; color:var(--text-primary);">
                         <div>
-                            <strong style="font-size:0.82rem;"><?php echo limpar($s['nome']); ?></strong>
+                            <strong style="font-size:0.82rem;"><?php echo esc($s['nome']); ?></strong>
                             <div class="small text-muted"><?php echo $s['total']; ?>x realizado</div>
                         </div>
                         <span class="text-success fw-600 small"><?php echo formatar_moeda($s['receita']); ?></span>
@@ -293,7 +293,7 @@ require_once __DIR__ . '/../../includes/header.php';
                     <?php foreach ($top_pecas as $p): ?>
                     <li class="list-group-item d-flex justify-content-between align-items-center" style="background:transparent; color:var(--text-primary);">
                         <div>
-                            <strong style="font-size:0.82rem;"><?php echo limpar($p['nome']); ?></strong>
+                            <strong style="font-size:0.82rem;"><?php echo esc($p['nome']); ?></strong>
                             <div class="small text-muted"><?php echo $p['total']; ?>x vendida</div>
                         </div>
                         <span class="text-success fw-600 small"><?php echo formatar_moeda($p['receita']); ?></span>

@@ -34,7 +34,7 @@ require_once __DIR__ . '/../../includes/mensagens.php';
                                 $stmt = $conn->query("SELECT id, nome FROM clientes ORDER BY nome");
                                 foreach ($stmt->fetchAll() as $c):
                                 ?>
-                                    <option value="<?php echo $c['id']; ?>" <?php echo $cliente_preselecionado === (int) $c['id'] ? 'selected' : ''; ?>><?php echo limpar($c['nome']); ?></option>
+                                    <option value="<?php echo $c['id']; ?>" <?php echo $cliente_preselecionado === (int) $c['id'] ? 'selected' : ''; ?>><?php echo esc($c['nome']); ?></option>
                                 <?php endforeach; ?>
                             </select>
                         </div>

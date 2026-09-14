@@ -83,11 +83,11 @@ $badge_status = [
                     ?>
                     <tr>
                         <td data-label="Nº"><strong>#<?php echo str_pad($o['numero'], 4, '0', STR_PAD_LEFT); ?></strong></td>
-                        <td data-label="Cliente"><?php echo limpar($o['cliente_nome']); ?></td>
+                        <td data-label="Cliente"><?php echo esc($o['cliente_nome']); ?></td>
                         <td data-label="Veículo">
                             <?php if ($o['marca']): ?>
-                                <?php echo limpar($o['marca']) . ' ' . limpar($o['modelo']); ?>
-                                <br><small><span class="badge bg-dark"><?php echo limpar($o['placa']); ?></span></small>
+                                <?php echo esc($o['marca']) . ' ' . esc($o['modelo']); ?>
+                                <br><small><span class="badge bg-dark"><?php echo esc($o['placa']); ?></span></small>
                             <?php else: ?>-<?php endif; ?>
                         </td>
                         <td data-label="Data" data-filtro-normalizado="<?php echo $o['data_orcamento']; ?>"><small><?php echo date('d/m/Y', strtotime($o['data_orcamento'])); ?></small></td>

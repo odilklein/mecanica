@@ -245,7 +245,12 @@ try {
     exit();
 } catch (Exception $e) {
     if (isset($conn) && $conn->inTransaction()) $conn->rollBack();
-    $_SESSION['mensagem'] = "Erro ao processar: " . $e->getMessage();
+    if ($e instanceof PDOException) {
+        error_log($e->getMessage());
+        $_SESSION['mensagem'] = "Não foi possível salvar o orçamento.";
+    } else {
+        $_SESSION['mensagem'] = $e->getMessage();
+    }
     $_SESSION['mensagem_tipo'] = "danger";
     if ($acao == 'editar') {
         header("Location: editar.php?id=" . $id);

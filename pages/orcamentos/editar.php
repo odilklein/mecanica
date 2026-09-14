@@ -57,7 +57,7 @@ $scripts_extra = '<script>window.OrcamentoEditorConfig = {pecas: ' . json_encode
                             <select class="form-select" id="cliente_id" name="cliente_id" required onchange="if(typeof carregarVeiculos==='function'){carregarVeiculos(this.value, 'veiculo_id', null);}">
                                 <option value="">-- Selecione o cliente --</option>
                                 <?php foreach ($conn->query("SELECT id, nome FROM clientes ORDER BY nome")->fetchAll() as $c): ?>
-                                    <option value="<?php echo $c['id']; ?>" <?php echo $c['id'] == $orcamento['cliente_id'] ? 'selected' : ''; ?>><?php echo limpar($c['nome']); ?></option>
+                                    <option value="<?php echo $c['id']; ?>" <?php echo $c['id'] == $orcamento['cliente_id'] ? 'selected' : ''; ?>><?php echo esc($c['nome']); ?></option>
                                 <?php endforeach; ?>
                             </select>
                         </div>
@@ -73,7 +73,7 @@ $scripts_extra = '<script>window.OrcamentoEditorConfig = {pecas: ' . json_encode
                         </div>
                         <div class="col-12">
                             <label for="observacoes" class="form-label">Observações</label>
-                            <textarea class="form-control" id="observacoes" name="observacoes" rows="2"><?php echo limpar($orcamento['observacoes']); ?></textarea>
+                            <textarea class="form-control" id="observacoes" name="observacoes" rows="2"><?php echo esc($orcamento['observacoes']); ?></textarea>
                         </div>
                     </div>
                 </div>

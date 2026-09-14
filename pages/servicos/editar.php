@@ -23,7 +23,7 @@ require_once __DIR__ . '/../../includes/header.php';
 <div class="page-header">
     <div>
         <h1><i data-lucide="pencil" class="text-primary me-2"></i>Editar Serviço</h1>
-        <span class="page-subtitle"><?php echo limpar($servico['nome']); ?></span>
+        <span class="page-subtitle"><?php echo esc($servico['nome']); ?></span>
     </div>
     <a href="listar.php" class="btn btn-outline-secondary btn-icon">
         <i data-lucide="arrow-left"></i> Voltar
@@ -35,15 +35,16 @@ require_once __DIR__ . '/../../includes/header.php';
         <div class="card">
             <div class="card-body p-4">
                 <form method="POST" action="processar.php?acao=editar">
+                    <input type="hidden" name="csrf_token" value="<?php echo esc(csrf_token()); ?>">
                     <input type="hidden" name="id" value="<?php echo $servico['id']; ?>">
                     <div class="row g-3">
                         <div class="col-12">
                             <label for="nome" class="form-label">Nome do Serviço *</label>
-                            <input type="text" class="form-control" id="nome" name="nome" value="<?php echo limpar($servico['nome']); ?>" required>
+                            <input type="text" class="form-control" id="nome" name="nome" value="<?php echo esc($servico['nome']); ?>" required>
                         </div>
                         <div class="col-12">
                             <label for="descricao" class="form-label">Descrição</label>
-                            <textarea class="form-control" id="descricao" name="descricao" rows="3"><?php echo limpar($servico['descricao']); ?></textarea>
+                            <textarea class="form-control" id="descricao" name="descricao" rows="3"><?php echo esc($servico['descricao']); ?></textarea>
                         </div>
                         <div class="col-md-4">
                             <label for="preco_mao_obra" class="form-label">Preço Mão de Obra *</label>

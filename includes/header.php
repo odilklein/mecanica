@@ -58,8 +58,8 @@ $url_logout = $caminho_base . '/pages/auth/logout.php';
             </div>
             <div class="topbar-user">
                 <div class="topbar-user-avatar">
-                    <?php echo strtoupper(substr($_SESSION['usuario_nome'] ?? 'U', 0, 1)); ?>
+                    <?php echo esc(strtoupper(substr($_SESSION['usuario_nome'] ?? 'U', 0, 1))); ?>
                 </div>
-                <span class="topbar-user-name"><?php echo $_SESSION['usuario_nome'] ?? 'Usuário'; ?></span>
+                <span class="topbar-user-name"><?php echo esc($_SESSION['usuario_nome'] ?? 'Usuário'); ?></span>
             </div>
         </header>

@@ -88,16 +88,16 @@ $badge_status = [
                         <td data-label="Data" data-filtro-normalizado="<?php echo $a['data_agendamento']; ?>"><strong><?php echo date('d/m/Y', strtotime($a['data_agendamento'])); ?></strong></td>
                         <td data-label="Hora"><span class="badge bg-primary"><?php echo date('H:i', strtotime($a['hora'])); ?></span></td>
                         <td data-label="Cliente">
-                            <strong><?php echo limpar($a['cliente_nome']); ?></strong>
-                            <br><small class="text-muted"><?php echo limpar($a['cliente_telefone']); ?></small>
+                            <strong><?php echo esc($a['cliente_nome']); ?></strong>
+                            <br><small class="text-muted"><?php echo esc($a['cliente_telefone']); ?></small>
                         </td>
                         <td data-label="Veículo">
                             <?php if ($a['marca']): ?>
-                                <?php echo limpar($a['marca']) . ' ' . limpar($a['modelo']); ?>
-                                <br><small class="text-muted"><span class="badge bg-dark"><?php echo limpar($a['placa']); ?></span></small>
+                                <?php echo esc($a['marca']) . ' ' . esc($a['modelo']); ?>
+                                <br><small class="text-muted"><span class="badge bg-dark"><?php echo esc($a['placa']); ?></span></small>
                             <?php else: ?>-<?php endif; ?>
                         </td>
-                        <td data-label="Serviço"><?php echo limpar($a['servico_nome'] ?: '-'); ?></td>
+                        <td data-label="Serviço"><?php echo esc($a['servico_nome'] ?: '-'); ?></td>
                         <td data-label="Status"><span class="badge badge-<?php echo $badge_status[$a['status']]; ?>"><?php echo $status_txt; ?></span></td>
                         <td data-label="Ações" class="actions-cell">
                             <div class="dropdown table-dropdown">
@@ -108,6 +108,7 @@ $badge_status = [
                                     <h6 class="dropdown-header">Ações do agendamento</h6>
                                     <?php if ($a['status'] != 'cancelado'): ?>
                                     <form method="POST" action="processar.php?acao=mudar_status" id="concluir<?php echo $a['id']; ?>" onsubmit="return confirmarExclusao('concluir<?php echo $a['id']; ?>', 'Marcar este agendamento como concluído?');">
+                                        <input type="hidden" name="csrf_token" value="<?php echo esc(csrf_token()); ?>">
                                         <input type="hidden" name="id" value="<?php echo $a['id']; ?>">
                                         <input type="hidden" name="status" value="concluido">
                                         <button type="submit" class="dropdown-item">
@@ -119,6 +120,7 @@ $badge_status = [
                                         <i data-lucide="pencil"></i> Editar
                                     </a>
                                     <form method="POST" action="excluir.php" id="excluirAgend<?php echo $a['id']; ?>" onsubmit="return confirmarExclusao('excluirAgend<?php echo $a['id']; ?>', 'Excluir este agendamento?');">
+                                        <input type="hidden" name="csrf_token" value="<?php echo esc(csrf_token()); ?>">
                                         <input type="hidden" name="id" value="<?php echo $a['id']; ?>">
                                         <button type="submit" class="dropdown-item text-danger">
                                             <i data-lucide="trash-2"></i> Excluir

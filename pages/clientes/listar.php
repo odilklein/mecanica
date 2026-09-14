@@ -78,16 +78,16 @@ require_once __DIR__ . '/../../includes/mensagens.php';
                                     <?php echo strtoupper(substr($cliente['nome'], 0, 1)); ?>
                                 </div>
                                 <div>
-                                    <strong><?php echo limpar($cliente['nome']); ?></strong>
+                                    <strong><?php echo esc($cliente['nome']); ?></strong>
                                     <br>
                                     <small class="text-muted">Cliente #<?php echo $cliente['id']; ?></small>
                                 </div>
                             </div>
                         </td>
-                        <td data-label="CPF"><?php echo limpar($cliente['cpf']); ?></td>
-                        <td data-label="Telefone"><?php echo limpar($cliente['telefone']); ?></td>
-                        <td data-label="Email"><?php echo limpar($cliente['email']); ?></td>
-                        <td data-label="Cidade"><?php echo limpar($cliente['cidade'] ?: '-'); ?></td>
+                        <td data-label="CPF"><?php echo esc($cliente['cpf']); ?></td>
+                        <td data-label="Telefone"><?php echo esc($cliente['telefone']); ?></td>
+                        <td data-label="Email"><?php echo esc($cliente['email']); ?></td>
+                        <td data-label="Cidade"><?php echo esc($cliente['cidade'] ?: '-'); ?></td>
                         <td data-label="Cadastro" data-filtro-normalizado="<?php echo date('Y-m-d', strtotime($cliente['data_cadastro'])); ?>">
                             <small class="text-muted"><?php echo date('d/m/Y', strtotime($cliente['data_cadastro'])); ?></small>
                         </td>

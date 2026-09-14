@@ -90,7 +90,8 @@ try {
     header("Location: listar.php");
     exit();
 } catch (PDOException $e) {
-    $_SESSION['mensagem'] = "Erro ao processar: " . $e->getMessage();
+    error_log($e->getMessage());
+    $_SESSION['mensagem'] = "Não foi possível salvar o veículo.";
     $_SESSION['mensagem_tipo'] = "danger";
     if ($acao == 'editar') {
         header("Location: editar.php?id=" . $id);

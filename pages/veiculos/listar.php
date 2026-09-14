@@ -36,7 +36,7 @@ require_once __DIR__ . '/../../includes/mensagens.php';
                 <select class="form-select" id="filtroCliente" data-filtro-tabela="tabelaVeiculos" data-filtro-coluna="Cliente">
                     <option value="">Todos</option>
                     <?php foreach ($clientes_opcoes as $c): ?>
-                        <option value="<?php echo esc($c['nome']); ?>"><?php echo limpar($c['nome']); ?></option>
+                        <option value="<?php echo esc($c['nome']); ?>"><?php echo esc($c['nome']); ?></option>
                     <?php endforeach; ?>
                 </select>
             </div>
@@ -67,10 +67,10 @@ require_once __DIR__ . '/../../includes/mensagens.php';
                     <tr>
                         <td data-label="Veículo">
                             <i data-lucide="car" class="text-muted me-2"></i>
-                            <strong><?php echo limpar($v['marca']); ?> <?php echo limpar($v['modelo']); ?></strong>
+                            <strong><?php echo esc($v['marca']); ?> <?php echo esc($v['modelo']); ?></strong>
                         </td>
-                        <td data-label="Placa"><span class="badge bg-dark"><?php echo limpar($v['placa']); ?></span></td>
-                        <td data-label="Cliente"><?php echo limpar($v['cliente_nome']); ?></td>
+                        <td data-label="Placa"><span class="badge bg-dark"><?php echo esc($v['placa']); ?></span></td>
+                        <td data-label="Cliente"><?php echo esc($v['cliente_nome']); ?></td>
                         <td data-label="Ano"><?php echo $v['ano']; ?></td>
                         <td data-label="Cor">
                             <?php
@@ -78,7 +78,7 @@ require_once __DIR__ . '/../../includes/mensagens.php';
                             if ($cor_hex):
                             ?>
                                 <span class="color-badge" style="background-color:<?php echo esc($cor_hex); ?>" title="<?php echo esc($v['cor']); ?>"></span>
-                                <span class="ms-1"><?php echo limpar($v['cor']); ?></span>
+                                <span class="ms-1"><?php echo esc($v['cor']); ?></span>
                             <?php else: ?>-<?php endif; ?>
                         </td>
                         <td data-label="KM Atual"><?php echo number_format($v['km_atual'], 0, ',', '.'); ?> km</td>

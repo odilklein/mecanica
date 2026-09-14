@@ -9,6 +9,8 @@ if ($_SERVER['REQUEST_METHOD'] != 'POST') {
     exit();
 }
 
+validar_csrf();
+
 $peca_id = (int)($_POST['peca_id'] ?? 0);
 $tipo = $_POST['tipo'] ?? 'entrada';
 $quantidade = (int)($_POST['quantidade'] ?? 0);
@@ -78,7 +80,12 @@ try {
     exit();
 } catch (Exception $e) {
     $conn->rollBack();
-    $_SESSION['mensagem'] = "Erro: " . $e->getMessage();
+    if ($e instanceof PDOException) {
+        error_log($e->getMessage());
+        $_SESSION['mensagem'] = "Não foi possível atualizar o estoque.";
+    } else {
+        $_SESSION['mensagem'] = $e->getMessage();
+    }
     $_SESSION['mensagem_tipo'] = "danger";
     header("Location: entrada.php");
     exit();

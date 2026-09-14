@@ -1,0 +1,19 @@
+# =============================================
+# SEGURANCA - Auto Mecanica
+# Bloqueia acesso direto a arquivos sensiveis
+# =============================================
+
+# Impede listagem de diretorios
+<IfModule mod_autoindex.c>
+    Options -Indexes
+</IfModule>
+
+# Bloqueia arquivos sensiveis por extensao
+<FilesMatch "\.(env|sql|log|md|sh|ini|bak|old|example)$">
+    Require all denied
+</FilesMatch>
+
+# Bloqueia arquivos ocultos (.env, .gitignore, etc.)
+<FilesMatch "^\.">
+    Require all denied
+</FilesMatch>

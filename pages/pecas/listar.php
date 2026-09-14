@@ -48,7 +48,7 @@ $estoque_baixo = $stmt->fetch()['total'];
                 <select class="form-select" id="filtroCategoria" data-filtro-tabela="tabelaPecas" data-filtro-coluna="Categoria">
                     <option value="">Todas</option>
                     <?php foreach ($categorias as $cat): ?>
-                        <option value="<?php echo esc($cat['categoria']); ?>"><?php echo limpar($cat['categoria']); ?></option>
+                        <option value="<?php echo esc($cat['categoria']); ?>"><?php echo esc($cat['categoria']); ?></option>
                     <?php endforeach; ?>
                 </select>
             </div>
@@ -102,14 +102,14 @@ $estoque_baixo = $stmt->fetch()['total'];
                         }
                     ?>
                     <tr class="<?php echo ($p['quantidade'] <= $p['estoque_minimo']) ? 'estoque-alert-row' : ''; ?>">
-                        <td data-label="Código"><span class="badge bg-secondary"><?php echo limpar($p['codigo']); ?></span></td>
+                        <td data-label="Código"><span class="badge bg-secondary"><?php echo esc($p['codigo']); ?></span></td>
                         <td data-label="Peça">
-                            <strong><?php echo limpar($p['nome']); ?></strong>
+                            <strong><?php echo esc($p['nome']); ?></strong>
                             <?php if ($p['descricao']): ?>
-                                <br><small class="text-muted"><?php echo limpar(substr($p['descricao'], 0, 50)) . (strlen($p['descricao']) > 50 ? '...' : ''); ?></small>
+                                <br><small class="text-muted"><?php echo esc(substr($p['descricao'], 0, 50)) . (strlen($p['descricao']) > 50 ? '...' : ''); ?></small>
                             <?php endif; ?>
                         </td>
-                        <td data-label="Categoria"><?php echo limpar($p['categoria'] ?: '-'); ?></td>
+                        <td data-label="Categoria"><?php echo esc($p['categoria'] ?: '-'); ?></td>
                         <td data-label="Qtd">
                             <strong class="<?php echo ($p['quantidade'] <= $p['estoque_minimo']) ? 'text-warning' : ''; ?>">
                                 <?php echo $p['quantidade']; ?>
@@ -133,6 +133,7 @@ $estoque_baixo = $stmt->fetch()['total'];
                                         <i data-lucide="pencil"></i> Editar
                                     </a>
                                     <form method="POST" action="excluir.php" id="excluirPeca<?php echo $p['id']; ?>" onsubmit="return confirmarExclusao('excluirPeca<?php echo $p['id']; ?>', 'Excluir a peça <?php echo addslashes($p['nome']); ?>?');">
+                                        <input type="hidden" name="csrf_token" value="<?php echo esc(csrf_token()); ?>">
                                         <input type="hidden" name="id" value="<?php echo $p['id']; ?>">
                                         <button type="submit" class="dropdown-item text-danger">
                                             <i data-lucide="trash-2"></i> Excluir

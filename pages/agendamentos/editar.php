@@ -23,7 +23,7 @@ require_once __DIR__ . '/../../includes/header.php';
 <div class="page-header">
     <div>
         <h1><i data-lucide="pencil" class="text-primary me-2"></i>Editar Agendamento</h1>
-        <span class="page-subtitle">Agendamento de <?php echo limpar($agendamento['cliente_nome']); ?></span>
+        <span class="page-subtitle">Agendamento de <?php echo esc($agendamento['cliente_nome']); ?></span>
     </div>
     <a href="listar.php" class="btn btn-outline-secondary btn-icon">
         <i data-lucide="arrow-left"></i> Voltar
@@ -35,6 +35,7 @@ require_once __DIR__ . '/../../includes/header.php';
         <div class="card">
             <div class="card-body p-4">
                 <form method="POST" action="processar.php?acao=editar" onsubmit="return validarAgendamento()">
+                    <input type="hidden" name="csrf_token" value="<?php echo esc(csrf_token()); ?>">
                     <input type="hidden" name="id" value="<?php echo $agendamento['id']; ?>">
                     <div class="row g-3">
                         <div class="col-md-6">
@@ -46,7 +47,7 @@ require_once __DIR__ . '/../../includes/header.php';
                                 foreach ($stmt->fetchAll() as $c):
                                     $selected = ($c['id'] == $agendamento['cliente_id']) ? 'selected' : '';
                                 ?>
-                                    <option value="<?php echo $c['id']; ?>" <?php echo $selected; ?>><?php echo limpar($c['nome']); ?></option>
+                                    <option value="<?php echo $c['id']; ?>" <?php echo $selected; ?>><?php echo esc($c['nome']); ?></option>
                                 <?php endforeach; ?>
                             </select>
                         </div>
@@ -65,7 +66,7 @@ require_once __DIR__ . '/../../includes/header.php';
                                 foreach ($stmt->fetchAll() as $s):
                                     $selected = ($s['id'] == $agendamento['servico_id']) ? 'selected' : '';
                                 ?>
-                                    <option value="<?php echo $s['id']; ?>" <?php echo $selected; ?>><?php echo limpar($s['nome']); ?></option>
+                                    <option value="<?php echo $s['id']; ?>" <?php echo $selected; ?>><?php echo esc($s['nome']); ?></option>
                                 <?php endforeach; ?>
                             </select>
                         </div>
@@ -88,7 +89,7 @@ require_once __DIR__ . '/../../includes/header.php';
                         </div>
                         <div class="col-md-4">
                             <label for="observacoes" class="form-label">Observações</label>
-                            <textarea class="form-control" id="observacoes" name="observacoes" rows="3"><?php echo limpar($agendamento['observacoes']); ?></textarea>
+                            <textarea class="form-control" id="observacoes" name="observacoes" rows="3"><?php echo esc($agendamento['observacoes']); ?></textarea>
                         </div>
                     </div>
                     <div class="d-flex justify-content-between mt-4">
