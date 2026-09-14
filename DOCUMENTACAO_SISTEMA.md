@@ -79,9 +79,10 @@ A autorizacao deve existir no backend. Ocultar um item da sidebar nao e consider
 
 ```text
 index.php                       Dashboard por papel
-api/                            Endpoints antigos de veiculos
+api/
+  notificacoes.php              JSON de notificacoes + marcar lida
 config/
-  conexao.php                   Conexao PDO e helpers de escaping/moeda
+  conexao.php                   Conexao PDO, helpers de escaping/moeda e carregador de .env
   empresa.php                   Dados visuais da empresa
 css/style.css                   Design system e estilos globais
 includes/
@@ -89,26 +90,30 @@ includes/
   header.php                    Cabecalho, CSS, Bootstrap e Lucide
   footer.php                    Scripts finais
   mensagens.php                 Mensagens flash
+  notificacoes.php              Helpers: notificar_usuarios/tipos/responsaveis_os
+  auditoria.php                 Registro de acoes sensiveis na tabela auditoria
   sessao.php                    Sessao, login obrigatorio, CSRF e roles
   sidebar.php                   Navegacao por papel
-js/main.js                      Mascara, filtros e comportamento global
+js/main.js                      Mascara, wizard, listas dinamicas, audio, tema, notificacoes
 pages/
-  auth/                         Login e logout
+  auth/                         Login, logout e perfil (Meus dados)
   clientes/                     CRUD e detalhe do cliente
   funcionarios/                 CRUD de funcionarios
   veiculos/                     CRUD de veiculos
-  ordens_servico/               Criacao, fila, detalhe e processamento da OS
-  pedidos_pecas/                Solicitacao, validacao, pedido e recebimento
+  ordens_servico/               Criacao (wizard), fila, detalhe e processamento da OS
+  pedidos_pecas/                Solicitacao, validacao, pedido, recebimento parcial e total
+  notificacoes/                 Tela dedicada com filtros, busca e paginacao
+  backup/                       Backup do banco (gera/baixa/exclui .sql) - somente admin
   orcamentos/                   Modulo ainda existente, restrito a secretaria/chefia/admin
   pecas/                        Modulo legado de catalogo/estoque, restrito
   servicos/                     Modulo legado, fora da navegacao principal
   agendamentos/                 Modulo legado, fora da navegacao principal
 sql/
-  mecanica.sql                  Schema original
-  002_operacao_oficina.sql      Migracao inicial de OS e operacao
-  003_simplificacao_operacional.sql Migracao de funcionarios, tarefas e status
-  mecanica_teste.sql            Banco completo recriado com dados de teste
-  seed_mock.sql                 Dados antigos de demonstracao
+  mecanica_teste.sql            Banco completo recriado com dados de demonstracao e logins
+  seed_mock.sql                 Mesmos dados de demonstracao, para aplicar em banco ja criado
+uploads/
+  audio/                        Audios gravados nas tarefas das OS
+  backups/                      Arquivos .sql gerados pela tela de backup
 ```
 
 ---
@@ -150,12 +155,15 @@ Nao adicionar ao dashboard novo metricas de estoque, faturamento, agendamento ou
 `includes/sidebar.php` mostra atualmente:
 
 - Painel.
+- Notificacoes.
 - Clientes.
 - Veiculos.
 - Funcionarios.
 - Ordens de servico.
 - Pedidos de pecas.
 - Orcamentos, para admin/secretaria/mecanico chefe.
+- Relatorios, para admin/secretaria/mecanico chefe.
+- Backup do banco, somente admin.
 
 Estoque, servicos e agendamentos foram retirados da navegacao principal. As paginas legadas ainda existem, mas nao devem ser tratadas como fluxo principal.
 
@@ -386,7 +394,9 @@ Status `solicitado` significa que ainda nao houve validacao. Nao tratar como com
 
 Ao receber:
 
-- Atualizar pedido para `recebido`.
+- Registrar recebimento por item em `pages/pedidos_pecas/editar.php` (secao "Registrar recebimento").
+- O sistema aceita recebimento parcial: enquanto houver itens pendentes, o pedido permanece em andamento.
+- Quando todos os itens estao recebidos, o pedido vai para `recebido`.
 - Registrar usuario/data de recebimento.
 - Notificar responsaveis da OS.
 - Liberar a OS para `pronta_para_execucao` quando aplicavel.
@@ -439,13 +449,19 @@ Use `sql/mecanica_teste.sql` em um banco de testes vazio. O script:
 
 Logins do seed sao documentados dentro do proprio arquivo SQL. Eles sao somente para ambiente local/teste e nao devem ser usados em producao.
 
-### Migracoes incrementais
+### Migracoes e banco de testes
 
-- `sql/mecanica.sql`: estrutura original.
-- `sql/002_operacao_oficina.sql`: adiciona OS, eventos, responsaveis, pedidos, entregas, notificacoes e auditoria.
-- `sql/003_simplificacao_operacional.sql`: adiciona dados de funcionarios, tarefas, historico e status de validacao de pecas.
+O arquivo unico de referencia e `sql/mecanica_teste.sql`. Ele:
 
-As migracoes antigas nao sao totalmente idempotentes. Para desenvolvimento novo, prefira importar `mecanica_teste.sql` em banco vazio. Para banco existente, faca backup e execute as migracoes uma unica vez, verificando cada etapa.
+- Cria o banco `mecanica`.
+- Remove tabelas existentes do mesmo banco.
+- Recria tabelas atuais (incluindo `os_tarefas_audios`).
+- Insere clientes, veiculos, funcionarios, OS, tarefas, pedidos, eventos, orcamentos, entregas e notificacoes de demonstracao.
+- Documenta os logins de teste no proprio arquivo.
+
+Para ambiente de teste, basta importar `mecanica_teste.sql` em um banco vazio no phpMyAdmin. O `sql/seed_mock.sql` mantem os mesmos dados para quem ja tem o schema criado e quer apenas preencher os registros.
+
+As migracoes incrementais antigas (`sql/mecanica.sql`, `002_operacao_oficina.sql`, `003_simplificacao_operacional.sql`, `004_audio_tarefas.sql`) foram consolidadas no `mecanica_teste.sql` e nao sao mais entregues separadamente.
 
 ### Tabelas relevantes
 
@@ -458,6 +474,7 @@ As migracoes antigas nao sao totalmente idempotentes. Para desenvolvimento novo,
 | `os_eventos` | Historico de mudancas da OS |
 | `os_responsaveis` | Funcionarios designados |
 | `os_tarefas` | Trabalho detalhado da OS |
+| `os_tarefas_audios` | Audios anexados as tarefas |
 | `pedidos_pecas` | Solicitacao/compra/recebimento |
 | `pedido_pecas_itens` | Itens e quantidades do pedido |
 | `os_entregas` | Entrega/retirada do carro |
@@ -504,9 +521,9 @@ DB_PASS
 DB_NAME
 ```
 
-O arquivo `.env` da raiz nao e carregado automaticamente por PHP. Nao presuma que escrever `DB_USER=...` nele altera a aplicacao sem configurar o Apache/PHP para exportar essas variaveis.
+A conexao prioriza `getenv()` e, se um arquivo `.env` existir na raiz, um carregador PHP puro presente em `config/conexao.php` exporta as variaveis antes de definir os fallback (`localhost`, `root`, senha vazia, banco `mecanica`). Assim, definir `DB_USER=...` no `.env` passa a funcionar sem configurar o Apache manualmente.
 
-O `.env` atual tambem contem anotacoes de logins de teste. Ele e ignorado pelo Git e nao deve receber segredos de producao.
+O `.env` atual contem apenas anotacoes de logins de teste. Ele e ignorado pelo Git e nao deve receber segredos de producao.
 
 ---
 
@@ -588,16 +605,15 @@ Depois da implementacao:
 
 1. PHP CLI nao esta disponivel neste ambiente; a validacao final deve ser feita no PHP do XAMPP.
 2. Nao ha suite automatizada de testes.
-3. Migracoes nao possuem tabela de versao e nao sao completamente reexecutaveis.
-4. O modulo de notificacoes ainda nao tem uma tela dedicada; os registros sao criados no banco.
-5. O recebimento de pecas ainda pode evoluir para recebimento parcial por item.
-6. A entrega possui estrutura de dados, mas pode ganhar fluxo separado para tentativa/retorno.
-7. Orcamentos ainda possuem telas legadas de edicao e impressao que devem ser alinhadas ao novo formato manual.
-8. O modulo de servicos, agendamentos, estoque e paginas antigas ainda existe fisicamente, embora esteja fora da navegacao principal.
-9. O `.env` nao e carregado automaticamente pelo PHP.
-10. A senha de teste deve ser alterada ou removida antes de qualquer ambiente acessivel externamente.
-11. O sistema ainda precisa de rotacao de logs, politica de senha, rate limit de login e rotina formal de backup.
-12. O sistema ainda nao possui portal do cliente, integracao real com WhatsApp, e-mail transacional ou pagamento Pix.
+3. O modulo de notificacoes tem UI de sino, leitura e tela dedicada com filtros/paginacao; os registros sao criados em `notificacoes`.
+4. O recebimento de pecas aceita recebimento parcial por item; pode evoluir para conferencia com notas de entrega.
+5. A entrega possui estrutura de dados, mas pode ganhar fluxo separado para tentativa/retorno (hoje o registro ja conclui).
+6. Orcamentos ainda possuem telas legadas de edicao e impressao que devem ser alinhadas ao novo formato manual.
+7. O modulo de servicos, agendamentos, estoque e paginas antigas ainda existe fisicamente, embora esteja fora da navegacao principal.
+8. A senha de teste deve ser alterada ou removida antes de qualquer ambiente acessivel externamente.
+9. O sistema ainda precisa de rotacao de logs, politica de senha e rate limit de login.
+10. O sistema ainda nao possui portal do cliente, integracao real com WhatsApp, e-mail transacional ou pagamento Pix.
+11. A tela de backup gera `.sql` via PHP puro; para bancos grandes, avaliar `mysqldump` com agendamento externo.
 
 ---
 
@@ -618,3 +634,47 @@ Role/autorizacao
 ```
 
 Se uma proposta criar um fluxo paralelo fora dessa cadeia, revisar a modelagem antes de codar.
+
+---
+
+## 17. Notificacoes, audio nas tarefas, perfil e documentacao
+
+### Notificacoes
+
+- Tabela `notificacoes`: usuario, OS, tipo, mensagem, `lida_em`, `criada_em`.
+- Helpers em `includes/notificacoes.php`:
+  - `notificar_usuarios()` - para IDs especificos.
+  - `notificar_tipos()` - para todos os usuarios ativos de determinados perfis (com `ignorar_usuario`).
+  - `notificar_responsaveis_os()` - para os vinculados ativos da OS (`concluido_em IS NULL`).
+- Endpoint `api/notificacoes.php` (JSON):
+  - GET: contador de nao lidas + ultimas 15 com tempo relativo.
+  - POST `marcar_lida` / `marcar_todas_lidas` (exige `X-CSRF-Token`).
+- Interface: sino no topbar com contador, atualizacao a cada 30s, clique marca lida e abre o detalhe da OS.
+
+### Audio nas tarefas
+
+- Tabela `os_tarefas_audios` (migracao `sql/004_audio_tarefas.sql`): `tarefa_id`, `arquivo`, `duracao_seg`, `criado_em`.
+- Fluxo: o wizard grava com `MediaRecorder` (ate ~120s), envia `data:audio/...;base64`, o backend valida MIME-mapeado e tamanho (max 15MB) e salva em `uploads/audio/`.
+- Regra: falha ao salvar audio nao derruba a criacao da OS (log via `error_log`).
+
+### Perfil do usuario
+
+- `pages/auth/perfil.php` / `perfil_processar.php`: edicao de `nome`, `email` e `senha` pelo proprio usuario, com validacao de email unico e senha >= 8 caracteres. O perfil (`tipo`) nao pode ser alterado pelo proprio usuario.
+
+### Auditoria
+
+- Tabela `auditoria`: `usuario_id`, `entidade`, `entidade_id`, `acao`, `dados` (JSON) e data.
+- Helper em `includes/auditoria.php`: `registrar_auditoria($conn, $usuario_id, $acao, $entidade, $entidade_id, $descricao, $dados)`.
+- Registra login, logout, criacao/edicao de clientes, veiculos, funcionarios, OS, pedidos de pecas e orcamentos, exclusoes e acoes de backup.
+- Uma falha ao gravar auditoria nunca bloqueia a acao principal (apenas `error_log`).
+
+### Backup do banco
+
+- `pages/backup/index.php` (somente admin): gera um dump `.sql` completo via PHP puro (sem `mysqldump`), salva em `uploads/backups/`, lista arquivos com tamanho/data e permite baixar `baixar.php` ou excluir.
+- Valores de data/hora e tamanho aparecem na lista; o download e protegido contra path traversal.
+
+### Documentacao (site separado)
+
+- A documentacao do sistema (este arquivo em formato navegavel) vive em um **site estatico separado**, na pasta irma `mecanica-docs/` (fora do repositorio), servida por exemplo em `http://localhost/mecanica-docs/`.
+- Paginas: visao geral, regras de negocio, perfis/permissões, funcoes do sistema, banco de dados, seguranca, instalacao e convencoes.
+- E construida com HTML/CSS/JS puro (`assets/css/docs.css`, `assets/js/docs.js`), diagramas Mermaid via CDN, e nao exige login.
