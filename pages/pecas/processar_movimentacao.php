@@ -1,6 +1,7 @@
 <?php
 require_once __DIR__ . '/../../includes/sessao.php';
 require_once __DIR__ . '/../../config/conexao.php';
+require_once __DIR__ . '/../../includes/notificacoes.php';
 exigir_papel(['admin', 'secretaria']);
 
 if ($_SERVER['REQUEST_METHOD'] != 'POST') {
@@ -24,7 +25,7 @@ try {
     $conn->beginTransaction();
 
     // Consulta quantidade atual
-    $stmt = $conn->prepare("SELECT quantidade FROM pecas WHERE id = :id FOR UPDATE");
+    $stmt = $conn->prepare("SELECT quantidade, nome, estoque_minimo FROM pecas WHERE id = :id FOR UPDATE");
     $stmt->bindParam(':id', $peca_id);
     $stmt->execute();
     $peca = $stmt->fetch();
@@ -66,6 +67,10 @@ try {
     $stmt->execute();
 
     $conn->commit();
+
+    if ($nova_quantidade < $peca['estoque_minimo']) {
+        notificar_tipos($conn, ['admin', 'secretaria', 'mecanico_chefe'], null, 'estoque', 'A peça "' . $peca['nome'] . '" está com estoque abaixo do mínimo (' . $nova_quantidade . ' un. / mínimo ' . $peca['estoque_minimo'] . ').');
+    }
 
     $_SESSION['mensagem'] = "Estoque atualizado com sucesso! Nova quantidade: " . $nova_quantidade . ".";
     $_SESSION['mensagem_tipo'] = "success";
