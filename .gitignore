@@ -1,3 +1,5 @@
 .env
 *.log
 vendor/
+uploads/backups/*
+!uploads/backups/.htaccess
