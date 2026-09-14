@@ -316,6 +316,18 @@ CREATE TABLE orcamento_itens (
   FOREIGN KEY (servico_id) REFERENCES servicos(id) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
+-- =============================================
+-- ÍNDICES de apoio às consultas mais frequentes
+-- =============================================
+ALTER TABLE ordens_servico       ADD INDEX idx_os_status (status, data_atualizacao);
+ALTER TABLE ordens_servico       ADD INDEX idx_os_prioridade (prioridade);
+ALTER TABLE os_responsaveis      ADD INDEX idx_os_responsaveis_usuario (usuario_id, concluido_em);
+ALTER TABLE os_eventos           ADD INDEX idx_os_eventos_os (os_id, criado_em);
+ALTER TABLE pedidos_pecas        ADD INDEX idx_pedidos_status (status, criado_em);
+ALTER TABLE notificacoes         ADD INDEX idx_notificacoes_usuario (usuario_id, lida_em);
+ALTER TABLE auditoria            ADD INDEX idx_auditoria_data (criado_em);
+ALTER TABLE movimentacoes_estoque ADD INDEX idx_movimentacoes_peca (peca_id, data_movimentacao);
+
 SET FOREIGN_KEY_CHECKS = 1;
 
 -- =============================================

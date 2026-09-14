@@ -1,17 +1,25 @@
 # Documentacao do Sistema - Auto Mecanica
 
+> A documentacao navegavel em `mecanica-docs/` (site estatico, publicado no Cloudflare Pages)
+> e a referencia principal e costuma ser a mais atual. Este Markdown resume o sistema para
+> anexar ao relatorio do PI.
+
 ## 1. Objetivo
 
-Este projeto e um sistema interno de operacao para uma oficina mecanica. O fluxo principal foi simplificado para quatro areas:
+Este projeto e um sistema interno de operacao para uma oficina mecanica. O nucleo operacional cobre:
 
 1. Clientes e veiculos.
-2. Funcionarios e permissoes.
-3. Ordens de servico (OS).
+2. Funcionarios e permissoes (4 perfis: admin, secretaria, mecanico-chefe e mecanico).
+3. Ordens de servico (OS) — centro do dominio.
 4. Pedidos de pecas vinculados a OS.
 
-A OS e o centro do dominio. Ela registra a queixa do cliente, o diagnostico, as tarefas, os funcionarios responsaveis, as pecas necessarias, o andamento e a entrega/retirada do veiculo.
+Modulos de apoio: orcamentos, notificacoes, auditoria, backup do banco e um catalogo de estoque
+legado (pecas). A OS registra a queixa do cliente, o diagnostico, as tarefas, os funcionarios
+responsaveis, as pecas necessarias, o andamento e a entrega/retirada do veiculo.
 
-O sistema usa PHP procedural, PDO/MySQL, Bootstrap, CSS proprio e Lucide Icons. Nao ha framework PHP, Composer, API REST formal ou camada de servicos separada.
+O sistema usa PHP procedural, PDO/MySQL, Bootstrap, CSS proprio (tema claro/escuro e responsivo),
+Lucide Icons e Cloudflare Turnstile no login. Nao ha framework PHP, Composer, API REST formal nem
+camada de servicos separada. As credenciais ficam fora do Git (`.env` ou `config/config.local.php`).
 
 ---
 
