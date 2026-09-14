@@ -6,6 +6,7 @@
 // =============================================
 
 require_once __DIR__ . '/../config/env.php';
+require_once __DIR__ . '/../config/turnstile.php';
 
 if (!function_exists('turnstile_secret')) {
     function turnstile_secret(): string
@@ -15,10 +16,11 @@ if (!function_exists('turnstile_secret')) {
 }
 
 if (!function_exists('turnstile_habilitado')) {
-    // Só há verificação quando o secret está configurado no .env.
+    // Ativo somente com a site key E o secret configurados. Sem os dois o
+    // widget não renderiza e o login seria bloqueado indevidamente.
     function turnstile_habilitado(): bool
     {
-        return turnstile_secret() !== '';
+        return turnstile_site_key() !== '' && turnstile_secret() !== '';
     }
 }
 
@@ -89,19 +91,39 @@ if (!function_exists('turnstile_siteverify')) {
 if (!function_exists('turnstile_verificar')) {
     /**
      * Valida o token do widget.
-     * Retorna ['ok' => bool, 'motivo' => string, 'ignorado' => bool].
-     * Se o secret não estiver configurado, retorna ok=true e ignorado=true
-     * (o sistema continua funcionando até você configurar o TURNSTILE_SECRET).
+     * Retorna ['ok' => bool, 'ignorado' => bool, 'motivo' => string,
+     *          'codigo' => string, 'detalhe' => string].
+     * - ok=true/ignorado=true: verificação desativada (config incompleta).
+     * - codigo 'token_ausente': o desafio não foi concluído no formulário.
+     * - 'detalhe' traz error-codes/hostname da Cloudflare (para o error.log),
+     *   nunca contém o secret.
      */
     function turnstile_verificar(?string $token, string $acao_esperada = ''): array
     {
-        if (!turnstile_habilitado()) {
-            return ['ok' => true, 'motivo' => 'Turnstile desabilitado: TURNSTILE_SECRET não configurado.', 'ignorado' => true];
+        $faltando = [];
+        if (turnstile_site_key() === '') {
+            $faltando[] = 'TURNSTILE_SITE_KEY';
+        }
+        if (turnstile_secret() === '') {
+            $faltando[] = 'TURNSTILE_SECRET';
+        }
+        if ($faltando) {
+            return [
+                'ok' => true,
+                'ignorado' => true,
+                'codigo' => 'desativado',
+                'motivo' => 'Turnstile desativado: configure ' . implode(' e ', $faltando) . ' no .env/config.local.php.',
+            ];
         }
 
         $token = (string) $token;
         if ($token === '' || strlen($token) > 2048) {
-            return ['ok' => false, 'motivo' => 'Token do Turnstile ausente ou inválido.', 'ignorado' => false];
+            return [
+                'ok' => false,
+                'ignorado' => false,
+                'codigo' => 'token_ausente',
+                'motivo' => 'Token do Turnstile ausente ou inválido (desafio não concluído ou widget não renderizou).',
+            ];
         }
 
         $campos = [
@@ -115,20 +137,48 @@ if (!function_exists('turnstile_verificar')) {
 
         $resultado = turnstile_siteverify($campos);
         if ($resultado === null) {
-            return ['ok' => false, 'motivo' => 'Falha ao consultar o Turnstile.', 'ignorado' => false];
+            return [
+                'ok' => false,
+                'ignorado' => false,
+                'codigo' => 'comunicacao',
+                'motivo' => 'Falha ao consultar o Turnstile (rede/siteverify).',
+            ];
         }
+
+        $detalhe = 'error-codes=' . json_encode($resultado['error-codes'] ?? [])
+            . ' action=' . ($resultado['action'] ?? '(vazio)')
+            . ' hostname=' . ($resultado['hostname'] ?? '(vazio)');
+
         if (empty($resultado['success'])) {
-            return ['ok' => false, 'motivo' => 'Verificação anti-bot não aprovada.', 'ignorado' => false];
+            return [
+                'ok' => false,
+                'ignorado' => false,
+                'codigo' => 'nao_aprovado',
+                'motivo' => 'Verificação anti-bot não aprovada pela Cloudflare.',
+                'detalhe' => $detalhe,
+            ];
         }
         if ($acao_esperada !== '' && (($resultado['action'] ?? '') !== $acao_esperada)) {
-            return ['ok' => false, 'motivo' => 'Ação inesperada no token.', 'ignorado' => false];
+            return [
+                'ok' => false,
+                'ignorado' => false,
+                'codigo' => 'acao',
+                'motivo' => 'Ação inesperada no token (esperada: ' . $acao_esperada . ').',
+                'detalhe' => $detalhe,
+            ];
         }
 
         $hostnames = turnstile_hostnames();
         if ($hostnames && !in_array((string) ($resultado['hostname'] ?? ''), $hostnames, true)) {
-            return ['ok' => false, 'motivo' => 'Hostname não permitido.', 'ignorado' => false];
+            return [
+                'ok' => false,
+                'ignorado' => false,
+                'codigo' => 'hostname',
+                'motivo' => 'Hostname não permitido: ' . ($resultado['hostname'] ?? '(vazio)') . ' não está em TURNSTILE_HOSTNAMES.',
+                'detalhe' => 'permitidos=' . implode(',', $hostnames),
+            ];
         }
 
-        return ['ok' => true, 'motivo' => '', 'ignorado' => false];
+        return ['ok' => true, 'ignorado' => false, 'codigo' => 'ok', 'motivo' => ''];
     }
 }

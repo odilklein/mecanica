@@ -36,7 +36,7 @@ $url_logout = $caminho_base . '/pages/auth/logout.php';
             <div class="brand-icon">
                 <i data-lucide="wrench"></i>
             </div>
-            <span class="brand-text">Auto Mecânica Leme</span>
+            <span class="brand-text"><?php echo esc(EMPRESA_NOME); ?></span>
         </div>
         <button class="sidebar-collapse-btn" id="sidebarCollapseBtn" title="Minimizar sidebar">
             <i data-lucide="chevron-left"></i>

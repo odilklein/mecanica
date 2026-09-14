@@ -1,4 +1,4 @@
-# Auto Mecânica Leme — Sistema de Gestão de Oficina
+# Auto Mecânica — Sistema de Gestão de Oficina
 
 Projeto Integrador (PI) de um sistema web para gestão de oficina mecânica.
 Stack simples e funcional: **PHP (puro) + MySQL + JavaScript + HTML/CSS + Bootstrap 5**.
@@ -96,11 +96,29 @@ via `siteverify` antes de conferir as credenciais.
    Em produção, use `TURNSTILE_HOSTNAMES` apenas com o domínio real
    (remova `localhost`/`127.0.0.1`).
 
-Enquanto `TURNSTILE_SECRET` estiver vazio, a verificação fica **desativada**
-(o login continua funcionando) para não travar o ambiente. A verificação é
-aplicada automaticamente assim que o secret é preenchido.
+Enquanto a configuração estiver incompleta (falta site key ou secret), a verificação
+fica **desativada** e o login continua funcionando. Ela é aplicada quando os dois
+valores existem **e** o domínio de acesso está no widget e em `TURNSTILE_HOSTNAMES`.
 
 Arquivos: `config/turnstile.php` (site key pública), `includes/turnstile.php`
 (siteverify server-side) e `pages/auth/login.php` / `login_processar.php`
 (widget + gate).
+
+## Deploy em produção (checklist)
+
+1. Suba os arquivos do projeto (inclua os `.htaccess`, `config/` e `uploads/`).
+2. No servidor, crie o `.env` (ou `config/config.local.php`) com as credenciais
+   **do host** e os valores do Turnstile. Não suba o `.env` do ambiente local.
+3. No painel da Cloudflare → Turnstile → widget, aceite o **domínio de produção**
+   (mantenha `localhost`/`127.0.0.1` só se for testar local).
+4. No servidor, `TURNSTILE_HOSTNAMES` = **apenas o domínio de produção**.
+5. Confirme que `https://SEU-DOMINIO/.env` retorna 403/404 (nunca o conteúdo).
+6. Ajuste e importe `sql/mecanica_teste.sql` em um banco vazio; troque as senhas
+   de teste.
+7. Remova o `diagnostico.php` após usar.
+
+Se o login acusar *"Confirme a verificação..."*, o desafio não foi concluído.
+Se acusar *"Falha na verificação..."*, confira o `error.log` (motivo exato) ou
+rode o `diagnostico.php`: os casos mais comuns são domínio ausente no widget ou
+em `TURNSTILE_HOSTNAMES`, e secret desatualizado.
 

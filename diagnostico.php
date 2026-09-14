@@ -64,6 +64,32 @@ try {
 }
 
 echo "\n== Turnstile ==\n";
-echo "site key: " . (trim((string) config_valor('TURNSTILE_SITE_KEY')) !== '' ? 'definida' : 'AUSENTE') . "\n";
-echo "secret: " . (trim((string) config_valor('TURNSTILE_SECRET')) !== '' ? 'definido' : 'AUSENTE') . "\n";
+$ts_site = trim((string) config_valor('TURNSTILE_SITE_KEY'));
+$ts_secret = trim((string) config_valor('TURNSTILE_SECRET'));
+echo "site key: " . ($ts_site !== '' ? 'definida (' . substr($ts_site, 0, 10) . "...)" : 'AUSENTE (o widget NAO renderiza)') . "\n";
+echo "secret: " . ($ts_secret !== '' ? 'definido' : 'AUSENTE (verificacao desativada)') . "\n";
+echo "hostnames permitidos: " . ((string) config_valor('TURNSTILE_HOSTNAMES') ?: '(vazio = sem checagem de hostname)') . "\n";
+echo "host acessado agora: " . ($_SERVER['HTTP_HOST'] ?? '(desconhecido)') . "\n";
+
+if ($ts_secret !== '') {
+    // Teste real no siteverify com token dummy:
+    //  - invalid-input-secret  -> o secret está errado/desatualizado
+    //  - invalid-input-response -> o secret é válido
+    require_once __DIR__ . '/includes/turnstile.php';
+    $res = turnstile_siteverify(['secret' => $ts_secret, 'response' => 'XXXX.DUMMY.TOKEN.XXXX']);
+    if ($res === null) {
+        echo "siteverify: SEM RESPOSTA (rede/curl bloqueado)\n";
+    } else {
+        echo "siteverify success=" . var_export($res['success'] ?? null, true)
+            . " error-codes=" . json_encode($res['error-codes'] ?? []) . "\n";
+        $erros = $res['error-codes'] ?? [];
+        if (in_array('invalid-input-secret', $erros, true)) {
+            echo ">>> SECRET invalido. Se rotacionou a chave no painel, atualize o TURNSTILE_SECRET no servidor.\n";
+        } elseif (in_array('invalid-input-response', $erros, true)) {
+            echo ">>> SECRET valido (o token de teste era dummy, como esperado).\n";
+        }
+    }
+    echo "dominios do widget: confira no painel da Cloudflare se o host acessado esta la.\n";
+}
+
 echo "\nAPAGUE este arquivo (diagnostico.php) apos o uso.\n";
