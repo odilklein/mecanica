@@ -92,19 +92,27 @@ require_once __DIR__ . '/../../includes/mensagens.php';
                             <small class="text-muted"><?php echo date('d/m/Y', strtotime($cliente['data_cadastro'])); ?></small>
                         </td>
                         <td data-label="Ações" class="actions-cell">
-                            <a href="detalhes.php?id=<?php echo $cliente['id']; ?>" class="btn btn-outline-info btn-sm" title="Cliente, veículos e histórico">
-                                <i data-lucide="car"></i>
-                            </a>
-                            <a href="editar.php?id=<?php echo $cliente['id']; ?>" class="btn btn-outline-primary btn-sm" title="Editar">
-                                <i data-lucide="pencil"></i>
-                            </a>
-                            <form method="POST" action="excluir.php" id="excluirCliente<?php echo $cliente['id']; ?>" class="d-inline" onsubmit="return confirmarExclusao('excluirCliente<?php echo $cliente['id']; ?>', 'Excluir o cliente <?php echo addslashes($cliente['nome']); ?>? Todos os dados vinculados serão removidos.');">
-                                <input type="hidden" name="csrf_token" value="<?php echo esc(csrf_token()); ?>">
-                                <input type="hidden" name="id" value="<?php echo $cliente['id']; ?>">
-                                <button type="submit" class="btn btn-outline-danger btn-sm" title="Excluir">
-                                    <i data-lucide="trash-2"></i>
+                            <div class="dropdown table-dropdown">
+                                <button class="table-dropdown-btn" type="button" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Ações do cliente">
+                                    <i data-lucide="more-horizontal"></i>
                                 </button>
-                            </form>
+                                <div class="dropdown-menu dropdown-menu-end table-dropdown-menu">
+                                    <h6 class="dropdown-header">Ações do cliente</h6>
+                                    <a class="dropdown-item" href="detalhes.php?id=<?php echo $cliente['id']; ?>">
+                                        <i data-lucide="car"></i> Cliente, veículos e histórico
+                                    </a>
+                                    <a class="dropdown-item" href="editar.php?id=<?php echo $cliente['id']; ?>">
+                                        <i data-lucide="pencil"></i> Editar
+                                    </a>
+                                    <form method="POST" action="excluir.php" id="excluirCliente<?php echo $cliente['id']; ?>" onsubmit="return confirmarExclusao('excluirCliente<?php echo $cliente['id']; ?>', 'Excluir o cliente <?php echo addslashes($cliente['nome']); ?>? Todos os dados vinculados serão removidos.');">
+                                        <input type="hidden" name="csrf_token" value="<?php echo esc(csrf_token()); ?>">
+                                        <input type="hidden" name="id" value="<?php echo $cliente['id']; ?>">
+                                        <button type="submit" class="dropdown-item text-danger">
+                                            <i data-lucide="trash-2"></i> Excluir
+                                        </button>
+                                    </form>
+                                </div>
+                            </div>
                         </td>
                     </tr>
                     <?php endforeach; else: ?>

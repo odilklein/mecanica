@@ -59,7 +59,15 @@ require_once __DIR__ . '/../../includes/mensagens.php';
                     <td data-label="Salário"><?php echo $f['salario'] !== null ? formatar_moeda($f['salario']) : '-'; ?></td>
                     <td data-label="Na empresa desde"><?php echo $f['data_admissao'] ? date('d/m/Y', strtotime($f['data_admissao'])) : '-'; ?></td>
                     <td data-label="Status" data-filtro-normalizado="<?php echo $f['ativo'] ? 'Ativo' : 'Inativo'; ?>"><span class="badge <?php echo $f['ativo'] ? 'badge-success' : 'badge-secondary'; ?>"><?php echo $f['ativo'] ? 'Ativo' : 'Inativo'; ?></span></td>
-                    <td data-label="Ações" class="actions-cell"><a class="btn btn-outline-primary btn-sm" href="editar.php?id=<?php echo (int) $f['id']; ?>" title="Editar"><i data-lucide="pencil"></i></a></td>
+                    <td data-label="Ações" class="actions-cell">
+                    <div class="dropdown table-dropdown">
+                        <button class="table-dropdown-btn" type="button" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Ações do funcionário"><i data-lucide="more-horizontal"></i></button>
+                        <div class="dropdown-menu dropdown-menu-end table-dropdown-menu">
+                            <h6 class="dropdown-header">Ações do funcionário</h6>
+                            <a class="dropdown-item" href="editar.php?id=<?php echo (int) $f['id']; ?>"><i data-lucide="pencil"></i> Editar</a>
+                        </div>
+                    </div>
+                </td>
                 </tr>
                 <?php endforeach; else: ?>
                 <tr class="row-empty"><td colspan="7"><div class="empty-state"><div class="empty-state-icon"><i data-lucide="users-round"></i></div><h4>Nenhum funcionário cadastrado</h4><p>Cadastre o primeiro funcionário para começar.</p><a href="cadastrar.php" class="btn btn-primary btn-icon"><i data-lucide="user-plus"></i> Novo funcionário</a></div></td></tr>

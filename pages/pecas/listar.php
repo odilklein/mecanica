@@ -120,18 +120,26 @@ $estoque_baixo = $stmt->fetch()['total'];
                         <td data-label="Preço Venda" class="fw-600"><?php echo formatar_moeda($p['preco_venda']); ?></td>
                         <td data-label="Status"><span class="badge badge-<?php echo $status_badge; ?>"><?php echo $status; ?></span></td>
                         <td data-label="Ações" class="actions-cell">
-                            <a href="editar.php?id=<?php echo $p['id']; ?>" class="btn btn-outline-primary btn-sm" title="Editar">
-                                <i data-lucide="pencil"></i>
-                            </a>
-                            <a href="entrada.php?peca_id=<?php echo $p['id']; ?>" class="btn btn-outline-success btn-sm" title="Dar entrada">
-                                <i data-lucide="circle-plus"></i>
-                            </a>
-                            <form method="POST" action="excluir.php" id="excluirPeca<?php echo $p['id']; ?>" class="d-inline" onsubmit="return confirmarExclusao('excluirPeca<?php echo $p['id']; ?>', 'Excluir a peça <?php echo addslashes($p['nome']); ?>?');">
-                                <input type="hidden" name="id" value="<?php echo $p['id']; ?>">
-                                <button type="submit" class="btn btn-outline-danger btn-sm" title="Excluir">
-                                    <i data-lucide="trash-2"></i>
+                            <div class="dropdown table-dropdown">
+                                <button class="table-dropdown-btn" type="button" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Ações da peça">
+                                    <i data-lucide="more-horizontal"></i>
                                 </button>
-                            </form>
+                                <div class="dropdown-menu dropdown-menu-end table-dropdown-menu">
+                                    <h6 class="dropdown-header">Ações da peça</h6>
+                                    <a class="dropdown-item" href="entrada.php?peca_id=<?php echo $p['id']; ?>">
+                                        <i data-lucide="circle-plus"></i> Dar entrada
+                                    </a>
+                                    <a class="dropdown-item" href="editar.php?id=<?php echo $p['id']; ?>">
+                                        <i data-lucide="pencil"></i> Editar
+                                    </a>
+                                    <form method="POST" action="excluir.php" id="excluirPeca<?php echo $p['id']; ?>" onsubmit="return confirmarExclusao('excluirPeca<?php echo $p['id']; ?>', 'Excluir a peça <?php echo addslashes($p['nome']); ?>?');">
+                                        <input type="hidden" name="id" value="<?php echo $p['id']; ?>">
+                                        <button type="submit" class="dropdown-item text-danger">
+                                            <i data-lucide="trash-2"></i> Excluir
+                                        </button>
+                                    </form>
+                                </div>
+                            </div>
                         </td>
                     </tr>
                     <?php endforeach; else: ?>

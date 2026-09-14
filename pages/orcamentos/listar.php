@@ -103,22 +103,30 @@ $badge_status = [
                         <td data-label="Total" class="fw-600 text-success"><?php echo formatar_moeda($o['total_geral']); ?></td>
                         <td data-label="Status"><span class="badge badge-<?php echo $badge_status[$o['status']] ?? 'secondary'; ?>"><?php echo ucfirst($o['status']); ?></span></td>
                         <td data-label="Ações" class="actions-cell">
-                            <a href="detalhes.php?id=<?php echo $o['id']; ?>" class="btn btn-outline-info btn-sm" title="Ver detalhes">
-                                <i data-lucide="eye"></i>
-                            </a>
-                            <a href="imprimir.php?id=<?php echo $o['id']; ?>" target="_blank" class="btn btn-outline-dark btn-sm" title="Imprimir">
-                                <i data-lucide="printer"></i>
-                            </a>
-                            <?php if ($o['status'] == 'aberto'): ?>
-                            <a href="editar.php?id=<?php echo $o['id']; ?>" class="btn btn-outline-primary btn-sm" title="Editar">
-                                <i data-lucide="pencil"></i>
-                            </a>
-                            <form method="POST" action="processar.php?acao=excluir" id="excluirOrc<?php echo $o['id']; ?>" class="d-inline" onsubmit="return confirmarExclusao('excluirOrc<?php echo $o['id']; ?>', 'Excluir o orçamento #<?php echo str_pad($o['numero'], 4, '0', STR_PAD_LEFT); ?>?');">
-                                <input type="hidden" name="csrf_token" value="<?php echo esc(csrf_token()); ?>">
-                                <input type="hidden" name="id" value="<?php echo $o['id']; ?>">
-                                <button type="submit" class="btn btn-outline-danger btn-sm" title="Excluir"><i data-lucide="trash-2"></i></button>
-                            </form>
-                            <?php endif; ?>
+                            <div class="dropdown table-dropdown">
+                                <button class="table-dropdown-btn" type="button" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Ações do orçamento">
+                                    <i data-lucide="more-horizontal"></i>
+                                </button>
+                                <div class="dropdown-menu dropdown-menu-end table-dropdown-menu">
+                                    <h6 class="dropdown-header">Ações do orçamento</h6>
+                                    <a class="dropdown-item" href="detalhes.php?id=<?php echo $o['id']; ?>">
+                                        <i data-lucide="eye"></i> Ver detalhes
+                                    </a>
+                                    <a class="dropdown-item" href="imprimir.php?id=<?php echo $o['id']; ?>" target="_blank">
+                                        <i data-lucide="printer"></i> Imprimir
+                                    </a>
+                                    <?php if ($o['status'] == 'aberto'): ?>
+                                    <a class="dropdown-item" href="editar.php?id=<?php echo $o['id']; ?>">
+                                        <i data-lucide="pencil"></i> Editar
+                                    </a>
+                                    <form method="POST" action="processar.php?acao=excluir" id="excluirOrc<?php echo $o['id']; ?>" onsubmit="return confirmarExclusao('excluirOrc<?php echo $o['id']; ?>', 'Excluir o orçamento #<?php echo str_pad($o['numero'], 4, '0', STR_PAD_LEFT); ?>?');">
+                                        <input type="hidden" name="csrf_token" value="<?php echo esc(csrf_token()); ?>">
+                                        <input type="hidden" name="id" value="<?php echo $o['id']; ?>">
+                                        <button type="submit" class="dropdown-item text-danger"><i data-lucide="trash-2"></i> Excluir</button>
+                                    </form>
+                                    <?php endif; ?>
+                                </div>
+                            </div>
                         </td>
                     </tr>
                     <?php endforeach; else: ?>
