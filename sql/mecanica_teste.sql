@@ -3,8 +3,8 @@
 -- Credenciais de teste para todos os usuarios: senha admin123
 -- O hash abaixo corresponde a senha de teste definida para este seed.
 
-CREATE DATABASE IF NOT EXISTS mecanica CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-USE mecanica;
+CREATE DATABASE IF NOT EXISTS if0_42913295_db_mecanica CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+USE if0_42913295_db_mecanica;
 SET NAMES utf8mb4;
 SET FOREIGN_KEY_CHECKS = 0;
 
@@ -328,76 +328,76 @@ SET FOREIGN_KEY_CHECKS = 1;
 -- mecanico2@mecanica.com / admin123
 -- =============================================
 
-INSERT INTO usuarios (nome, email, senha, tipo, cpf, telefone, cargo, ativo) VALUES
-('Administrador', 'admin@mecanica.com', '$2y$12$sHoNQoIMhbrFjz8KgXTS2e0cA6jfLaijNEpjLNRRm.8Tor3p4XVfW', 'admin', '111.111.111-11', '(11) 99999-0001', 'Administrador', 1),
-('Secretaria', 'secretaria@mecanica.com', '$2y$12$sHoNQoIMhbrFjz8KgXTS2e0cA6jfLaijNEpjLNRRm.8Tor3p4XVfW', 'secretaria', '222.222.222-22', '(11) 99999-0002', 'Secretaria', 1),
-('Chefe da Oficina', 'chefe@mecanica.com', '$2y$12$sHoNQoIMhbrFjz8KgXTS2e0cA6jfLaijNEpjLNRRm.8Tor3p4XVfW', 'mecanico_chefe', '333.333.333-33', '(11) 99999-0003', 'Mecanico chefe', 1),
-('Mecanico 1', 'mecanico1@mecanica.com', '$2y$12$sHoNQoIMhbrFjz8KgXTS2e0cA6jfLaijNEpjLNRRm.8Tor3p4XVfW', 'mecanico', '444.444.444-44', '(11) 99999-0004', 'Mecanico', 1),
-('Mecanico 2', 'mecanico2@mecanica.com', '$2y$12$sHoNQoIMhbrFjz8KgXTS2e0cA6jfLaijNEpjLNRRm.8Tor3p4XVfW', 'mecanico', '555.555.555-55', '(11) 99999-0005', 'Mecanico', 1);
+INSERT INTO usuarios (id, nome, email, senha, tipo, cpf, telefone, cargo, ativo) VALUES
+(1, 'Administrador', 'admin@mecanica.com', '$2y$12$sHoNQoIMhbrFjz8KgXTS2e0cA6jfLaijNEpjLNRRm.8Tor3p4XVfW', 'admin', '111.111.111-11', '(11) 99999-0001', 'Administrador', 1),
+(2, 'Secretaria', 'secretaria@mecanica.com', '$2y$12$sHoNQoIMhbrFjz8KgXTS2e0cA6jfLaijNEpjLNRRm.8Tor3p4XVfW', 'secretaria', '222.222.222-22', '(11) 99999-0002', 'Secretaria', 1),
+(3, 'Chefe da Oficina', 'chefe@mecanica.com', '$2y$12$sHoNQoIMhbrFjz8KgXTS2e0cA6jfLaijNEpjLNRRm.8Tor3p4XVfW', 'mecanico_chefe', '333.333.333-33', '(11) 99999-0003', 'Mecanico chefe', 1),
+(4, 'Mecanico 1', 'mecanico1@mecanica.com', '$2y$12$sHoNQoIMhbrFjz8KgXTS2e0cA6jfLaijNEpjLNRRm.8Tor3p4XVfW', 'mecanico', '444.444.444-44', '(11) 99999-0004', 'Mecanico', 1),
+(5, 'Mecanico 2', 'mecanico2@mecanica.com', '$2y$12$sHoNQoIMhbrFjz8KgXTS2e0cA6jfLaijNEpjLNRRm.8Tor3p4XVfW', 'mecanico', '555.555.555-55', '(11) 99999-0005', 'Mecanico', 1);
 
-INSERT INTO servicos (nome, descricao, preco_mao_obra, tempo_estimado) VALUES
-('Troca de Oleo', 'Troca de oleo e filtro do motor', 80.00, 45),
-('Alinhamento', 'Alinhamento da direcao', 70.00, 60),
-('Balanceamento', 'Balanceamento das rodas', 50.00, 45),
-('Troca de Pastilhas de Freio', 'Substituicao das pastilhas de freio', 120.00, 90),
-('Revisao dos 60.000 km', 'Revisao preventiva completa', 250.00, 180),
-('Troca de Correia Dentada', 'Substituicao da correia dentada e tensores', 350.00, 240),
-('Troca de Bateria', 'Substituicao da bateria do veiculo', 60.00, 30),
-('Diagnostico Eletronico', 'Analise com scanner profissional', 100.00, 60),
-('Troca de Embreagem', 'Substituicao completa de embreagem', 450.00, 240),
-('Suspensão Dianteira', 'Revisão completa da suspensão dianteira', 180.00, 120),
-('Higienização do Ar Condicionado', 'Limpeza e desinfecção do sistema de ar', 90.00, 45);
+INSERT INTO servicos (id, nome, descricao, preco_mao_obra, tempo_estimado) VALUES
+(1, 'Troca de Oleo', 'Troca de oleo e filtro do motor', 80.00, 45),
+(2, 'Alinhamento', 'Alinhamento da direcao', 70.00, 60),
+(3, 'Balanceamento', 'Balanceamento das rodas', 50.00, 45),
+(4, 'Troca de Pastilhas de Freio', 'Substituicao das pastilhas de freio', 120.00, 90),
+(5, 'Revisao dos 60.000 km', 'Revisao preventiva completa', 250.00, 180),
+(6, 'Troca de Correia Dentada', 'Substituicao da correia dentada e tensores', 350.00, 240),
+(7, 'Troca de Bateria', 'Substituicao da bateria do veiculo', 60.00, 30),
+(8, 'Diagnostico Eletronico', 'Analise com scanner profissional', 100.00, 60),
+(9, 'Troca de Embreagem', 'Substituicao completa de embreagem', 450.00, 240),
+(10, 'Suspensão Dianteira', 'Revisão completa da suspensão dianteira', 180.00, 120),
+(11, 'Higienização do Ar Condicionado', 'Limpeza e desinfecção do sistema de ar', 90.00, 45);
 
-INSERT INTO clientes (nome, cpf, telefone, email, endereco, cidade) VALUES
-('Carlos Alberto Silva', '123.456.789-01', '(11) 99876-5432', 'carlos.silva@email.com', 'Rua das Flores, 123', 'São Paulo'),
-('Maria Fernanda Costa', '987.654.321-00', '(11) 98765-4321', 'maria.costa@email.com', 'Av. Paulista, 456', 'São Paulo'),
-('João Pedro Santos', '456.789.123-09', '(21) 97654-3210', 'joao.santos@email.com', 'Rua do Porto, 789', 'Rio de Janeiro'),
-('Ana Paula Oliveira', '321.654.987-00', '(31) 96543-2109', 'ana.oliveira@email.com', 'Av. Brasil, 1010', 'Belo Horizonte'),
-('Roberto Nascimento', '654.321.098-76', '(41) 95432-1098', 'roberto.nasc@email.com', 'Rua XV de Novembro, 222', 'Curitiba'),
-('Luciana Ferreira Lima', '111.222.333-44', '(11) 94321-0987', 'luciana.lima@email.com', 'Rua Augusta, 333', 'São Paulo'),
-('Fernando Almeida', '555.666.777-88', '(85) 93210-9876', 'fernando.almeida@email.com', 'Av. Beira Mar, 444', 'Fortaleza'),
-('Patricia Rodrigues', '999.888.777-66', '(51) 92109-8765', 'patricia.rodrigues@email.com', 'Rua dos Andradas, 555', 'Porto Alegre'),
-('Marcos Vinicius Souza', '222.333.444-55', '(71) 91098-7654', 'marcos.souza@email.com', 'Rua Chile, 666', 'Salvador'),
-('Camila Borges', '777.888.999-00', '(61) 90987-6543', 'camila.borges@email.com', 'SGAN 601, 777', 'Brasília');
+INSERT INTO clientes (id, nome, cpf, telefone, email, endereco, cidade) VALUES
+(1, 'Carlos Alberto Silva', '123.456.789-01', '(11) 99876-5432', 'carlos.silva@email.com', 'Rua das Flores, 123', 'São Paulo'),
+(2, 'Maria Fernanda Costa', '987.654.321-00', '(11) 98765-4321', 'maria.costa@email.com', 'Av. Paulista, 456', 'São Paulo'),
+(3, 'João Pedro Santos', '456.789.123-09', '(21) 97654-3210', 'joao.santos@email.com', 'Rua do Porto, 789', 'Rio de Janeiro'),
+(4, 'Ana Paula Oliveira', '321.654.987-00', '(31) 96543-2109', 'ana.oliveira@email.com', 'Av. Brasil, 1010', 'Belo Horizonte'),
+(5, 'Roberto Nascimento', '654.321.098-76', '(41) 95432-1098', 'roberto.nasc@email.com', 'Rua XV de Novembro, 222', 'Curitiba'),
+(6, 'Luciana Ferreira Lima', '111.222.333-44', '(11) 94321-0987', 'luciana.lima@email.com', 'Rua Augusta, 333', 'São Paulo'),
+(7, 'Fernando Almeida', '555.666.777-88', '(85) 93210-9876', 'fernando.almeida@email.com', 'Av. Beira Mar, 444', 'Fortaleza'),
+(8, 'Patricia Rodrigues', '999.888.777-66', '(51) 92109-8765', 'patricia.rodrigues@email.com', 'Rua dos Andradas, 555', 'Porto Alegre'),
+(9, 'Marcos Vinicius Souza', '222.333.444-55', '(71) 91098-7654', 'marcos.souza@email.com', 'Rua Chile, 666', 'Salvador'),
+(10, 'Camila Borges', '777.888.999-00', '(61) 90987-6543', 'camila.borges@email.com', 'SGAN 601, 777', 'Brasília');
 
-INSERT INTO veiculos (cliente_id, placa, marca, modelo, ano, cor, km_atual) VALUES
-(1, 'ABC-1234', 'Toyota', 'Corolla', 2022, 'Prata', 35000),
-(1, 'ABC-5678', 'Honda', 'Civic', 2021, 'Preto', 42000),
-(2, 'DEF-4321', 'Volkswagen', 'Golf', 2023, 'Branco', 12000),
-(3, 'GHI-8765', 'Chevrolet', 'Onix', 2022, 'Vermelho', 28000),
-(4, 'JKL-1357', 'Fiat', 'Pulse', 2023, 'Cinza', 8000),
-(5, 'MNO-2468', 'Hyundai', 'HB20', 2021, 'Azul', 55000),
-(6, 'PQR-9753', 'Jeep', 'Renegade', 2022, 'Verde', 31000),
-(7, 'STU-1470', 'Ford', 'Bronco Sport', 2023, 'Laranja', 5000),
-(8, 'VWX-2581', 'Nissan', 'Kicks', 2022, 'Branco', 19000),
-(9, 'YZA-3692', 'Toyota', 'Hilux', 2021, 'Prata', 67000),
-(2, 'BCD-4813', 'Honda', 'HR-V', 2023, 'Preto', 7500),
-(10, 'EFG-5924', 'Volkswagen', 'T-Cross', 2022, 'Vermelho', 22000),
-(3, 'HIJ-6135', 'Chevrolet', 'Tracker', 2021, 'Cinza', 44000),
-(5, 'KLM-7246', 'Fiat', 'Fastback', 2023, 'Azul', 3000),
-(8, 'NOP-8357', 'Hyundai', 'Tucson', 2022, 'Preto', 15000);
+INSERT INTO veiculos (id, cliente_id, placa, marca, modelo, ano, cor, km_atual) VALUES
+(1, 1, 'ABC-1234', 'Toyota', 'Corolla', 2022, 'Prata', 35000),
+(2, 1, 'ABC-5678', 'Honda', 'Civic', 2021, 'Preto', 42000),
+(3, 2, 'DEF-4321', 'Volkswagen', 'Golf', 2023, 'Branco', 12000),
+(4, 3, 'GHI-8765', 'Chevrolet', 'Onix', 2022, 'Vermelho', 28000),
+(5, 4, 'JKL-1357', 'Fiat', 'Pulse', 2023, 'Cinza', 8000),
+(6, 5, 'MNO-2468', 'Hyundai', 'HB20', 2021, 'Azul', 55000),
+(7, 6, 'PQR-9753', 'Jeep', 'Renegade', 2022, 'Verde', 31000),
+(8, 7, 'STU-1470', 'Ford', 'Bronco Sport', 2023, 'Laranja', 5000),
+(9, 8, 'VWX-2581', 'Nissan', 'Kicks', 2022, 'Branco', 19000),
+(10, 9, 'YZA-3692', 'Toyota', 'Hilux', 2021, 'Prata', 67000),
+(11, 2, 'BCD-4813', 'Honda', 'HR-V', 2023, 'Preto', 7500),
+(12, 10, 'EFG-5924', 'Volkswagen', 'T-Cross', 2022, 'Vermelho', 22000),
+(13, 3, 'HIJ-6135', 'Chevrolet', 'Tracker', 2021, 'Cinza', 44000),
+(14, 5, 'KLM-7246', 'Fiat', 'Fastback', 2023, 'Azul', 3000),
+(15, 8, 'NOP-8357', 'Hyundai', 'Tucson', 2022, 'Preto', 15000);
 
-INSERT INTO pecas (codigo, nome, descricao, categoria, quantidade, estoque_minimo, preco_compra, preco_venda, fornecedor, localizacao) VALUES
-('OLF-001', 'Óleo Motor 5W30 Sintético 1L', 'Óleo sintético para motores a gasolina', 'Filtros e Fluidos', 120, 20, 28.00, 45.00, 'Distribuidora AutoParts', 'Prateleira A1'),
-('OLF-002', 'Filtro de Óleo Toyota Corolla', 'Filtro de óleo original Toyota', 'Filtros e Fluidos', 45, 10, 22.00, 38.00, 'Toyota Peças', 'Prateleira A2'),
-('FRE-001', 'Pastilha de Freio Dianteira Universal', 'Pastilha cerâmica dianteira', 'Freios', 30, 8, 85.00, 150.00, 'FreiosMaster', 'Prateleira B1'),
-('FRE-002', 'Disco de Freio Dianteiro 280mm', 'Disco ventilado', 'Freios', 12, 5, 120.00, 220.00, 'FreiosMaster', 'Prateleira B2'),
-('MOT-001', 'Correia Dentada Kit Completo', 'Kit correia + tensores', 'Motor', 8, 3, 180.00, 320.00, 'CorreiasPro', 'Prateleira C1'),
-('MOT-002', 'Vela de Ignição Iridium (4un)', 'Kit 4 velas iridium', 'Motor', 35, 10, 95.00, 160.00, 'Auto Ignição', 'Prateleira C2'),
-('ELE-001', 'Bateria 60Ah 480CCA', 'Bateria selada livre de manutenção', 'Elétrica', 15, 5, 280.00, 450.00, 'EnergiaAuto', 'Chão D1'),
-('ELE-002', 'Alternador 90A Reforçado', 'Alternador recondicionado garantia 6 meses', 'Elétrica', 4, 2, 350.00, 580.00, 'EnergiaAuto', 'Chão D2'),
-('SUS-001', 'Amortecedor Dianteiro (par)', 'Amortecedor hidráulico', 'Suspensão', 10, 4, 160.00, 280.00, 'SuspensãoMax', 'Prateleira E1'),
-('SUS-002', 'Mola Dianteira (par)', 'Mola helicoidal aço liga', 'Suspensão', 6, 3, 140.00, 250.00, 'SuspensãoMax', 'Prateleira E2'),
-('TRA-001', 'Óleo Transmissão Automática ATF', 'ATF III 1L', 'Transmissão', 25, 8, 35.00, 55.00, 'Distribuidora AutoParts', 'Prateleira F1'),
-('TRA-002', 'Junta Homocinética Dianteira', 'Junta para veículos FWD', 'Transmissão', 7, 3, 80.00, 140.00, 'TransPeças', 'Prateleira F2'),
-('CAR-001', 'Filtro de Ar Honda Civic', 'Filtro de ar original Honda', 'Filtros e Fluidos', 40, 10, 32.00, 55.00, 'Honda Peças', 'Prateleira A3'),
-('CAR-002', 'Filtro de Cabine Universal', 'Filtro antialérgico', 'Filtros e Fluidos', 50, 15, 18.00, 35.00, 'AutoParts', 'Prateleira A4'),
-('REJ-001', 'Fluido de Freio DOT4 500ml', 'Fluido sintético DOT4', 'Filtros e Fluidos', 60, 20, 12.00, 25.00, 'Distribuidora AutoParts', 'Prateleira G1'),
-('REJ-002', 'Líquido Radiador Concentrado 1L', 'Anticongelante orgânico', 'Filtros e Fluidos', 30, 10, 15.00, 30.00, 'AutoParts', 'Prateleira G2'),
-('PNE-001', 'Pneu 205/55R16 91V', 'Pneu aro 16 aço', 'Pneus e Rodas', 20, 4, 280.00, 420.00, 'PneusGigante', 'Chão P1'),
-('PNE-002', 'Pneu 185/65R15 88H', 'Pneu aro 15 aço', 'Pneus e Rodas', 16, 4, 220.00, 350.00, 'PneusGigante', 'Chão P2'),
-('ACE-001', 'Limpador para-brisa (par)', 'Limpador universal 16"', 'Acessórios', 30, 10, 20.00, 40.00, 'AcessóriosCar', 'Prateleira H1'),
-('ACE-002', 'Capa de Banco Universal (4un)', 'Capa neoprene preta', 'Acessórios', 8, 3, 60.00, 120.00, 'AcessóriosCar', 'Chão H2');
+INSERT INTO pecas (id, codigo, nome, descricao, categoria, quantidade, estoque_minimo, preco_compra, preco_venda, fornecedor, localizacao) VALUES
+(1, 'OLF-001', 'Óleo Motor 5W30 Sintético 1L', 'Óleo sintético para motores a gasolina', 'Filtros e Fluidos', 120, 20, 28.00, 45.00, 'Distribuidora AutoParts', 'Prateleira A1'),
+(2, 'OLF-002', 'Filtro de Óleo Toyota Corolla', 'Filtro de óleo original Toyota', 'Filtros e Fluidos', 45, 10, 22.00, 38.00, 'Toyota Peças', 'Prateleira A2'),
+(3, 'FRE-001', 'Pastilha de Freio Dianteira Universal', 'Pastilha cerâmica dianteira', 'Freios', 30, 8, 85.00, 150.00, 'FreiosMaster', 'Prateleira B1'),
+(4, 'FRE-002', 'Disco de Freio Dianteiro 280mm', 'Disco ventilado', 'Freios', 12, 5, 120.00, 220.00, 'FreiosMaster', 'Prateleira B2'),
+(5, 'MOT-001', 'Correia Dentada Kit Completo', 'Kit correia + tensores', 'Motor', 8, 3, 180.00, 320.00, 'CorreiasPro', 'Prateleira C1'),
+(6, 'MOT-002', 'Vela de Ignição Iridium (4un)', 'Kit 4 velas iridium', 'Motor', 35, 10, 95.00, 160.00, 'Auto Ignição', 'Prateleira C2'),
+(7, 'ELE-001', 'Bateria 60Ah 480CCA', 'Bateria selada livre de manutenção', 'Elétrica', 15, 5, 280.00, 450.00, 'EnergiaAuto', 'Chão D1'),
+(8, 'ELE-002', 'Alternador 90A Reforçado', 'Alternador recondicionado garantia 6 meses', 'Elétrica', 4, 2, 350.00, 580.00, 'EnergiaAuto', 'Chão D2'),
+(9, 'SUS-001', 'Amortecedor Dianteiro (par)', 'Amortecedor hidráulico', 'Suspensão', 10, 4, 160.00, 280.00, 'SuspensãoMax', 'Prateleira E1'),
+(10, 'SUS-002', 'Mola Dianteira (par)', 'Mola helicoidal aço liga', 'Suspensão', 6, 3, 140.00, 250.00, 'SuspensãoMax', 'Prateleira E2'),
+(11, 'TRA-001', 'Óleo Transmissão Automática ATF', 'ATF III 1L', 'Transmissão', 25, 8, 35.00, 55.00, 'Distribuidora AutoParts', 'Prateleira F1'),
+(12, 'TRA-002', 'Junta Homocinética Dianteira', 'Junta para veículos FWD', 'Transmissão', 7, 3, 80.00, 140.00, 'TransPeças', 'Prateleira F2'),
+(13, 'CAR-001', 'Filtro de Ar Honda Civic', 'Filtro de ar original Honda', 'Filtros e Fluidos', 40, 10, 32.00, 55.00, 'Honda Peças', 'Prateleira A3'),
+(14, 'CAR-002', 'Filtro de Cabine Universal', 'Filtro antialérgico', 'Filtros e Fluidos', 50, 15, 18.00, 35.00, 'AutoParts', 'Prateleira A4'),
+(15, 'REJ-001', 'Fluido de Freio DOT4 500ml', 'Fluido sintético DOT4', 'Filtros e Fluidos', 60, 20, 12.00, 25.00, 'Distribuidora AutoParts', 'Prateleira G1'),
+(16, 'REJ-002', 'Líquido Radiador Concentrado 1L', 'Anticongelante orgânico', 'Filtros e Fluidos', 30, 10, 15.00, 30.00, 'AutoParts', 'Prateleira G2'),
+(17, 'PNE-001', 'Pneu 205/55R16 91V', 'Pneu aro 16 aço', 'Pneus e Rodas', 20, 4, 280.00, 420.00, 'PneusGigante', 'Chão P1'),
+(18, 'PNE-002', 'Pneu 185/65R15 88H', 'Pneu aro 15 aço', 'Pneus e Rodas', 16, 4, 220.00, 350.00, 'PneusGigante', 'Chão P2'),
+(19, 'ACE-001', 'Limpador para-brisa (par)', 'Limpador universal 16"', 'Acessórios', 30, 10, 20.00, 40.00, 'AcessóriosCar', 'Prateleira H1'),
+(20, 'ACE-002', 'Capa de Banco Universal (4un)', 'Capa neoprene preta', 'Acessórios', 8, 3, 60.00, 120.00, 'AcessóriosCar', 'Chão H2');
 
 INSERT INTO agendamentos (cliente_id, veiculo_id, servico_id, data_agendamento, hora, status, observacoes) VALUES
 (1, 1, 1, CURDATE(), '09:00', 'agendado', 'Troca de óleo periódica'),
@@ -411,7 +411,7 @@ INSERT INTO agendamentos (cliente_id, veiculo_id, servico_id, data_agendamento, 
 (6, 7, 8, CURDATE() + INTERVAL 3 DAY, '10:00', 'confirmado', 'Scanner acendeu luz de injeção'),
 (10, 12, 9, CURDATE() + INTERVAL 4 DAY, '09:00', 'agendado', 'Embreagem patinando'),
 (2, 11, 10, CURDATE() + INTERVAL 5 DAY, '13:00', 'agendado', 'Suspeita de amortecedor'),
-(8, 9, 12, CURDATE() + INTERVAL 7 DAY, '10:00', 'agendado', 'Ar condicionado não gela');
+(8, 9, 11, CURDATE() + INTERVAL 7 DAY, '10:00', 'agendado', 'Ar condicionado não gela');
 
 INSERT INTO ordens_servico (numero, cliente_id, veiculo_id, agendamento_id, status, prioridade, queixa_inicial, diagnostico, observacoes_internas, responsavel_chefe_id, criado_por, data_entrada, data_conclusao) VALUES
 (1001, 1, 1, 1, 'entregue', 'normal', 'Troca de oleo e filtro do motor', 'Revisao realizada sem anomalias.', 'Veiculo liberado para o cliente.', 3, 2, NOW() - INTERVAL 12 DAY, NOW() - INTERVAL 10 DAY),
@@ -520,5 +520,7 @@ INSERT INTO movimentacoes_estoque (peca_id, tipo, quantidade, motivo) VALUES
 (5, 'entrada', 10, 'Compra de correias'),
 (5, 'saida', 1, 'Orçamento #4'),
 (9, 'ajuste', -2, 'Ajuste por contagem física - 2 unidades danificadas');
+
+SET FOREIGN_KEY_CHECKS = 1;
 
 -- FIM DO SEED DE DEMONSTRAÇÃO
