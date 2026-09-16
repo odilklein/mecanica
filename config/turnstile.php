@@ -10,7 +10,7 @@ require_once __DIR__ . '/env.php';
 if (!function_exists('turnstile_site_key')) {
     function turnstile_site_key(): string
     {
-        return trim((string) config_valor('TURNSTILE_SITE_KEY'));
+        return trim((string) env('TURNSTILE_SITE_KEY'));
     }
 }
 

@@ -195,10 +195,8 @@ require_once __DIR__ . '/../../includes/mensagens.php';
                                     </div>
                                     <div class="dynamic-list-items"></div>
                                     <div class="dynamic-list-input mt-2">
-                                        <input class="form-control" placeholder="Digite a tarefa e pressione Enter, ou grave por áudio" onkeydown="if(event.key==='Enter'){event.preventDefault();this.closest('[data-dynamic-list]').querySelector('.btn-add').click();}">
-                                        <button type="button" class="btn-mic" title="Gravar áudio da tarefa"><i data-lucide="mic"></i></button>
+                                        <input class="form-control" placeholder="Digite a tarefa e pressione Enter" onkeydown="if(event.key==='Enter'){event.preventDefault();this.closest('[data-dynamic-list]').querySelector('.btn-add').click();}">
                                         <button type="button" class="btn-add" title="Adicionar tarefa"><i data-lucide="plus"></i></button>
-                                        <span class="rec-time" style="display:none">0:00</span>
                                     </div>
                                 </div>
                             </div>

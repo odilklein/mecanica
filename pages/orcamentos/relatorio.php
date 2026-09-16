@@ -32,11 +32,10 @@ $stmt_fat_mensal = $conn->query("
 ");
 $faturamento_mensal = $stmt_fat_mensal->fetchAll();
 
-// Serviços mais realizados (inclui itens avulsos sem vínculo com catálogo)
+// Serviços mais realizados
 $stmt_servicos = $conn->query("
-    SELECT COALESCE(s.nome, oi.descricao_item) AS nome, COUNT(oi.id) AS total, COALESCE(SUM(oi.subtotal), 0) AS receita
+    SELECT oi.descricao_item AS nome, COUNT(oi.id) AS total, COALESCE(SUM(oi.subtotal), 0) AS receita
     FROM orcamento_itens oi
-    LEFT JOIN servicos s ON s.id = oi.servico_id
     JOIN orcamentos o ON o.id = oi.orcamento_id
     WHERE o.status IN ('aprovado', 'aberto') AND oi.tipo = 'servico'
     GROUP BY nome
@@ -45,11 +44,10 @@ $stmt_servicos = $conn->query("
 ");
 $top_servicos = $stmt_servicos->fetchAll();
 
-// Peças mais vendidas (inclui itens avulsos sem vínculo com catálogo)
+// Peças mais vendidas
 $stmt_pecas = $conn->query("
-    SELECT COALESCE(p.nome, oi.descricao_item) AS nome, COUNT(oi.id) AS total, COALESCE(SUM(oi.subtotal), 0) AS receita
+    SELECT oi.descricao_item AS nome, COUNT(oi.id) AS total, COALESCE(SUM(oi.subtotal), 0) AS receita
     FROM orcamento_itens oi
-    LEFT JOIN pecas p ON p.id = oi.peca_id
     JOIN orcamentos o ON o.id = oi.orcamento_id
     WHERE o.status IN ('aprovado', 'aberto') AND oi.tipo = 'peca'
     GROUP BY nome

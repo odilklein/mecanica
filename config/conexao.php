@@ -5,11 +5,11 @@
 
 require_once __DIR__ . '/env.php';
 
-$db_host = config_valor('DB_HOST', 'localhost');
-$db_port = config_valor('DB_PORT', '3306');
-$db_user = config_valor('DB_USER', 'root');
-$db_pass = config_valor('DB_PASS', '');
-$db_name = config_valor('DB_NAME', 'mecanica');
+$db_host = env('DB_HOST', 'localhost');
+$db_port = env('DB_PORT', '3306');
+$db_user = env('DB_USER', 'root');
+$db_pass = env('DB_PASS', '');
+$db_name = env('DB_NAME', 'mecanica');
 
 $dsn = 'mysql:host=' . $db_host . ';port=' . $db_port . ';dbname=' . $db_name . ';charset=utf8mb4';
 
@@ -18,14 +18,9 @@ try {
     $conn->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
     $conn->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_ASSOC);
 } catch (PDOException $e) {
-    $fontes = [];
-    if (is_file(__DIR__ . '/config.local.php')) {
-        $fontes[] = 'config.local.php';
-    }
-    if (defined('MECANICA_ENV_ARQUIVO') && MECANICA_ENV_ARQUIVO) {
-        $fontes[] = MECANICA_ENV_ARQUIVO;
-    }
-    $fonte_txt = $fontes ? implode(' + ', $fontes) : 'nenhuma (usando padroes)';
+    $fonte_txt = (defined('MECANICA_ENV_ARQUIVO') && MECANICA_ENV_ARQUIVO)
+        ? MECANICA_ENV_ARQUIVO
+        : 'nenhuma (usando variaveis de ambiente/padroes)';
     $detalhe = sprintf(
         '[%s] %s | host=%s port=%s db=%s user=%s | config=%s',
         date('Y-m-d H:i:s'),
@@ -41,7 +36,7 @@ try {
     http_response_code(500);
     die($log_ok
         ? "Não foi possível conectar ao banco de dados. Detalhes gravados em error.log na raiz do projeto."
-        : "Não foi possível conectar ao banco de dados. Verifique as credenciais do .env ou config.local.php.");
+        : "Não foi possível conectar ao banco de dados. Verifique as credenciais do .env.");
 }
 
 // Função para escapar dados e evitar XSS

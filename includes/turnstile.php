@@ -11,7 +11,7 @@ require_once __DIR__ . '/../config/turnstile.php';
 if (!function_exists('turnstile_secret')) {
     function turnstile_secret(): string
     {
-        return trim((string) config_valor('TURNSTILE_SECRET'));
+        return trim((string) env('TURNSTILE_SECRET'));
     }
 }
 
@@ -28,7 +28,7 @@ if (!function_exists('turnstile_hostnames')) {
     // Hostnames de frontend permitidos (separados por vírgula em TURNSTILE_HOSTNAMES).
     function turnstile_hostnames(): array
     {
-        $bruto = (string) config_valor('TURNSTILE_HOSTNAMES');
+        $bruto = (string) env('TURNSTILE_HOSTNAMES');
         return array_values(array_filter(array_map('trim', explode(',', $bruto)), 'strlen'));
     }
 }
@@ -112,7 +112,7 @@ if (!function_exists('turnstile_verificar')) {
                 'ok' => true,
                 'ignorado' => true,
                 'codigo' => 'desativado',
-                'motivo' => 'Turnstile desativado: configure ' . implode(' e ', $faltando) . ' no .env/config.local.php.',
+                'motivo' => 'Turnstile desativado: configure ' . implode(' e ', $faltando) . ' no .env.',
             ];
         }
 

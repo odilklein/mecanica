@@ -5,7 +5,6 @@ exigir_papel(['admin', 'secretaria', 'mecanico_chefe', 'mecanico']);
 $os_id = (int) ($_GET['os_id'] ?? 0);
 $filtro_os = $_SESSION['usuario_tipo'] === 'mecanico' ? ' JOIN os_responsaveis r ON r.os_id = os.id AND r.usuario_id = ' . (int) $_SESSION['usuario_id'] . ' AND r.concluido_em IS NULL ' : '';
 $ordens = $conn->query("SELECT os.id, os.numero, c.nome AS cliente, v.modelo, v.placa FROM ordens_servico os $filtro_os JOIN clientes c ON c.id = os.cliente_id LEFT JOIN veiculos v ON v.id = os.veiculo_id WHERE os.status NOT IN ('entregue', 'cancelada') ORDER BY os.data_entrada DESC")->fetchAll();
-$pecas = $_SESSION['usuario_tipo'] === 'secretaria' ? $conn->query('SELECT id, nome, codigo FROM pecas ORDER BY nome')->fetchAll() : [];
 $titulo_pagina = 'Novo pedido de peça';
 require_once __DIR__ . '/../../includes/header.php';
 require_once __DIR__ . '/../../includes/mensagens.php';
@@ -36,17 +35,6 @@ require_once __DIR__ . '/../../includes/mensagens.php';
                         <div class="col-md-6">
                             <label class="form-label-with-icon"><i data-lucide="store"></i> Fornecedor</label>
                             <input class="form-control" name="fornecedor" maxlength="120" placeholder="Nome do fornecedor">
-                        </div>
-                        <?php endif; ?>
-                        <?php if ($_SESSION['usuario_tipo'] !== 'mecanico' && $pecas): ?>
-                        <div class="col-md-6">
-                            <label class="form-label-with-icon"><i data-lucide="package"></i> Peça cadastrada</label>
-                            <select class="form-select" name="peca_id">
-                                <option value="">Outra peça (digitar descrição)</option>
-                                <?php foreach ($pecas as $peca): ?>
-                                <option value="<?php echo (int) $peca['id']; ?>"><?php echo esc($peca['nome']); ?><?php echo $peca['codigo'] ? ' (' . esc($peca['codigo']) . ')' : ''; ?></option>
-                                <?php endforeach; ?>
-                            </select>
                         </div>
                         <?php endif; ?>
                         <div class="col-md-<?php echo $_SESSION['usuario_tipo'] === 'mecanico' ? '8' : '6'; ?>">

@@ -3,15 +3,13 @@ require_once __DIR__ . '/../../includes/sessao.php';
 require_once __DIR__ . '/../../config/conexao.php';
 exigir_papel(['admin', 'secretaria', 'mecanico_chefe']);
 $clientes = $conn->query('SELECT id, nome FROM clientes ORDER BY nome')->fetchAll();
-$pecas = $conn->query("SELECT id, nome, preco_venda, quantidade FROM pecas ORDER BY nome")->fetchAll();
-$servicos = $conn->query("SELECT id, nome, preco_mao_obra FROM servicos WHERE ativo = 1 ORDER BY nome")->fetchAll();
 $os_id = (int) ($_GET['os_id'] ?? 0);
 $cliente_preselecionado = (int) ($_GET['cliente_id'] ?? 0);
 $veiculo_preselecionado = (int) ($_GET['veiculo_id'] ?? 0);
 $titulo_pagina = 'Novo orçamento';
 require_once __DIR__ . '/../../includes/header.php';
 require_once __DIR__ . '/../../includes/mensagens.php';
-$scripts_extra = '<script>window.OrcamentoEditorConfig = {pecas: ' . json_encode($pecas) . ', servicos: ' . json_encode($servicos) . ', itens: []};</script><script src="' . $caminho_base . '/js/orcamento-editor.js"></script>';
+$scripts_extra = '<script>window.OrcamentoEditorConfig = {itens: []};</script><script src="' . $caminho_base . '/js/orcamento-editor.js"></script>';
 if ($veiculo_preselecionado > 0) {
     $scripts_extra .= '<script>document.addEventListener("DOMContentLoaded", function(){ if (typeof carregarVeiculos === "function" && document.getElementById("cliente_id").value) { carregarVeiculos(document.getElementById("cliente_id").value, "veiculo_id", ' . $veiculo_preselecionado . '); } });</script>';
 }
@@ -19,7 +17,7 @@ if ($veiculo_preselecionado > 0) {
 <div class="page-header">
     <div>
         <h1><i data-lucide="file-plus-2" class="text-primary me-2"></i>Novo orçamento</h1>
-        <span class="page-subtitle">Monte o documento com peças e serviços do catálogo ou itens avulsos</span>
+        <span class="page-subtitle">Monte o documento com itens de peça e mão de obra</span>
     </div>
     <a href="listar.php" class="btn btn-outline-secondary btn-icon action-button"><i data-lucide="arrow-left"></i>Voltar</a>
 </div>

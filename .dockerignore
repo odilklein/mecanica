@@ -1,0 +1,6 @@
+.git
+.env
+*.log
+sql/*.sql
+README.md
+DOCUMENTACAO_SISTEMA.md

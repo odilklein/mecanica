@@ -18,7 +18,7 @@ if (!$orcamento) {
 }
 
 // Buscar itens
-$stmt = $conn->prepare("SELECT oi.*, p.nome as peca_nome, s.nome as servico_nome FROM orcamento_itens oi LEFT JOIN pecas p ON p.id = oi.peca_id LEFT JOIN servicos s ON s.id = oi.servico_id WHERE oi.orcamento_id = :id ORDER BY oi.id");
+$stmt = $conn->prepare("SELECT oi.* FROM orcamento_itens oi WHERE oi.orcamento_id = :id ORDER BY oi.id");
 $stmt->bindParam(':id', $id);
 $stmt->execute();
 $itens = $stmt->fetchAll();
@@ -170,7 +170,7 @@ $badge_status = [
                                 <span class="badge badge-success">Mão de obra</span>
                             <?php endif; ?>
                         </td>
-                        <td><?php echo esc($item['descricao_item'] ?: ($item['tipo'] == 'peca' ? $item['peca_nome'] : $item['servico_nome'])); ?></td>
+                        <td><?php echo esc($item['descricao_item']); ?></td>
                             <td class="text-center"><?php echo $item['quantidade']; ?></td>
                             <td class="text-end"><?php echo formatar_moeda($item['preco_unitario']); ?></td>
                             <td class="text-end fw-600"><?php echo formatar_moeda($item['subtotal']); ?></td>

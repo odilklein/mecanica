@@ -23,13 +23,10 @@ $stmt->bindParam(':id', $id);
 $stmt->execute();
 $itens_existentes = $stmt->fetchAll();
 
-$pecas = $conn->query("SELECT id, nome, preco_venda, quantidade FROM pecas ORDER BY nome")->fetchAll();
-$servicos = $conn->query("SELECT id, nome, preco_mao_obra FROM servicos WHERE ativo = 1 ORDER BY nome")->fetchAll();
-
 $titulo_pagina = "Editar Orçamento #" . str_pad($orcamento['numero'], 4, '0', STR_PAD_LEFT);
 require_once __DIR__ . '/../../includes/header.php';
 require_once __DIR__ . '/../../includes/mensagens.php';
-$scripts_extra = '<script>window.OrcamentoEditorConfig = {pecas: ' . json_encode($pecas) . ', servicos: ' . json_encode($servicos) . ', itens: ' . json_encode($itens_existentes) . '};</script><script src="' . $caminho_base . '/js/orcamento-editor.js"></script>';
+$scripts_extra = '<script>window.OrcamentoEditorConfig = {itens: ' . json_encode($itens_existentes) . '};</script><script src="' . $caminho_base . '/js/orcamento-editor.js"></script>';
 ?>
 
 <div class="page-header">

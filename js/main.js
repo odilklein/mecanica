@@ -19,6 +19,7 @@ document.addEventListener('DOMContentLoaded', function() {
     initSelectCards();
     initNotifications();
     initSidebarUserMenu();
+    initSidebarTooltips();
     initResponsiveFilters();
     initTableFilters();
     initColorPicker();
@@ -42,18 +43,22 @@ function initSidebar() {
     const btn = document.getElementById('sidebarCollapseBtn');
     if (!sidebar || !btn) return;
 
-    const saved = localStorage.getItem('sidebar');
-    const wasCollapsed = saved === 'collapsed';
+    function aplicar(collapsed) {
+        sidebar.classList.toggle('collapsed', collapsed);
+        btn.setAttribute('aria-expanded', collapsed ? 'false' : 'true');
+        btn.setAttribute('title', collapsed ? 'Expandir menu' : 'Minimizar menu');
+    }
 
-    if (wasCollapsed && window.innerWidth > 768) {
-        sidebar.classList.add('collapsed');
+    const saved = localStorage.getItem('sidebar');
+    if (saved === 'collapsed' && window.innerWidth > 768) {
+        aplicar(true);
     }
 
     btn.addEventListener('click', function() {
         if (window.innerWidth <= 768) return;
-        sidebar.classList.toggle('collapsed');
-        const isCollapsed = sidebar.classList.contains('collapsed');
-        localStorage.setItem('sidebar', isCollapsed ? 'collapsed' : 'expanded');
+        const collapsed = !sidebar.classList.contains('collapsed');
+        aplicar(collapsed);
+        localStorage.setItem('sidebar', collapsed ? 'collapsed' : 'expanded');
     });
 }
 
@@ -152,23 +157,29 @@ function initMobileSidebar() {
 // =============================================
 function initAutoCollapse() {
     const sidebar = document.getElementById('sidebar');
+    const btn = document.getElementById('sidebarCollapseBtn');
     if (!sidebar) return;
 
+    function sincronizar() {
+        if (!btn) return;
+        const collapsed = sidebar.classList.contains('collapsed');
+        btn.setAttribute('aria-expanded', collapsed ? 'false' : 'true');
+        btn.setAttribute('title', collapsed ? 'Expandir menu' : 'Minimizar menu');
+    }
+
     function checkViewport() {
-        const isMobile = window.innerWidth <= 768;
-        if (isMobile) return;
+        if (window.innerWidth <= 768) return;
 
         if (window.innerWidth < 1280) {
-            const saved = localStorage.getItem('sidebar');
-            if (saved !== 'expanded') {
+            if (localStorage.getItem('sidebar') !== 'expanded') {
                 sidebar.classList.add('collapsed');
             }
         } else if (sidebar.classList.contains('collapsed')) {
-            const saved = localStorage.getItem('sidebar');
-            if (saved !== 'collapsed') {
+            if (localStorage.getItem('sidebar') !== 'collapsed') {
                 sidebar.classList.remove('collapsed');
             }
         }
+        sincronizar();
     }
 
     checkViewport();
@@ -518,7 +529,6 @@ function renderReview() {
     document.querySelectorAll('[data-dynamic-list-pecas] .dynamic-list-item .item-text').forEach(function(t) {
         pecas.push(t.textContent.trim());
     });
-    var audioCount = document.querySelectorAll('[data-dynamic-list-tarefas] .dynamic-list-item .item-audio').length;
 
     var cEquipe = document.getElementById('reviewEquipe');
     if (cEquipe) {
@@ -526,7 +536,6 @@ function renderReview() {
             ? '<b>' + funcs.length + ' funcionário' + (funcs.length > 1 ? 's' : '') + ':</b> ' + escapeHtml(funcs.join(', '))
             : '<em>Nenhum funcionário selecionado</em>';
         eh += '<br><b>Tarefas:</b> ' + (tarefas.length ? escapeHtml(tarefas.slice(0, 4).join(' | ')) + (tarefas.length > 4 ? ' …' : '') : '—');
-        if (audioCount) eh += ' <span class="badge badge-prioridade-normal">' + audioCount + ' áudio' + (audioCount > 1 ? 's' : '') + '</span>';
         eh += '<br><b>Peças:</b> ' + (pecas.length ? escapeHtml(pecas.slice(0, 4).join(' | ')) + (pecas.length > 4 ? ' …' : '') : '—');
         cEquipe.innerHTML = eh;
     }
@@ -541,33 +550,22 @@ function initDynamicLists() {
     document.querySelectorAll('[data-dynamic-list]').forEach(function(list) {
         var input = list.querySelector('.dynamic-list-input .form-control');
         var addBtn = list.querySelector('.btn-add');
-        var micBtn = list.querySelector('.btn-mic');
-        var recTimeEl = list.querySelector('.rec-time');
         var container = list.querySelector('.dynamic-list-items');
         var hiddenInput = list.querySelector('input[type="hidden"]');
 
         if (!addBtn || !container) return;
 
         var items = [];
-        var recording = false, recorder = null, stream = null, chunks = [], timer = null, startTime = 0;
 
-        function addItem(text, audio) {
+        function addItem(text) {
             text = String(text || '').trim();
-            if (!text && !audio) return;
-            if (!text) text = 'Gravação de áudio';
-            var audioObj = audio ? { dataUrl: audio.dataUrl, duration: audio.duration || 0 } : null;
-            items.push({ text: text, audio: audioObj });
+            if (!text) return;
+            items.push(text);
 
             var item = document.createElement('div');
             item.className = 'dynamic-list-item';
-            if (audioObj) item.setAttribute('data-audio', '1');
-            var audioHtml = audioObj
-                ? '<div class="item-audio"><audio controls preload="none" src="' + audioObj.dataUrl + '"></audio>' +
-                  '<span class="item-audio-info"><i data-lucide="mic"></i> ' + fmtDuracao(audioObj.duration) + '</span></div>'
-                : '';
             item.innerHTML = '<i data-lucide="grip-vertical" class="item-grip"></i>' +
                 '<span class="item-text">' + escapeHtml(text) + '</span>' +
-                audioHtml +
                 '<button type="button" class="item-remove" title="Remover"><i data-lucide="x"></i></button>';
             item.querySelector('.item-remove').addEventListener('click', function() {
                 var idx = Array.prototype.indexOf.call(container.children, item);
@@ -584,14 +582,7 @@ function initDynamicLists() {
 
         function syncList() {
             if (!hiddenInput) return;
-            var hasAudio = items.some(function(it) { return it.audio; });
-            if (hasAudio) {
-                hiddenInput.value = JSON.stringify(items.map(function(it) {
-                    return { d: it.text, a: it.audio ? it.audio.dataUrl : null, s: it.audio ? it.audio.duration : null };
-                }));
-            } else {
-                hiddenInput.value = items.map(function(it) { return it.text; }).join('\n');
-            }
+            hiddenInput.value = items.join('\n');
         }
 
         if (addBtn) addBtn.addEventListener('click', function() {
@@ -611,71 +602,11 @@ function initDynamicLists() {
             });
         });
 
-        if (micBtn) micBtn.addEventListener('click', function() {
-            if (recording) { stopRecordingCore(); return; }
-            if (!navigator.mediaDevices || !window.MediaRecorder) {
-                showWizardMsg('Seu navegador não suporta gravação de áudio.');
-                return;
-            }
-            navigator.mediaDevices.getUserMedia({ audio: true }).then(function(s) {
-                if (recording) { s.getTracks().forEach(function(t) { t.stop(); }); return; }
-                stream = s;
-                chunks = [];
-                var mime = pickAudioMime();
-                recorder = new MediaRecorder(s, mime ? { mimeType: mime } : undefined);
-                recorder.ondataavailable = function(e) { if (e.data && e.data.size > 0) chunks.push(e.data); };
-                recorder.onstop = function() {
-                    var blob = new Blob(chunks, { type: recorder.mimeType || 'audio/webm' });
-                    if (stream) { stream.getTracks().forEach(function(t) { t.stop(); }); stream = null; }
-                    var duracao = Math.round((Date.now() - startTime) / 1000);
-                    var fr = new FileReader();
-                    fr.onload = function() {
-                        addItem(input ? input.value : '', { dataUrl: fr.result, duration: duracao });
-                    };
-                    fr.readAsDataURL(blob);
-                    micBtn.classList.remove('recording');
-                    if (recTimeEl) recTimeEl.style.display = 'none';
-                };
-                recorder.start();
-                startTime = Date.now();
-                recording = true;
-                micBtn.classList.add('recording');
-                if (recTimeEl) { recTimeEl.style.display = ''; recTimeEl.textContent = '0:00'; }
-                timer = setInterval(function() {
-                    var s = Math.round((Date.now() - startTime) / 1000);
-                    if (s >= 120) stopRecordingCore();
-                    if (recTimeEl) recTimeEl.textContent = fmtDuracao(s);
-                }, 250);
-            }).catch(function() {
-                showWizardMsg('Permita o acesso ao microfone para gravar o áudio da tarefa.');
-            });
-        });
-
-        function stopRecordingCore() {
-            if (!recording) return;
-            recording = false;
-            if (timer) { clearInterval(timer); timer = null; }
-            try { if (recorder && recorder.state !== 'inactive') recorder.stop(); } catch (e) {}
-        }
-
         // Load existing values
         if (hiddenInput && hiddenInput.value.trim()) {
-            var primeira = hiddenInput.value.charAt(0);
-            if (primeira === '[') {
-                try {
-                    JSON.parse(hiddenInput.value).forEach(function(it) {
-                        addItem(it.d || '', it.a ? { dataUrl: it.a, duration: it.s || 0 } : null);
-                    });
-                } catch (err) {
-                    hiddenInput.value.trim().split('\n').forEach(function(line) {
-                        if (line.trim()) addItem(line.trim());
-                    });
-                }
-            } else {
-                hiddenInput.value.trim().split('\n').forEach(function(line) {
-                    if (line.trim()) addItem(line.trim());
-                });
-            }
+            hiddenInput.value.trim().split('\n').forEach(function(line) {
+                if (line.trim()) addItem(line.trim());
+            });
         }
     });
 }
@@ -684,22 +615,6 @@ function escapeHtml(str) {
     var div = document.createElement('div');
     div.textContent = str;
     return div.innerHTML;
-}
-
-function fmtDuracao(sec) {
-    sec = Math.max(0, Math.round(sec || 0));
-    var m = Math.floor(sec / 60);
-    var s2 = sec % 60;
-    return m + ':' + (s2 < 10 ? '0' : '') + s2;
-}
-
-function pickAudioMime() {
-    if (typeof MediaRecorder === 'undefined' || !MediaRecorder.isTypeSupported) return null;
-    var c = ['audio/webm;codecs=opus', 'audio/webm', 'audio/ogg;codecs=opus', 'audio/mp4', 'audio/mpeg'];
-    for (var i = 0; i < c.length; i++) {
-        try { if (MediaRecorder.isTypeSupported(c[i])) return c[i]; } catch (e) {}
-    }
-    return null;
 }
 
 function showWizardMsg(msg) {
@@ -781,7 +696,7 @@ function initNotifications() {
 
     const base = window.CAMINHO_BASE || '';
     const url = base + '/api/notificacoes.php';
-    const icones = { os_criada: 'clipboard-plus', os_atribuida: 'user-plus', os_status: 'arrow-right-left', diagnostico: 'stethoscope', tarefa: 'list-checks', peca_pedido: 'package-search', peca_disponivel: 'package-check', orcamento: 'file-text', estoque: 'alert-triangle', entrega: 'truck' };
+    const icones = { os_criada: 'clipboard-plus', os_atribuida: 'user-plus', os_status: 'arrow-right-left', diagnostico: 'stethoscope', tarefa: 'list-checks', peca_pedido: 'package-search', peca_disponivel: 'package-check', orcamento: 'file-text', entrega: 'truck' };
 
     function iconeTipo(tipo) { return icones[tipo] || 'bell'; }
 
@@ -880,33 +795,64 @@ function initNotifications() {
 // MENU DO USUÁRIO (3 PONTINHOS NA SIDEBAR)
 // =============================================
 function initSidebarUserMenu() {
-    const btn = document.getElementById('sidebarUserMenuBtn');
-    const menu = document.getElementById('sidebarUserMenu');
     const usuario = document.getElementById('sidebarUser');
-    if (!btn || !menu) return;
+    const menu = document.getElementById('sidebarUserMenu');
+    if (!usuario || !menu) return;
 
     function alternar(abrir) {
         menu.hidden = !abrir;
-        btn.setAttribute('aria-expanded', abrir ? 'true' : 'false');
+        usuario.setAttribute('aria-expanded', abrir ? 'true' : 'false');
     }
 
-    btn.addEventListener('click', function(e) {
+    usuario.addEventListener('click', function(e) {
         e.stopPropagation();
         alternar(menu.hidden);
     });
 
-    if (usuario) {
-        usuario.addEventListener('click', function(e) {
-            if (e.target.closest('#sidebarUserMenuBtn') || e.target.closest('.sidebar-user-menu')) return;
-            alternar(menu.hidden);
-        });
-    }
-
     document.addEventListener('click', function(e) {
-        if (!menu.hidden && !e.target.closest('.sidebar-user-menu') && !e.target.closest('#sidebarUserMenuBtn') && !e.target.closest('#sidebarUser')) {
+        if (!menu.hidden && !e.target.closest('.sidebar-user-menu') && !e.target.closest('#sidebarUser')) {
             alternar(false);
         }
     });
+
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape' && !menu.hidden) alternar(false);
+    });
+}
+
+// =============================================
+// TOOLTIP FLUTUANTE DOS ÍCONES (SIDEBAR RECOLHIDA)
+// =============================================
+function initSidebarTooltips() {
+    const sidebar = document.getElementById('sidebar');
+    const tooltip = document.getElementById('sidebarTooltip');
+    if (!sidebar || !tooltip) return;
+
+    function mostrar(el) {
+        if (window.innerWidth <= 768 || !sidebar.classList.contains('collapsed')) return;
+        const texto = el.getAttribute('data-tooltip');
+        if (!texto) return;
+
+        const rect = el.getBoundingClientRect();
+        tooltip.textContent = texto;
+        tooltip.hidden = false;
+        tooltip.style.top = (rect.top + rect.height / 2) + 'px';
+        tooltip.style.left = (rect.right + 10) + 'px';
+    }
+
+    function esconder() {
+        tooltip.hidden = true;
+    }
+
+    sidebar.querySelectorAll('[data-tooltip]').forEach(function(el) {
+        el.addEventListener('mouseenter', function() { mostrar(el); });
+        el.addEventListener('focus', function() { mostrar(el); });
+        el.addEventListener('mouseleave', esconder);
+        el.addEventListener('blur', esconder);
+    });
+
+    sidebar.addEventListener('mouseleave', esconder);
+    window.addEventListener('scroll', esconder, true);
 }
 
 // =============================================

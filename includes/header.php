@@ -28,7 +28,7 @@ $url_logout = $caminho_base . '/pages/auth/logout.php';
     </script>
     <?php require_once __DIR__ . '/sidebar.php'; ?>
 
-    <div class="main-wrapper">
+    <div class="main-wrapper" id="conteudo" tabindex="-1">
         <header class="topbar">
             <button class="topbar-burger" id="mobileMenuBtn" aria-label="Abrir menu">
                 <i data-lucide="menu"></i>
