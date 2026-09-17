@@ -110,8 +110,8 @@ if ($acao !== 'cadastrar') {
         $conn->beginTransaction();
         $stmt = $conn->prepare('UPDATE ordens_servico SET status = :status, data_conclusao = IF(:status = \'entregue\', NOW(), data_conclusao) WHERE id = :id');
         $stmt->execute([':status' => $novo_status, ':id' => $os_id]);
-        $stmt = $conn->prepare('INSERT INTO os_eventos (os_id, tipo, status_anterior, status_novo, descricao, criado_por) VALUES (:os_id, \'status\', :anterior, :novo, :descricao, :usuario)');
-        $stmt->execute([':os_id' => $os_id, ':anterior' => $os_atual['status'], ':novo' => $novo_status, ':descricao' => 'Status alterado manualmente', ':usuario' => $_SESSION['usuario_id']]);
+        // O evento de mudança de status é gravado automaticamente pela
+        // trigger trg_os_status_historico (ver sql/mecanica_teste.sql).
         $num_os = str_pad((string) $os_atual['numero'], 4, '0', STR_PAD_LEFT);
         $msg_status = 'O status da OS #' . $num_os . ' mudou para "' . str_replace('_', ' ', $novo_status) . '".';
         notificar_responsaveis_os($conn, $os_id, 'os_status', $msg_status, (int) $_SESSION['usuario_id']);
@@ -192,21 +192,7 @@ $placa = strtoupper(limpar($_POST['placa'] ?? ''));
 $prioridade = $_POST['prioridade'] ?? 'normal';
 $queixa = limpar($_POST['queixa_inicial'] ?? '');
 $observacoes = limpar($_POST['observacoes_internas'] ?? '');
-$tarefas_json = json_decode($_POST['tarefas'] ?? '', true);
-$tarefas = [];
-$tarefas_audio = [];
-if (is_array($tarefas_json)) {
-    foreach ($tarefas_json as $item) {
-        $descricao = trim((string) ($item['d'] ?? ''));
-        if ($descricao !== '') {
-            $tarefas[] = $descricao;
-            $tarefas_audio[] = ['data' => isset($item['a']) ? (string) $item['a'] : null, 'duracao' => isset($item['s']) ? (int) $item['s'] : null];
-        }
-    }
-} else {
-    $tarefas = array_values(array_filter(array_map('trim', explode("\n", $_POST['tarefas'] ?? ''))));
-    $tarefas_audio = array_fill(0, count($tarefas), null);
-}
+$tarefas = array_values(array_filter(array_map('trim', explode("\n", $_POST['tarefas'] ?? ''))));
 $funcionarios_ids = array_values(array_unique(array_map('intval', $_POST['funcionarios_ids'] ?? [])));
 $pecas_linhas = array_values(array_filter(array_map('trim', explode("\n", $_POST['pecas'] ?? ''))));
 
@@ -215,31 +201,6 @@ if ($nome === '' || $queixa === '' || !in_array($prioridade, ['baixa', 'normal',
     $_SESSION['mensagem_tipo'] = 'warning';
     header('Location: cadastrar.php');
     exit();
-}
-
-function salvar_audio_tarefa(string $data_url, int $os_id, int $indice): ?string
-{
-    if (!preg_match('#^data:audio/([a-z0-9.+-]+);base64,(.+)$#i', $data_url, $m)) {
-        return null;
-    }
-    $ext_map = ['webm' => 'webm', 'ogg' => 'ogg', 'mp4' => 'm4a', 'mpeg' => 'mp3', 'mp3' => 'mp3', 'wav' => 'wav', 'x-wav' => 'wav', 'x-mpeg' => 'mp3'];
-    $ext = $ext_map[strtolower($m[1])] ?? null;
-    if ($ext === null) {
-        return null;
-    }
-    $bin = base64_decode($m[2], true);
-    if ($bin === false || strlen($bin) > 15 * 1024 * 1024) {
-        return null;
-    }
-    $dir = __DIR__ . '/../../uploads/audio';
-    if (!is_dir($dir) && !@mkdir($dir, 0775, true)) {
-        return null;
-    }
-    $nome = 'os' . $os_id . '_t' . $indice . '_' . bin2hex(random_bytes(4)) . '.' . $ext;
-    if (@file_put_contents($dir . '/' . $nome, $bin) === false) {
-        return null;
-    }
-    return 'uploads/audio/' . $nome;
 }
 
 try {
@@ -308,26 +269,12 @@ try {
     notificar_usuarios($conn, $funcionarios_ids, $os_id, 'os_atribuida', 'Nova OS #' . $num_formatado . ' atribuída a você.');
     notificar_tipos($conn, ['admin', 'secretaria', 'mecanico_chefe'], $os_id, 'os_criada', 'Nova ordem de serviço #' . $num_formatado . ' criada.', (int) $_SESSION['usuario_id']);
 
-    foreach ($tarefas as $indice => $tarefa) {
+    foreach ($tarefas as $tarefa) {
         if (mb_strlen($tarefa) > 255) {
             throw new RuntimeException('Cada tarefa deve ter no máximo 255 caracteres.');
         }
         $stmt = $conn->prepare('INSERT INTO os_tarefas (os_id, descricao, criado_por) VALUES (:os_id, :descricao, :criado_por)');
         $stmt->execute([':os_id' => $os_id, ':descricao' => $tarefa, ':criado_por' => $_SESSION['usuario_id']]);
-        $tarefa_id = (int) $conn->lastInsertId();
-
-        if (!empty($tarefas_audio[$indice]['data'])) {
-            try {
-                $audio_arquivo = salvar_audio_tarefa($tarefas_audio[$indice]['data'], $os_id, $indice);
-                if ($audio_arquivo) {
-                    $duracao = $tarefas_audio[$indice]['duracao'] ?? null;
-                    $stmt = $conn->prepare('INSERT INTO os_tarefas_audios (tarefa_id, arquivo, duracao_seg) VALUES (:tarefa_id, :arquivo, :duracao)');
-                    $stmt->execute([':tarefa_id' => $tarefa_id, ':arquivo' => $audio_arquivo, ':duracao' => $duracao ?: null]);
-                }
-            } catch (Throwable $e2) {
-                error_log('Falha ao salvar áudio da tarefa: ' . $e2->getMessage());
-            }
-        }
     }
 
     if ($pecas_linhas) {

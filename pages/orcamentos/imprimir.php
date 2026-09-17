@@ -15,7 +15,7 @@ if (!$orcamento) {
     die("Orçamento não encontrado.");
 }
 
-$stmt = $conn->prepare("SELECT oi.*, p.nome as peca_nome, s.nome as servico_nome FROM orcamento_itens oi LEFT JOIN pecas p ON p.id = oi.peca_id LEFT JOIN servicos s ON s.id = oi.servico_id WHERE oi.orcamento_id = :id ORDER BY oi.id");
+$stmt = $conn->prepare("SELECT oi.* FROM orcamento_itens oi WHERE oi.orcamento_id = :id ORDER BY oi.id");
 $stmt->bindParam(':id', $id);
 $stmt->execute();
 $itens = $stmt->fetchAll();
@@ -120,7 +120,7 @@ $itens = $stmt->fetchAll();
                         <td class="text-center"><?php echo (int) $item['quantidade']; ?></td>
                         <td>
                             <?php echo $item['tipo'] == 'peca' ? '[Peça] ' : '[Mão de Obra] '; ?>
-                            <?php echo htmlspecialchars($item['descricao_item'] ?: ($item['peca_nome'] ?: $item['servico_nome'])); ?>
+                            <?php echo htmlspecialchars($item['descricao_item']); ?>
                         </td>
                         <td class="text-right"><?php echo 'R$ ' . number_format($item['preco_unitario'], 2, ',', '.'); ?></td>
                         <td class="text-right"><?php echo 'R$ ' . number_format($item['subtotal'], 2, ',', '.'); ?></td>

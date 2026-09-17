@@ -1,6 +1,7 @@
 <?php
 require_once __DIR__ . '/../../includes/sessao.php';
 require_once __DIR__ . '/../../config/conexao.php';
+require_once __DIR__ . '/../../includes/paginacao.php';
 
 $usuario_id = (int) $_SESSION['usuario_id'];
 $filtro = $_GET['filtro'] ?? 'todas';
@@ -34,6 +35,7 @@ $st = $conn->prepare('SELECT tipo, COUNT(*) AS total FROM notificacoes WHERE usu
 $st->execute([':uid' => $usuario_id]);
 $tipos = $st->fetchAll();
 $rotulos_tipo = ['os_criada' => 'OS criada', 'os_atribuida' => 'OS atribuída', 'os_status' => 'Status da OS', 'diagnostico' => 'Diagnóstico', 'tarefa' => 'Tarefa', 'peca_pedido' => 'Pedido de peça', 'peca_disponivel' => 'Peça disponível', 'entrega' => 'Entrega', 'orcamento' => 'Orçamento'];
+$filtros_pag = array_filter(['filtro' => $filtro, 'tipo' => $tipo, 'busca' => $busca], fn($v) => $v !== '');
 
 $titulo_pagina = 'Notificações';
 require_once __DIR__ . '/../../includes/header.php';
@@ -70,7 +72,7 @@ require_once __DIR__ . '/../../includes/mensagens.php';
 <?php foreach ($notificacoes as $notif): ?><tr class="<?php echo $notif['lida_em'] === null ? 'notificacao-nao-lida' : ''; ?>"><td data-label="Mensagem"><div class="d-flex align-items-start gap-2"><span class="mt-1" style="width:16px;"><?php if ($notif['lida_em'] === null): ?><span class="notification-dot d-inline-block"></span><?php endif; ?></span><div><strong><?php echo esc($rotulos_tipo[$notif['tipo']] ?? $notif['tipo']); ?></strong><br><span class="small"><?php echo esc($notif['mensagem']); ?></span></div></div></td><td data-label="OS"><?php if ($notif['os_id']): ?><a href="../ordens_servico/detalhes.php?id=<?php echo (int) $notif['os_id']; ?>">OS #<?php echo str_pad((int) $notif['os_numero'], 4, '0', STR_PAD_LEFT); ?></a><?php else: ?>-<?php endif; ?></td><td data-label="Data"><?php echo date('d/m/Y H:i', strtotime($notif['criada_em'])); ?></td><td class="text-end"><?php if ($notif['os_id'] && $notif['lida_em'] === null): ?><a class="btn btn-sm btn-outline-primary" href="../ordens_servico/detalhes.php?id=<?php echo (int) $notif['os_id']; ?>&marcar_notificacao=<?php echo (int) $notif['id']; ?>">Abrir</a><?php endif; ?></td></tr><?php endforeach; ?>
 <?php if (!$notificacoes): ?><tr class="row-empty"><td colspan="4"><div class="empty-state"><div class="empty-state-icon"><i data-lucide="bell-off"></i></div><h4>Nenhuma notificação</h4><p>Não há notificações para exibir com os filtros atuais.</p></div></td></tr><?php endif; ?>
 </tbody></table></div>
-<?php if ($total_paginas > 1): ?><nav class="pagination-nav"><ul class="pagination justify-content-center my-3"><?php for ($p = 1; $p <= $total_paginas; $p++): ?><li class="page-item <?php echo $p === $pagina ? 'active' : ''; ?>"><a class="page-link" href="listar.php?pagina=<?php echo $p; ?>&filtro=<?php echo esc($filtro); ?>&tipo=<?php echo esc($tipo); ?>&busca=<?php echo esc(urlencode($busca)); ?>"><?php echo $p; ?></a></li><?php endfor; ?></ul></nav><?php endif; ?>
+<?php echo paginacao_links($pagina, $total_paginas, $filtros_pag); ?>
 </div></div>
 <script>
 (function () {

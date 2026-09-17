@@ -10,7 +10,6 @@ $acao = $_GET['acao'] ?? '';
 try {
     if ($acao === 'cadastrar') {
         $os_id = (int) ($_POST['os_id'] ?? 0);
-        $peca_id = (int) ($_POST['peca_id'] ?? 0) ?: null;
         $descricao = limpar($_POST['descricao'] ?? '');
         $quantidade = (int) ($_POST['quantidade'] ?? 0);
         $fornecedor = $_SESSION['usuario_tipo'] === 'mecanico' ? null : (limpar($_POST['fornecedor'] ?? '') ?: null);
@@ -30,8 +29,8 @@ try {
         $stmt = $conn->prepare('INSERT INTO pedidos_pecas (os_id, fornecedor, status, previsao_entrega, observacoes, criado_por) VALUES (:os_id, :fornecedor, \'solicitado\', :previsao, :observacoes, :usuario)');
         $stmt->execute([':os_id' => $os_id, ':fornecedor' => $fornecedor ?: null, ':previsao' => $previsao ?: null, ':observacoes' => $observacoes ?: null, ':usuario' => $_SESSION['usuario_id']]);
         $pedido_id = (int) $conn->lastInsertId();
-        $stmt = $conn->prepare('INSERT INTO pedido_pecas_itens (pedido_id, peca_id, descricao, quantidade) VALUES (:pedido, :peca, :descricao, :quantidade)');
-        $stmt->execute([':pedido' => $pedido_id, ':peca' => $peca_id, ':descricao' => $descricao, ':quantidade' => $quantidade]);
+        $stmt = $conn->prepare('INSERT INTO pedido_pecas_itens (pedido_id, descricao, quantidade) VALUES (:pedido, :descricao, :quantidade)');
+        $stmt->execute([':pedido' => $pedido_id, ':descricao' => $descricao, ':quantidade' => $quantidade]);
         $stmt = $conn->prepare("UPDATE ordens_servico SET status = IF(status IN ('recebida', 'triagem', 'aguardando_diagnostico', 'aguardando_orcamento'), 'aguardando_peca', status) WHERE id = :id");
         $stmt->execute([':id' => $os_id]);
         $stmt = $conn->prepare("INSERT INTO os_eventos (os_id, tipo, descricao, criado_por) VALUES (:os_id, 'peca_solicitada', 'Pedido de peça criado', :usuario)");

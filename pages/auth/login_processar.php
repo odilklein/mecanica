@@ -2,9 +2,24 @@
 require_once __DIR__ . '/../../includes/sessao.php';
 require_once __DIR__ . '/../../config/conexao.php';
 require_once __DIR__ . '/../../includes/auditoria.php';
+require_once __DIR__ . '/../../includes/turnstile.php';
 
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     validar_csrf();
+
+    // Verificação anti-bot (Turnstile). Se a configuração estiver incompleta,
+    // turnstile_verificar() retorna ok e o login segue normalmente.
+    $turnstile = turnstile_verificar($_POST['cf-turnstile-response'] ?? null, 'login');
+    if (!$turnstile['ok']) {
+        error_log('Turnstile (login) recusado: ' . $turnstile['motivo']
+            . (isset($turnstile['detalhe']) ? ' [' . $turnstile['detalhe'] . ']' : ''));
+        $msg = ($turnstile['codigo'] ?? '') === 'token_ausente'
+            ? 'Confirme a verificação de segurança do formulário antes de entrar.'
+            : 'Falha na verificação de segurança. Tente novamente.';
+        header('Location: login.php?erro=' . urlencode($msg));
+        exit();
+    }
+
     $email = limpar($_POST['email'] ?? '');
     $senha = $_POST['senha'] ?? '';
 

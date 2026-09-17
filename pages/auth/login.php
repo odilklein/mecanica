@@ -1,6 +1,7 @@
 <?php
 require_once __DIR__ . '/../../includes/sessao.php';
 require_once __DIR__ . '/../../config/empresa.php';
+require_once __DIR__ . '/../../config/turnstile.php';
 
 // Se já estiver logado, redireciona para o dashboard
 if (isset($_SESSION['usuario_id'])) {
@@ -20,7 +21,8 @@ $erro = isset($_GET['erro']) ? $_GET['erro'] : '';
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="../../css/style.css" rel="stylesheet">
-    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/lucide@0.462.0/dist/umd/lucide.min.js"></script>
+    <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
 </head>
 <body class="auth-bg">
     <script>
@@ -73,6 +75,11 @@ $erro = isset($_GET['erro']) ? $_GET['erro'] : '';
                                         </button>
                                     </div>
                                 </div>
+                                <?php if (turnstile_configurado()): ?>
+                                <div class="mb-4">
+                                    <div class="cf-turnstile" data-sitekey="<?php echo htmlspecialchars(turnstile_site_key(), ENT_QUOTES, 'UTF-8'); ?>" data-action="login" data-theme="auto"></div>
+                                </div>
+                                <?php endif; ?>
                                 <div class="d-grid">
                                     <button type="submit" class="btn btn-primary btn-lg fw-bold">
                                         <i data-lucide="log-in" class="me-2"></i>Entrar

@@ -34,58 +34,27 @@ function atualizar_status_os_por_orcamento($conn, ?int $os_id, string $status_or
     }
 }
 
-// Processar itens do orçamento com revalidação de estoque/preços
+// Processar itens do orçamento (descrição livre, sem catálogo)
 function processar_itens($conn, int $orcamento_id, array $itens_raw): array {
     $total_pecas = 0;
     $total_servicos = 0;
     foreach ($itens_raw as $item_json) {
         $item = json_decode($item_json, true);
         if (!$item) continue;
-        $tipo = $item['tipo'];
-        $item_id = (int)($item['item_id'] ?? 0);
+        $tipo = ($item['tipo'] ?? '') === 'servico' ? 'servico' : 'peca';
+        $descricao_item = limpar($item['descricao'] ?? '');
         $quantidade = (int)($item['quantidade'] ?? 0);
         $preco = (float)($item['preco'] ?? 0);
-        $peca_id = null;
-        $servico_id = null;
-        $descricao_item = '';
+        if ($descricao_item === '') throw new Exception('A descrição do item é obrigatória.');
+        if ($quantidade <= 0 || $preco < 0) throw new Exception('Quantidade ou valor inválido no item.');
+        $subtotal = round($quantidade * $preco, 2);
         if ($tipo === 'peca') {
-            if ($quantidade <= 0 || $preco < 0) throw new Exception('Quantidade ou valor inválido na peça.');
-            if ($item_id > 0) {
-                $stmt = $conn->prepare("SELECT nome, preco_venda, quantidade FROM pecas WHERE id = :id FOR UPDATE");
-                $stmt->execute([':id' => $item_id]);
-                $p = $stmt->fetch();
-                if (!$p) throw new Exception('Peça não encontrada.');
-                $descricao_item = $p['nome'];
-                $preco = (float)$p['preco_venda'];
-                if ($p['quantidade'] < $quantidade) throw new Exception("Estoque insuficiente para: {$descricao_item}. Disponível: {$p['quantidade']}");
-            } else {
-                $descricao_item = limpar($item['descricao'] ?? '');
-                if ($descricao_item === '') throw new Exception('A descrição da peça é obrigatória.');
-                $preco = (float)$preco;
-            }
-            $subtotal = round($quantidade * $preco, 2);
             $total_pecas += $subtotal;
         } else {
-            if ($item_id > 0) {
-                $stmt = $conn->prepare("SELECT nome, preco_mao_obra FROM servicos WHERE id = :id AND ativo = 1");
-                $stmt->execute([':id' => $item_id]);
-                $s = $stmt->fetch();
-                if (!$s) throw new Exception('Serviço não encontrado ou inativo.');
-                $servico_id = $item_id;
-                $descricao_item = $s['nome'];
-                $preco = (float)$s['preco_mao_obra'];
-                $quantidade = 1;
-            } else {
-                $descricao_item = limpar($item['descricao'] ?? '');
-                if ($descricao_item === '') throw new Exception('A descrição do serviço é obrigatória.');
-                $servico_id = null;
-            }
-            if ($quantidade <= 0 || $preco < 0) throw new Exception('Quantidade ou valor inválido no serviço.');
-            $subtotal = round($quantidade * $preco, 2);
             $total_servicos += $subtotal;
         }
-        $stmt = $conn->prepare("INSERT INTO orcamento_itens (orcamento_id, tipo, peca_id, servico_id, descricao_item, quantidade, preco_unitario, subtotal) VALUES (:orcamento_id, :tipo, :peca_id, :servico_id, :descricao_item, :quantidade, :preco, :subtotal)");
-        $stmt->execute([':orcamento_id' => $orcamento_id, ':tipo' => $tipo, ':peca_id' => $peca_id, ':servico_id' => $servico_id, ':descricao_item' => $descricao_item, ':quantidade' => $quantidade, ':preco' => $preco, ':subtotal' => $subtotal]);
+        $stmt = $conn->prepare("INSERT INTO orcamento_itens (orcamento_id, tipo, descricao_item, quantidade, preco_unitario, subtotal) VALUES (:orcamento_id, :tipo, :descricao_item, :quantidade, :preco, :subtotal)");
+        $stmt->execute([':orcamento_id' => $orcamento_id, ':tipo' => $tipo, ':descricao_item' => $descricao_item, ':quantidade' => $quantidade, ':preco' => $preco, ':subtotal' => $subtotal]);
     }
     return [$total_pecas, $total_servicos];
 }
@@ -93,7 +62,7 @@ function processar_itens($conn, int $orcamento_id, array $itens_raw): array {
 try {
     if ($acao == 'cadastrar') {
         $cliente_id = (int)($_POST['cliente_id'] ?? 0);
-        $veiculo_id = (int)($_POST['veiculo_id'] ?? 0);
+        $veiculo_id = (int)($_POST['veiculo_id'] ?? 0) ?: null;
         $os_id = (int)($_POST['os_id'] ?? 0) ?: null;
         $data_validade = $_POST['data_validade'] ?? null;
         $observacoes = limpar($_POST['observacoes'] ?? '');
@@ -159,7 +128,7 @@ try {
         if (!$orc || $orc['status'] !== 'aberto') throw new Exception('Este orçamento não pode ser editado.');
 
         $cliente_id = (int)($_POST['cliente_id'] ?? 0);
-        $veiculo_id = (int)($_POST['veiculo_id'] ?? 0);
+        $veiculo_id = (int)($_POST['veiculo_id'] ?? 0) ?: null;
         $data_validade = $_POST['data_validade'] ?? null;
         $observacoes = limpar($_POST['observacoes'] ?? '');
         $itens = $_POST['itens'] ?? [];
