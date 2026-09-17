@@ -3,10 +3,14 @@
 -- Credenciais de teste para todos os usuarios: senha admin123
 -- O hash abaixo corresponde a senha de teste definida para este seed.
 
-CREATE DATABASE IF NOT EXISTS if0_42913295_db_mecanica CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-USE if0_42913295_db_mecanica;
+CREATE DATABASE IF NOT EXISTS mecanica CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+USE mecanica;
 SET NAMES utf8mb4;
 SET FOREIGN_KEY_CHECKS = 0;
+
+-- Objetos de banco (View e Trigger). Precisam ser removidos antes das tabelas.
+DROP VIEW IF EXISTS vw_ordens_servico_detalhada;
+DROP TRIGGER IF EXISTS trg_os_status_historico;
 
 DROP TABLE IF EXISTS auditoria;
 DROP TABLE IF EXISTS notificacoes;
@@ -69,52 +73,11 @@ CREATE TABLE veiculos (
   FOREIGN KEY (cliente_id) REFERENCES clientes(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
-CREATE TABLE servicos (
-  id INT AUTO_INCREMENT PRIMARY KEY,
-  nome VARCHAR(120) NOT NULL,
-  descricao TEXT,
-  preco_mao_obra DECIMAL(10,2) DEFAULT 0.00,
-  tempo_estimado INT,
-  ativo TINYINT(1) DEFAULT 1
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-
-CREATE TABLE pecas (
-  id INT AUTO_INCREMENT PRIMARY KEY,
-  codigo VARCHAR(30) UNIQUE,
-  nome VARCHAR(120) NOT NULL,
-  descricao TEXT,
-  categoria VARCHAR(60),
-  quantidade INT NOT NULL DEFAULT 0,
-  estoque_minimo INT DEFAULT 0,
-  preco_compra DECIMAL(10,2) DEFAULT 0.00,
-  preco_venda DECIMAL(10,2) DEFAULT 0.00,
-  fornecedor VARCHAR(120),
-  localizacao VARCHAR(50),
-  data_cadastro TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-
-CREATE TABLE agendamentos (
-  id INT AUTO_INCREMENT PRIMARY KEY,
-  cliente_id INT NOT NULL,
-  veiculo_id INT,
-  servico_id INT,
-  os_id INT NULL,
-  data_agendamento DATE NOT NULL,
-  hora TIME NOT NULL,
-  status ENUM('agendado','confirmado','cancelado','concluido') DEFAULT 'agendado',
-  observacoes TEXT,
-  data_criacao TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  FOREIGN KEY (cliente_id) REFERENCES clientes(id),
-  FOREIGN KEY (veiculo_id) REFERENCES veiculos(id) ON DELETE SET NULL,
-  FOREIGN KEY (servico_id) REFERENCES servicos(id) ON DELETE SET NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-
 CREATE TABLE ordens_servico (
   id INT AUTO_INCREMENT PRIMARY KEY,
   numero INT NOT NULL UNIQUE,
   cliente_id INT NOT NULL,
   veiculo_id INT NULL,
-  agendamento_id INT NULL,
   status ENUM('recebida','triagem','aguardando_diagnostico','aguardando_orcamento','aguardando_aprovacao','aguardando_peca','pronta_para_execucao','em_execucao','aguardando_retorno','pronta_para_entrega','entregue','cancelada') NOT NULL DEFAULT 'recebida',
   prioridade ENUM('baixa','normal','alta','urgente') NOT NULL DEFAULT 'normal',
   queixa_inicial TEXT NOT NULL,
@@ -130,9 +93,6 @@ CREATE TABLE ordens_servico (
   FOREIGN KEY (responsavel_chefe_id) REFERENCES usuarios(id) ON DELETE SET NULL,
   FOREIGN KEY (criado_por) REFERENCES usuarios(id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-
-ALTER TABLE agendamentos ADD CONSTRAINT fk_agendamento_os FOREIGN KEY (os_id) REFERENCES ordens_servico(id) ON DELETE SET NULL;
-ALTER TABLE ordens_servico ADD CONSTRAINT fk_os_agendamento FOREIGN KEY (agendamento_id) REFERENCES agendamentos(id) ON DELETE SET NULL;
 
 CREATE TABLE os_eventos (
   id BIGINT AUTO_INCREMENT PRIMARY KEY,
@@ -175,15 +135,6 @@ CREATE TABLE os_tarefas (
   FOREIGN KEY (concluido_por) REFERENCES usuarios(id) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
-CREATE TABLE os_tarefas_audios (
-  id BIGINT AUTO_INCREMENT PRIMARY KEY,
-  tarefa_id BIGINT NOT NULL,
-  arquivo VARCHAR(255) NOT NULL,
-  duracao_seg INT NULL,
-  criado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  FOREIGN KEY (tarefa_id) REFERENCES os_tarefas(id) ON DELETE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-
 CREATE TABLE pedidos_pecas (
   id INT AUTO_INCREMENT PRIMARY KEY,
   os_id INT NOT NULL,
@@ -203,15 +154,13 @@ CREATE TABLE pedidos_pecas (
 CREATE TABLE pedido_pecas_itens (
   id INT AUTO_INCREMENT PRIMARY KEY,
   pedido_id INT NOT NULL,
-  peca_id INT NULL,
   descricao VARCHAR(200) NOT NULL,
   quantidade INT NOT NULL,
   custo_unitario DECIMAL(10,2) NULL,
   recebido INT NOT NULL DEFAULT 0,
   observacoes VARCHAR(255) NULL,
   recebido_em DATETIME NULL,
-  FOREIGN KEY (pedido_id) REFERENCES pedidos_pecas(id) ON DELETE CASCADE,
-  FOREIGN KEY (peca_id) REFERENCES pecas(id) ON DELETE SET NULL
+  FOREIGN KEY (pedido_id) REFERENCES pedidos_pecas(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE os_entregas (
@@ -269,16 +218,6 @@ CREATE TABLE auditoria (
   FOREIGN KEY (usuario_id) REFERENCES usuarios(id) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
-CREATE TABLE movimentacoes_estoque (
-  id INT AUTO_INCREMENT PRIMARY KEY,
-  peca_id INT NOT NULL,
-  tipo ENUM('entrada','saida','ajuste') NOT NULL,
-  quantidade INT NOT NULL,
-  motivo VARCHAR(200),
-  data_movimentacao TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  FOREIGN KEY (peca_id) REFERENCES pecas(id) ON DELETE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-
 CREATE TABLE orcamentos (
   id INT AUTO_INCREMENT PRIMARY KEY,
   numero INT NOT NULL UNIQUE,
@@ -305,16 +244,23 @@ CREATE TABLE orcamento_itens (
   id INT AUTO_INCREMENT PRIMARY KEY,
   orcamento_id INT NOT NULL,
   tipo ENUM('peca','servico') NOT NULL,
-  peca_id INT NULL,
-  servico_id INT NULL,
   descricao_item VARCHAR(200),
   quantidade INT DEFAULT 1,
   preco_unitario DECIMAL(10,2) DEFAULT 0,
   subtotal DECIMAL(10,2) DEFAULT 0,
-  FOREIGN KEY (orcamento_id) REFERENCES orcamentos(id) ON DELETE CASCADE,
-  FOREIGN KEY (peca_id) REFERENCES pecas(id) ON DELETE SET NULL,
-  FOREIGN KEY (servico_id) REFERENCES servicos(id) ON DELETE SET NULL
+  FOREIGN KEY (orcamento_id) REFERENCES orcamentos(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- =============================================
+-- ÍNDICES de apoio às consultas mais frequentes
+-- =============================================
+ALTER TABLE ordens_servico       ADD INDEX idx_os_status (status, data_atualizacao);
+ALTER TABLE ordens_servico       ADD INDEX idx_os_prioridade (prioridade);
+ALTER TABLE os_responsaveis      ADD INDEX idx_os_responsaveis_usuario (usuario_id, concluido_em);
+ALTER TABLE os_eventos           ADD INDEX idx_os_eventos_os (os_id, criado_em);
+ALTER TABLE pedidos_pecas        ADD INDEX idx_pedidos_status (status, criado_em);
+ALTER TABLE notificacoes         ADD INDEX idx_notificacoes_usuario (usuario_id, lida_em);
+ALTER TABLE auditoria            ADD INDEX idx_auditoria_data (criado_em);
 
 SET FOREIGN_KEY_CHECKS = 1;
 
@@ -334,19 +280,6 @@ INSERT INTO usuarios (id, nome, email, senha, tipo, cpf, telefone, cargo, ativo)
 (3, 'Chefe da Oficina', 'chefe@mecanica.com', '$2y$12$sHoNQoIMhbrFjz8KgXTS2e0cA6jfLaijNEpjLNRRm.8Tor3p4XVfW', 'mecanico_chefe', '333.333.333-33', '(11) 99999-0003', 'Mecanico chefe', 1),
 (4, 'Mecanico 1', 'mecanico1@mecanica.com', '$2y$12$sHoNQoIMhbrFjz8KgXTS2e0cA6jfLaijNEpjLNRRm.8Tor3p4XVfW', 'mecanico', '444.444.444-44', '(11) 99999-0004', 'Mecanico', 1),
 (5, 'Mecanico 2', 'mecanico2@mecanica.com', '$2y$12$sHoNQoIMhbrFjz8KgXTS2e0cA6jfLaijNEpjLNRRm.8Tor3p4XVfW', 'mecanico', '555.555.555-55', '(11) 99999-0005', 'Mecanico', 1);
-
-INSERT INTO servicos (id, nome, descricao, preco_mao_obra, tempo_estimado) VALUES
-(1, 'Troca de Oleo', 'Troca de oleo e filtro do motor', 80.00, 45),
-(2, 'Alinhamento', 'Alinhamento da direcao', 70.00, 60),
-(3, 'Balanceamento', 'Balanceamento das rodas', 50.00, 45),
-(4, 'Troca de Pastilhas de Freio', 'Substituicao das pastilhas de freio', 120.00, 90),
-(5, 'Revisao dos 60.000 km', 'Revisao preventiva completa', 250.00, 180),
-(6, 'Troca de Correia Dentada', 'Substituicao da correia dentada e tensores', 350.00, 240),
-(7, 'Troca de Bateria', 'Substituicao da bateria do veiculo', 60.00, 30),
-(8, 'Diagnostico Eletronico', 'Analise com scanner profissional', 100.00, 60),
-(9, 'Troca de Embreagem', 'Substituicao completa de embreagem', 450.00, 240),
-(10, 'Suspensão Dianteira', 'Revisão completa da suspensão dianteira', 180.00, 120),
-(11, 'Higienização do Ar Condicionado', 'Limpeza e desinfecção do sistema de ar', 90.00, 45);
 
 INSERT INTO clientes (id, nome, cpf, telefone, email, endereco, cidade) VALUES
 (1, 'Carlos Alberto Silva', '123.456.789-01', '(11) 99876-5432', 'carlos.silva@email.com', 'Rua das Flores, 123', 'São Paulo'),
@@ -377,55 +310,15 @@ INSERT INTO veiculos (id, cliente_id, placa, marca, modelo, ano, cor, km_atual) 
 (14, 5, 'KLM-7246', 'Fiat', 'Fastback', 2023, 'Azul', 3000),
 (15, 8, 'NOP-8357', 'Hyundai', 'Tucson', 2022, 'Preto', 15000);
 
-INSERT INTO pecas (id, codigo, nome, descricao, categoria, quantidade, estoque_minimo, preco_compra, preco_venda, fornecedor, localizacao) VALUES
-(1, 'OLF-001', 'Óleo Motor 5W30 Sintético 1L', 'Óleo sintético para motores a gasolina', 'Filtros e Fluidos', 120, 20, 28.00, 45.00, 'Distribuidora AutoParts', 'Prateleira A1'),
-(2, 'OLF-002', 'Filtro de Óleo Toyota Corolla', 'Filtro de óleo original Toyota', 'Filtros e Fluidos', 45, 10, 22.00, 38.00, 'Toyota Peças', 'Prateleira A2'),
-(3, 'FRE-001', 'Pastilha de Freio Dianteira Universal', 'Pastilha cerâmica dianteira', 'Freios', 30, 8, 85.00, 150.00, 'FreiosMaster', 'Prateleira B1'),
-(4, 'FRE-002', 'Disco de Freio Dianteiro 280mm', 'Disco ventilado', 'Freios', 12, 5, 120.00, 220.00, 'FreiosMaster', 'Prateleira B2'),
-(5, 'MOT-001', 'Correia Dentada Kit Completo', 'Kit correia + tensores', 'Motor', 8, 3, 180.00, 320.00, 'CorreiasPro', 'Prateleira C1'),
-(6, 'MOT-002', 'Vela de Ignição Iridium (4un)', 'Kit 4 velas iridium', 'Motor', 35, 10, 95.00, 160.00, 'Auto Ignição', 'Prateleira C2'),
-(7, 'ELE-001', 'Bateria 60Ah 480CCA', 'Bateria selada livre de manutenção', 'Elétrica', 15, 5, 280.00, 450.00, 'EnergiaAuto', 'Chão D1'),
-(8, 'ELE-002', 'Alternador 90A Reforçado', 'Alternador recondicionado garantia 6 meses', 'Elétrica', 4, 2, 350.00, 580.00, 'EnergiaAuto', 'Chão D2'),
-(9, 'SUS-001', 'Amortecedor Dianteiro (par)', 'Amortecedor hidráulico', 'Suspensão', 10, 4, 160.00, 280.00, 'SuspensãoMax', 'Prateleira E1'),
-(10, 'SUS-002', 'Mola Dianteira (par)', 'Mola helicoidal aço liga', 'Suspensão', 6, 3, 140.00, 250.00, 'SuspensãoMax', 'Prateleira E2'),
-(11, 'TRA-001', 'Óleo Transmissão Automática ATF', 'ATF III 1L', 'Transmissão', 25, 8, 35.00, 55.00, 'Distribuidora AutoParts', 'Prateleira F1'),
-(12, 'TRA-002', 'Junta Homocinética Dianteira', 'Junta para veículos FWD', 'Transmissão', 7, 3, 80.00, 140.00, 'TransPeças', 'Prateleira F2'),
-(13, 'CAR-001', 'Filtro de Ar Honda Civic', 'Filtro de ar original Honda', 'Filtros e Fluidos', 40, 10, 32.00, 55.00, 'Honda Peças', 'Prateleira A3'),
-(14, 'CAR-002', 'Filtro de Cabine Universal', 'Filtro antialérgico', 'Filtros e Fluidos', 50, 15, 18.00, 35.00, 'AutoParts', 'Prateleira A4'),
-(15, 'REJ-001', 'Fluido de Freio DOT4 500ml', 'Fluido sintético DOT4', 'Filtros e Fluidos', 60, 20, 12.00, 25.00, 'Distribuidora AutoParts', 'Prateleira G1'),
-(16, 'REJ-002', 'Líquido Radiador Concentrado 1L', 'Anticongelante orgânico', 'Filtros e Fluidos', 30, 10, 15.00, 30.00, 'AutoParts', 'Prateleira G2'),
-(17, 'PNE-001', 'Pneu 205/55R16 91V', 'Pneu aro 16 aço', 'Pneus e Rodas', 20, 4, 280.00, 420.00, 'PneusGigante', 'Chão P1'),
-(18, 'PNE-002', 'Pneu 185/65R15 88H', 'Pneu aro 15 aço', 'Pneus e Rodas', 16, 4, 220.00, 350.00, 'PneusGigante', 'Chão P2'),
-(19, 'ACE-001', 'Limpador para-brisa (par)', 'Limpador universal 16"', 'Acessórios', 30, 10, 20.00, 40.00, 'AcessóriosCar', 'Prateleira H1'),
-(20, 'ACE-002', 'Capa de Banco Universal (4un)', 'Capa neoprene preta', 'Acessórios', 8, 3, 60.00, 120.00, 'AcessóriosCar', 'Chão H2');
-
-INSERT INTO agendamentos (cliente_id, veiculo_id, servico_id, data_agendamento, hora, status, observacoes) VALUES
-(1, 1, 1, CURDATE(), '09:00', 'agendado', 'Troca de óleo periódica'),
-(2, 3, 2, CURDATE(), '10:30', 'confirmado', 'Veículo puxando para a direita'),
-(3, 4, 3, CURDATE(), '14:00', 'agendado', 'Barulho nas rodas dianteiras'),
-(4, 5, 4, CURDATE() + INTERVAL 1 DAY, '08:00', 'agendado', 'Pastilhas com bastante desgaste'),
-(5, 6, 5, CURDATE() + INTERVAL 1 DAY, '11:00', 'agendado', 'Revisão dos 60.000km'),
-(1, 2, 7, CURDATE() + INTERVAL 2 DAY, '09:30', 'confirmado', 'Bateria fraca, carro não pega de manhã'),
-(7, 8, 1, CURDATE() + INTERVAL 2 DAY, '14:00', 'agendado', 'Troca de óleo e filtro'),
-(9, 10, 6, CURDATE() + INTERVAL 3 DAY, '08:00', 'agendado', 'Motor fazendo ruído metálico'),
-(6, 7, 8, CURDATE() + INTERVAL 3 DAY, '10:00', 'confirmado', 'Scanner acendeu luz de injeção'),
-(10, 12, 9, CURDATE() + INTERVAL 4 DAY, '09:00', 'agendado', 'Embreagem patinando'),
-(2, 11, 10, CURDATE() + INTERVAL 5 DAY, '13:00', 'agendado', 'Suspeita de amortecedor'),
-(8, 9, 11, CURDATE() + INTERVAL 7 DAY, '10:00', 'agendado', 'Ar condicionado não gela');
-
-INSERT INTO ordens_servico (numero, cliente_id, veiculo_id, agendamento_id, status, prioridade, queixa_inicial, diagnostico, observacoes_internas, responsavel_chefe_id, criado_por, data_entrada, data_conclusao) VALUES
-(1001, 1, 1, 1, 'entregue', 'normal', 'Troca de oleo e filtro do motor', 'Revisao realizada sem anomalias.', 'Veiculo liberado para o cliente.', 3, 2, NOW() - INTERVAL 12 DAY, NOW() - INTERVAL 10 DAY),
-(1002, 2, 3, 2, 'pronta_para_entrega', 'alta', 'Veiculo puxando para a direita', 'Alinhamento e balanceamento executados.', 'Aguardando retirada do cliente.', 3, 2, NOW() - INTERVAL 8 DAY, NULL),
-(1003, 3, 4, 3, 'em_execucao', 'normal', 'Barulho nas rodas dianteiras', 'Pastilhas e disco dianteiros com desgaste.', 'Substituicao autorizada no orcamento.', 3, 1, NOW() - INTERVAL 5 DAY, NULL),
-(1004, 5, 6, 5, 'aguardando_peca', 'alta', 'Revisao dos 60.000 km', 'Correia dentada proxima do limite de uso.', 'Aguardando kit de correia do fornecedor.', 3, 2, NOW() - INTERVAL 3 DAY, NULL),
-(1005, 4, 5, 4, 'aguardando_aprovacao', 'normal', 'Pastilhas dianteiras desgastadas', 'Pastilhas abaixo da espessura recomendada.', 'Orcamento enviado para aprovacao.', 3, 2, NOW() - INTERVAL 2 DAY, NULL),
-(1006, 7, 8, 7, 'cancelada', 'baixa', 'Troca de bateria e revisao eletrica', 'Bateria sem capacidade de carga.', 'Cliente cancelou o servico.', 3, 2, NOW() - INTERVAL 12 DAY, NULL),
-(1007, 9, 10, 8, 'pronta_para_execucao', 'urgente', 'Motor fazendo ruido metalico', 'Correia e tensores precisam ser substituidos.', 'Pecas recebidas e separadas para execucao.', 3, 1, NOW() - INTERVAL 7 DAY, NULL),
-(1008, 10, 12, 10, 'aguardando_diagnostico', 'normal', 'Embreagem patinando', NULL, 'Realizar teste de rodagem e diagnostico.', 3, 2, NOW() - INTERVAL 1 DAY, NULL);
-
-UPDATE agendamentos SET os_id = CASE id WHEN 1 THEN 1 WHEN 2 THEN 2 WHEN 3 THEN 3 WHEN 4 THEN 5 WHEN 5 THEN 4 WHEN 7 THEN 6 WHEN 8 THEN 7 WHEN 10 THEN 8 ELSE os_id END;
-UPDATE ordens_servico SET agendamento_id = CASE id WHEN 1 THEN 1 WHEN 2 THEN 2 WHEN 3 THEN 3 WHEN 4 THEN 5 WHEN 5 THEN 4 WHEN 6 THEN 7 WHEN 7 THEN 8 WHEN 8 THEN 10 ELSE agendamento_id END;
-
+INSERT INTO ordens_servico (numero, cliente_id, veiculo_id, status, prioridade, queixa_inicial, diagnostico, observacoes_internas, responsavel_chefe_id, criado_por, data_entrada, data_conclusao) VALUES
+(1001, 1, 1, 'entregue', 'normal', 'Troca de oleo e filtro do motor', 'Revisao realizada sem anomalias.', 'Veiculo liberado para o cliente.', 3, 2, NOW() - INTERVAL 12 DAY, NOW() - INTERVAL 10 DAY),
+(1002, 2, 3, 'pronta_para_entrega', 'alta', 'Veiculo puxando para a direita', 'Alinhamento e balanceamento executados.', 'Aguardando retirada do cliente.', 3, 2, NOW() - INTERVAL 8 DAY, NULL),
+(1003, 3, 4, 'em_execucao', 'normal', 'Barulho nas rodas dianteiras', 'Pastilhas e disco dianteiros com desgaste.', 'Substituicao autorizada no orcamento.', 3, 1, NOW() - INTERVAL 5 DAY, NULL),
+(1004, 5, 6, 'aguardando_peca', 'alta', 'Revisao dos 60.000 km', 'Correia dentada proxima do limite de uso.', 'Aguardando kit de correia do fornecedor.', 3, 2, NOW() - INTERVAL 3 DAY, NULL),
+(1005, 4, 5, 'aguardando_aprovacao', 'normal', 'Pastilhas dianteiras desgastadas', 'Pastilhas abaixo da espessura recomendada.', 'Orcamento enviado para aprovacao.', 3, 2, NOW() - INTERVAL 2 DAY, NULL),
+(1006, 7, 8, 'cancelada', 'baixa', 'Troca de bateria e revisao eletrica', 'Bateria sem capacidade de carga.', 'Cliente cancelou o servico.', 3, 2, NOW() - INTERVAL 12 DAY, NULL),
+(1007, 9, 10, 'pronta_para_execucao', 'urgente', 'Motor fazendo ruido metalico', 'Correia e tensores precisam ser substituidos.', 'Pecas recebidas e separadas para execucao.', 3, 1, NOW() - INTERVAL 7 DAY, NULL),
+(1008, 10, 12, 'aguardando_diagnostico', 'normal', 'Embreagem patinando', NULL, 'Realizar teste de rodagem e diagnostico.', 3, 2, NOW() - INTERVAL 1 DAY, NULL);
 INSERT INTO os_responsaveis (os_id, usuario_id, atribuido_por, atribuido_em, concluido_em, observacoes) VALUES
 (1, 4, 3, NOW() - INTERVAL 12 DAY, NOW() - INTERVAL 10 DAY, 'Servico concluido.'),
 (2, 4, 3, NOW() - INTERVAL 8 DAY, NULL, 'Conferir liberacao do veiculo.'),
@@ -471,11 +364,11 @@ INSERT INTO pedidos_pecas (os_id, fornecedor, status, previsao_entrega, observac
 (7, 'FreiosMaster', 'recebido', CURDATE() - INTERVAL 1 DAY, 'Disco e pastilhas conferidos no recebimento.', 2, 2, NOW() - INTERVAL 5 DAY, NOW() - INTERVAL 1 DAY),
 (3, 'FreiosMaster', 'solicitado', CURDATE() + INTERVAL 4 DAY, 'Aguardando validacao da secretaria.', 5, NULL, NOW() - INTERVAL 1 DAY, NULL);
 
-INSERT INTO pedido_pecas_itens (pedido_id, peca_id, descricao, quantidade, custo_unitario, recebido, observacoes, recebido_em) VALUES
-(1, 5, 'Correia Dentada Kit Completo', 1, 180.00, 0, 'Kit com correia e tensores.', NULL),
-(2, 3, 'Pastilha de Freio Dianteira Universal', 2, 85.00, 2, 'Conferido sem avarias.', NOW() - INTERVAL 1 DAY),
-(2, 4, 'Disco de Freio Dianteiro 280mm', 1, 120.00, 1, 'Conferido sem avarias.', NOW() - INTERVAL 1 DAY),
-(3, 4, 'Disco de Freio Dianteiro 280mm', 1, 120.00, 0, NULL, NULL);
+INSERT INTO pedido_pecas_itens (pedido_id, descricao, quantidade, custo_unitario, recebido, observacoes, recebido_em) VALUES
+(1, 'Correia Dentada Kit Completo', 1, 180.00, 0, 'Kit com correia e tensores.', NULL),
+(2, 'Pastilha de Freio Dianteira Universal', 2, 85.00, 2, 'Conferido sem avarias.', NOW() - INTERVAL 1 DAY),
+(2, 'Disco de Freio Dianteiro 280mm', 1, 120.00, 1, 'Conferido sem avarias.', NOW() - INTERVAL 1 DAY),
+(3, 'Disco de Freio Dianteiro 280mm', 1, 120.00, 0, NULL, NULL);
 
 INSERT INTO orcamentos (numero, cliente_id, veiculo_id, data_orcamento, data_validade, status, total_pecas, total_mao_obra, total_geral, desconto, observacoes, criado_por) VALUES
 (1, 1, 1, CURDATE() - INTERVAL 10 DAY, CURDATE() + INTERVAL 20 DAY, 'aprovado', 380.00, 80.00, 460.00, 0.00, 'Troca de óleo e filtro', 1),
@@ -489,37 +382,104 @@ INSERT INTO orcamentos (numero, cliente_id, veiculo_id, data_orcamento, data_val
 
 UPDATE orcamentos SET os_id = id;
 
-INSERT INTO orcamento_itens (orcamento_id, tipo, peca_id, servico_id, descricao_item, quantidade, preco_unitario, subtotal) VALUES
-(1, 'peca', 1, NULL, 'Óleo Motor 5W30 Sintético 1L', 4, 45.00, 180.00),
-(1, 'peca', 2, NULL, 'Filtro de Óleo Toyota Corolla', 1, 38.00, 38.00),
-(1, 'servico', NULL, 1, 'Troca de Óleo', 1, 80.00, 80.00),
-(2, 'servico', NULL, 2, 'Alinhamento', 1, 70.00, 70.00),
-(2, 'servico', NULL, 3, 'Balanceamento', 1, 50.00, 50.00),
-(3, 'peca', 3, NULL, 'Pastilha de Freio Dianteira', 2, 150.00, 300.00),
-(3, 'peca', 4, NULL, 'Disco de Freio Dianteiro', 1, 220.00, 220.00),
-(3, 'servico', NULL, 4, 'Troca de Pastilhas de Freio', 1, 120.00, 120.00),
-(4, 'peca', 5, NULL, 'Correia Dentada Kit Completo', 1, 320.00, 320.00),
-(4, 'servico', NULL, 6, 'Troca de Correia Dentada', 1, 350.00, 350.00),
-(5, 'peca', 3, NULL, 'Pastilha de Freio Dianteira', 1, 150.00, 150.00),
-(5, 'servico', NULL, 4, 'Troca de Pastilhas de Freio', 1, 120.00, 120.00),
-(6, 'peca', 7, NULL, 'Bateria 60Ah 480CCA', 1, 450.00, 450.00),
-(6, 'servico', NULL, 8, 'Diagnóstico Eletrônico', 1, 100.00, 100.00),
-(7, 'peca', NULL, NULL, 'Kit Embreagem Completo', 1, 800.00, 800.00),
-(7, 'servico', NULL, 9, 'Troca de Embreagem', 1, 450.00, 450.00),
-(8, 'peca', 9, NULL, 'Amortecedor Dianteiro (par)', 1, 280.00, 280.00),
-(8, 'servico', NULL, 10, 'Suspensão Dianteira', 1, 180.00, 180.00);
+INSERT INTO orcamento_itens (orcamento_id, tipo, descricao_item, quantidade, preco_unitario, subtotal) VALUES
+(1, 'peca', 'Óleo Motor 5W30 Sintético 1L', 4, 45.00, 180.00),
+(1, 'peca', 'Filtro de Óleo Toyota Corolla', 1, 38.00, 38.00),
+(1, 'servico', 'Troca de Óleo', 1, 80.00, 80.00),
+(2, 'servico', 'Alinhamento', 1, 70.00, 70.00),
+(2, 'servico', 'Balanceamento', 1, 50.00, 50.00),
+(3, 'peca', 'Pastilha de Freio Dianteira', 2, 150.00, 300.00),
+(3, 'peca', 'Disco de Freio Dianteiro', 1, 220.00, 220.00),
+(3, 'servico', 'Troca de Pastilhas de Freio', 1, 120.00, 120.00),
+(4, 'peca', 'Correia Dentada Kit Completo', 1, 320.00, 320.00),
+(4, 'servico', 'Troca de Correia Dentada', 1, 350.00, 350.00),
+(5, 'peca', 'Pastilha de Freio Dianteira', 1, 150.00, 150.00),
+(5, 'servico', 'Troca de Pastilhas de Freio', 1, 120.00, 120.00),
+(6, 'peca', 'Bateria 60Ah 480CCA', 1, 450.00, 450.00),
+(6, 'servico', 'Diagnóstico Eletrônico', 1, 100.00, 100.00),
+(7, 'peca', 'Kit Embreagem Completo', 1, 800.00, 800.00),
+(7, 'servico', 'Troca de Embreagem', 1, 450.00, 450.00),
+(8, 'peca', 'Amortecedor Dianteiro (par)', 1, 280.00, 280.00),
+(8, 'servico', 'Suspensão Dianteira', 1, 180.00, 180.00);
 
-INSERT INTO movimentacoes_estoque (peca_id, tipo, quantidade, motivo) VALUES
-(1, 'entrada', 100, 'Compra inicial de estoque'),
-(1, 'saida', 4, 'Orçamento #1 - Troca de óleo'),
-(2, 'saida', 1, 'Orçamento #1 - Filtro'),
-(3, 'entrada', 30, 'Compra de pastilhas'),
-(3, 'saida', 3, 'Orçamentos #3 e #5'),
-(7, 'entrada', 15, 'Compra de baterias'),
-(7, 'saida', 1, 'Orçamento #6'),
-(5, 'entrada', 10, 'Compra de correias'),
-(5, 'saida', 1, 'Orçamento #4'),
-(9, 'ajuste', -2, 'Ajuste por contagem física - 2 unidades danificadas');
+-- =============================================
+-- VIEW: vw_ordens_servico_detalhada
+-- Reune OS + cliente + veiculo + chefia + responsaveis + contadores.
+-- Centraliza o JOIN repetido em index.php e listar.php e o rotulo de status.
+-- Observacao de performance: as subconsultas rodam uma vez por OS retornada;
+-- com filtro por status/paginacao e pelos indices (FK os_id, unique os_id+usuario_id)
+-- o custo e baixo neste volume.
+-- =============================================
+CREATE OR REPLACE VIEW vw_ordens_servico_detalhada AS
+SELECT
+    os.id,
+    os.numero,
+    os.status,
+    CASE os.status
+        WHEN 'recebida' THEN 'Recebida'
+        WHEN 'triagem' THEN 'Triagem'
+        WHEN 'aguardando_diagnostico' THEN 'Aguardando diagnóstico'
+        WHEN 'aguardando_orcamento' THEN 'Aguardando orçamento'
+        WHEN 'aguardando_aprovacao' THEN 'Aguardando aprovação'
+        WHEN 'aguardando_peca' THEN 'Aguardando peça'
+        WHEN 'pronta_para_execucao' THEN 'Pronta para execução'
+        WHEN 'em_execucao' THEN 'Em execução'
+        WHEN 'aguardando_retorno' THEN 'Aguardando retorno'
+        WHEN 'pronta_para_entrega' THEN 'Pronta para entrega'
+        WHEN 'entregue' THEN 'Entregue'
+        WHEN 'cancelada' THEN 'Cancelada'
+    END AS status_label,
+    os.prioridade,
+    os.queixa_inicial,
+    os.diagnostico,
+    os.data_entrada,
+    os.data_conclusao,
+    c.id AS cliente_id,
+    c.nome AS cliente,
+    c.telefone AS cliente_telefone,
+    v.id AS veiculo_id,
+    v.marca,
+    v.modelo,
+    v.ano,
+    v.placa,
+    TRIM(CONCAT(COALESCE(v.marca, ''), ' ', COALESCE(v.modelo, ''))) AS veiculo,
+    u.nome AS responsavel_chefe,
+    (SELECT GROUP_CONCAT(ur.nome ORDER BY ur.nome SEPARATOR ', ')
+       FROM os_responsaveis r
+       JOIN usuarios ur ON ur.id = r.usuario_id
+      WHERE r.os_id = os.id AND r.concluido_em IS NULL) AS responsaveis,
+    (SELECT COUNT(*) FROM os_tarefas t WHERE t.os_id = os.id) AS total_tarefas,
+    (SELECT COUNT(*) FROM os_tarefas t WHERE t.os_id = os.id AND t.status = 'concluida') AS tarefas_concluidas,
+    (SELECT COUNT(*) FROM pedidos_pecas p WHERE p.os_id = os.id AND p.status NOT IN ('recebido', 'cancelado')) AS pedidos_pendentes
+FROM ordens_servico os
+JOIN clientes c ON c.id = os.cliente_id
+LEFT JOIN veiculos v ON v.id = os.veiculo_id
+LEFT JOIN usuarios u ON u.id = os.responsavel_chefe_id;
+
+-- =============================================
+-- TRIGGER: trg_os_status_historico
+-- Automatiza o historico: a cada UPDATE de ordens_servico cujo status muda,
+-- grava um evento em os_eventos (quem mudou vem de @usuario_atual; se a
+-- conexao nao definir, usa o criador da OS).
+-- =============================================
+DELIMITER $$
+CREATE TRIGGER trg_os_status_historico
+AFTER UPDATE ON ordens_servico
+FOR EACH ROW
+BEGIN
+    IF OLD.status <> NEW.status THEN
+        INSERT INTO os_eventos (os_id, tipo, status_anterior, status_novo, descricao, criado_por)
+        VALUES (
+            NEW.id,
+            'status',
+            OLD.status,
+            NEW.status,
+            CONCAT('Status alterado de "', OLD.status, '" para "', NEW.status, '".'),
+            COALESCE(@usuario_atual, NEW.criado_por)
+        );
+    END IF;
+END$$
+DELIMITER ;
 
 SET FOREIGN_KEY_CHECKS = 1;
 
