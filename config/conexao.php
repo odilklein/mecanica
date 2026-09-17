@@ -3,37 +3,13 @@
 // CONEXÃO COM O BANCO DE DADOS
 // =============================================
 
-// Carrega variáveis de ambiente de um arquivo .env na raiz (se existir).
-// O PHP puro nao le .env automaticamente; este parser cobre esse caso
-// sem depender de extensoes externas.
-if (!function_exists('carregar_env') && is_file(__DIR__ . '/../.env')) {
-    function carregar_env(string $arquivo): void
-    {
-        $linhas = file($arquivo, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES) ?: [];
-        foreach ($linhas as $linha) {
-            $linha = trim($linha);
-            if ($linha === '' || $linha[0] === '#' || strpos($linha, '=') === false) {
-                continue;
-            }
-            [$chave, $valor] = explode('=', $linha, 2);
-            $chave = trim($chave);
-            $valor = trim($valor, " \t\r\n\"'");
-            if (!getenv($chave)) {
-                if (function_exists('putenv')) {
-                    putenv($chave . '=' . $valor);
-                }
-                $_ENV[$chave] = $valor;
-            }
-        }
-    }
-    carregar_env(__DIR__ . '/../.env');
-}
+require_once __DIR__ . '/env.php';
 
-$db_host = getenv('DB_HOST') ?: 'localhost';
-$db_port = getenv('DB_PORT') ?: '3306';
-$db_user = getenv('DB_USER') ?: 'root';
-$db_pass = getenv('DB_PASS') ?: '';
-$db_name = getenv('DB_NAME') ?: 'mecanica';
+$db_host = env('DB_HOST', 'localhost');
+$db_port = env('DB_PORT', '3306');
+$db_user = env('DB_USER', 'root');
+$db_pass = env('DB_PASS', '');
+$db_name = env('DB_NAME', 'mecanica');
 
 $dsn = 'mysql:host=' . $db_host . ';port=' . $db_port . ';dbname=' . $db_name . ';charset=utf8mb4';
 
@@ -41,13 +17,34 @@ try {
     $conn = new PDO($dsn, $db_user, $db_pass);
     $conn->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
     $conn->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_ASSOC);
-} catch (PDOException $e) {
-    @error_log($e->getMessage());
-    if (is_writable(__DIR__ . '/../error.log')) {
-        @file_put_contents(__DIR__ . '/../error.log', '[' . date('Y-m-d H:i:s') . '] ' . $e->getMessage() . PHP_EOL, FILE_APPEND);
+
+    // Informa ao banco quem está executando a ação. A trigger
+    // trg_os_status_historico usa @usuario_atual para registrar o autor
+    // da mudança de status. Sem conexão persistente o valor não vaza
+    // entre requisições; com PDO::ATTR_PERSISTENT, redefina por request.
+    if (session_status() === PHP_SESSION_ACTIVE && !empty($_SESSION['usuario_id'])) {
+        $conn->exec('SET @usuario_atual = ' . (int) $_SESSION['usuario_id']);
     }
+} catch (PDOException $e) {
+    $fonte_txt = (defined('MECANICA_ENV_ARQUIVO') && MECANICA_ENV_ARQUIVO)
+        ? MECANICA_ENV_ARQUIVO
+        : 'nenhuma (usando variaveis de ambiente/padroes)';
+    $detalhe = sprintf(
+        '[%s] %s | host=%s port=%s db=%s user=%s | config=%s',
+        date('Y-m-d H:i:s'),
+        $e->getMessage(),
+        $db_host,
+        $db_port,
+        $db_name,
+        $db_user,
+        $fonte_txt
+    );
+    @error_log($detalhe);
+    $log_ok = @file_put_contents(__DIR__ . '/../error.log', $detalhe . PHP_EOL, FILE_APPEND) !== false;
     http_response_code(500);
-    die("Não foi possível conectar ao banco de dados. Detalhes gravados em error.log na raiz do projeto.");
+    die($log_ok
+        ? "Não foi possível conectar ao banco de dados. Detalhes gravados em error.log na raiz do projeto."
+        : "Não foi possível conectar ao banco de dados. Verifique as credenciais do .env.");
 }
 
 // Função para escapar dados e evitar XSS

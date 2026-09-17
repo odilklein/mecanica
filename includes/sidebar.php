@@ -4,137 +4,138 @@ $uri_atual = $_SERVER['REQUEST_URI'] ?? '';
 $arquivo_atual = basename($_SERVER['PHP_SELF'] ?? '');
 
 if (!function_exists('sidebarAtiva')) {
-    function sidebarAtiva($modulo) {
+    function sidebarAtiva($modulo)
+    {
         global $uri_atual, $arquivo_atual;
-        if ($modulo === 'dashboard') return ($arquivo_atual === 'index.php' || $arquivo_atual === '');
-        if ($modulo === 'orcamentos' && strpos($uri_atual, 'relatorio') !== false) return false;
-        if ($modulo === 'relatorios') return strpos($uri_atual, 'relatorio') !== false;
+        if ($modulo === 'dashboard') {
+            return $arquivo_atual === 'index.php' || $arquivo_atual === '';
+        }
+        if ($modulo === 'orcamentos' && strpos($uri_atual, 'relatorio') !== false) {
+            return false;
+        }
+        if ($modulo === 'relatorios') {
+            return strpos($uri_atual, 'relatorio') !== false;
+        }
         return strpos($uri_atual, $modulo) !== false;
     }
 }
 
-// Configurar URLs relativas ao contexto
 if (!isset($caminho_base)) {
     require_once __DIR__ . '/base_url.php';
 }
 require_once __DIR__ . '/../config/empresa.php';
 
-$url_index = $caminho_base . '/index.php';
-$url_clientes = $caminho_base . '/pages/clientes/listar.php';
-$url_veiculos = $caminho_base . '/pages/veiculos/listar.php';
-$url_ordens_servico = $caminho_base . '/pages/ordens_servico/listar.php';
-$url_pedidos_pecas = $caminho_base . '/pages/pedidos_pecas/listar.php';
-$url_funcionarios = $caminho_base . '/pages/funcionarios/listar.php';
-$url_orcamentos = $caminho_base . '/pages/orcamentos/listar.php';
-$url_relatorios = $caminho_base . '/pages/orcamentos/relatorio.php';
+$url_perfil = $caminho_base . '/pages/auth/perfil.php';
 $url_logout = $caminho_base . '/pages/auth/logout.php';
+
+// Navegação: null em "papeis" significa visível para todos os perfis.
+$navegacao = [
+    [
+        'secao' => 'Principal',
+        'itens' => [
+            ['modulo' => 'dashboard', 'url' => $caminho_base . '/index.php', 'icone' => 'layout-grid', 'texto' => 'Dashboard', 'papeis' => null],
+            ['modulo' => 'notificacoes', 'url' => $caminho_base . '/pages/notificacoes/listar.php', 'icone' => 'bell', 'texto' => 'Notificações', 'papeis' => null],
+            ['modulo' => 'clientes', 'url' => $caminho_base . '/pages/clientes/listar.php', 'icone' => 'users', 'texto' => 'Clientes', 'papeis' => ['admin', 'secretaria', 'mecanico_chefe']],
+            ['modulo' => 'veiculos', 'url' => $caminho_base . '/pages/veiculos/listar.php', 'icone' => 'car-front', 'texto' => 'Veículos', 'papeis' => ['admin', 'secretaria', 'mecanico_chefe']],
+            ['modulo' => 'funcionarios', 'url' => $caminho_base . '/pages/funcionarios/listar.php', 'icone' => 'users-round', 'texto' => 'Funcionários', 'papeis' => ['admin', 'secretaria', 'mecanico_chefe']],
+        ],
+    ],
+    [
+        'secao' => 'Operações',
+        'itens' => [
+            ['modulo' => 'ordens_servico', 'url' => $caminho_base . '/pages/ordens_servico/listar.php', 'icone' => 'clipboard-list', 'texto' => 'Ordens de serviço', 'papeis' => null],
+            ['modulo' => 'pedidos_pecas', 'url' => $caminho_base . '/pages/pedidos_pecas/listar.php', 'icone' => 'truck', 'texto' => 'Pedidos de peças', 'papeis' => null],
+        ],
+    ],
+    [
+        'secao' => 'Documentos',
+        'itens' => [
+            ['modulo' => 'orcamentos', 'url' => $caminho_base . '/pages/orcamentos/listar.php', 'icone' => 'file-text', 'texto' => 'Orçamentos', 'papeis' => ['admin', 'secretaria', 'mecanico_chefe']],
+            ['modulo' => 'relatorios', 'url' => $caminho_base . '/pages/orcamentos/relatorio.php', 'icone' => 'chart-line', 'texto' => 'Relatórios', 'papeis' => ['admin', 'secretaria', 'mecanico_chefe']],
+        ],
+    ],
+    [
+        'secao' => 'Sistema',
+        'itens' => [
+            ['modulo' => 'auditoria', 'url' => $caminho_base . '/pages/auditoria/listar.php', 'icone' => 'history', 'texto' => 'Auditoria', 'papeis' => ['admin']],
+        ],
+    ],
+];
+
+$rotulos_papel = ['admin' => 'Administrador', 'secretaria' => 'Secretaria', 'mecanico_chefe' => 'Mecânico-chefe', 'mecanico' => 'Mecânico', 'funcionario' => 'Funcionário'];
+$papel_atual = $rotulos_papel[$_SESSION['usuario_tipo']] ?? ($_SESSION['usuario_tipo'] ?? 'Usuário');
+$nome_usuario = $_SESSION['usuario_nome'] ?? 'Usuário';
 ?>
 
-<aside class="sidebar" id="sidebar">
+<a class="skip-link" href="#conteudo">Pular para o conteúdo</a>
+
+<aside class="sidebar" id="sidebar" aria-label="Navegação principal">
     <div class="sidebar-top">
-        <div class="sidebar-brand">
-            <div class="brand-icon">
-                <i data-lucide="wrench"></i>
-            </div>
-            <span class="brand-text">Auto Mecânica Leme</span>
-        </div>
-        <button class="sidebar-collapse-btn" id="sidebarCollapseBtn" title="Minimizar sidebar">
-            <i data-lucide="chevron-left"></i>
+        <a class="sidebar-brand" href="<?php echo $caminho_base; ?>/index.php">
+            <span class="brand-icon" aria-hidden="true"><i data-lucide="wrench"></i></span>
+            <span class="brand-text"><?php echo esc(EMPRESA_NOME); ?></span>
+        </a>
+        <button class="sidebar-collapse-btn" id="sidebarCollapseBtn" type="button"
+                aria-controls="sidebar" aria-expanded="true" title="Minimizar menu">
+            <i data-lucide="chevron-left" aria-hidden="true"></i>
+            <span class="sr-only">Minimizar menu</span>
         </button>
     </div>
 
     <nav class="sidebar-nav">
-        <div class="sidebar-section">
-            <div class="sidebar-section-title">Principal</div>
-            <a href="<?php echo $url_index; ?>" class="sidebar-nav-item <?php echo sidebarAtiva('dashboard') ? 'active' : ''; ?>" title="Dashboard">
-                <i data-lucide="layout-grid"></i>
-                <span class="nav-text">Dashboard</span>
-            </a>
-            <a href="<?php echo $caminho_base; ?>/pages/notificacoes/listar.php" class="sidebar-nav-item <?php echo sidebarAtiva('notificacoes') ? 'active' : ''; ?>" title="Notificações">
-                <i data-lucide="bell"></i>
-                <span class="nav-text">Notificações</span>
-            </a>
-            <?php if (tem_papel(['admin', 'secretaria', 'mecanico_chefe'])): ?><a href="<?php echo $url_clientes; ?>" class="sidebar-nav-item <?php echo sidebarAtiva('clientes') ? 'active' : ''; ?>" title="Clientes">
-                <i data-lucide="users"></i>
-                <span class="nav-text">Clientes</span>
-            </a>
-            <?php endif; ?>
-            <?php if (tem_papel(['admin', 'secretaria', 'mecanico_chefe'])): ?><a href="<?php echo $url_veiculos; ?>" class="sidebar-nav-item <?php echo sidebarAtiva('veiculos') ? 'active' : ''; ?>" title="Veículos">
-                <i data-lucide="car-front"></i>
-                <span class="nav-text">Veículos</span>
-            </a><?php endif; ?>
-            <?php if (tem_papel(['admin', 'secretaria', 'mecanico_chefe'])): ?><a href="<?php echo $url_funcionarios; ?>" class="sidebar-nav-item <?php echo sidebarAtiva('funcionarios') ? 'active' : ''; ?>" title="Funcionários">
-                <i data-lucide="users-round"></i>
-                <span class="nav-text">Funcionários</span>
-            </a><?php endif; ?>
-        </div>
-
-        <div class="sidebar-section">
-            <div class="sidebar-section-title">Operações</div>
-            <?php if (tem_papel(['admin', 'secretaria', 'mecanico_chefe', 'mecanico'])): ?><a href="<?php echo $url_ordens_servico; ?>" class="sidebar-nav-item <?php echo sidebarAtiva('ordens_servico') ? 'active' : ''; ?>" title="Ordens de serviço">
-                <i data-lucide="clipboard-list"></i>
-                <span class="nav-text">Ordens de serviço</span>
-            </a><?php endif; ?>
-            <?php if (tem_papel(['admin', 'secretaria', 'mecanico_chefe', 'mecanico'])): ?><a href="<?php echo $url_pedidos_pecas; ?>" class="sidebar-nav-item <?php echo sidebarAtiva('pedidos_pecas') ? 'active' : ''; ?>" title="Pedidos de peças">
-                <i data-lucide="truck"></i>
-                <span class="nav-text">Pedidos de peças</span>
-            </a><?php endif; ?>
-        </div>
-        <div class="sidebar-section">
-            <div class="sidebar-section-title">Documentos</div>
-            <?php if (tem_papel(['admin', 'secretaria', 'mecanico_chefe'])): ?><a href="<?php echo $url_orcamentos; ?>" class="sidebar-nav-item <?php echo sidebarAtiva('orcamentos') ? 'active' : ''; ?>" title="Orçamentos">
-                <i data-lucide="file-text"></i>
-                <span class="nav-text">Orçamentos</span>
-            </a><?php endif; ?>
-            <?php if (tem_papel(['admin', 'secretaria', 'mecanico_chefe'])): ?><a href="<?php echo $url_relatorios; ?>" class="sidebar-nav-item <?php echo sidebarAtiva('relatorios') ? 'active' : ''; ?>" title="Relatórios">
-                <i data-lucide="chart-line"></i>
-                <span class="nav-text">Relatórios</span>
-            </a><?php endif; ?>
-        </div>
-        <div class="sidebar-section">
-            <div class="sidebar-section-title">Sistema</div>
-            <?php if (tem_papel(['admin'])): ?><a href="<?php echo $caminho_base; ?>/pages/backup/index.php" class="sidebar-nav-item <?php echo sidebarAtiva('backup') ? 'active' : ''; ?>" title="Backup do banco">
-                <i data-lucide="database-backup"></i>
-                <span class="nav-text">Backup</span>
-            </a><?php endif; ?>
-            <?php if (tem_papel(['admin'])): ?><a href="<?php echo $caminho_base; ?>/pages/auditoria/listar.php" class="sidebar-nav-item <?php echo sidebarAtiva('auditoria') ? 'active' : ''; ?>" title="Auditoria">
-                <i data-lucide="history"></i>
-                <span class="nav-text">Auditoria</span>
-            </a><?php endif; ?>
-        </div>
+        <?php foreach ($navegacao as $grupo): ?>
+            <?php
+            $visiveis = array_filter($grupo['itens'], function ($item) {
+                return $item['papeis'] === null || tem_papel($item['papeis']);
+            });
+            if (!$visiveis) {
+                continue;
+            }
+            ?>
+            <div class="sidebar-section">
+                <p class="sidebar-section-title"><?php echo esc($grupo['secao']); ?></p>
+                <ul class="sidebar-list" role="list">
+                    <?php foreach ($visiveis as $item): ?>
+                        <?php $ativo = sidebarAtiva($item['modulo']); ?>
+                        <li>
+                            <a href="<?php echo $item['url']; ?>"
+                               class="sidebar-nav-item<?php echo $ativo ? ' active' : ''; ?>"
+                               <?php echo $ativo ? 'aria-current="page"' : ''; ?>
+                               data-tooltip="<?php echo esc($item['texto']); ?>">
+                                <i data-lucide="<?php echo esc($item['icone']); ?>" aria-hidden="true"></i>
+                                <span class="nav-text"><?php echo esc($item['texto']); ?></span>
+                            </a>
+                        </li>
+                    <?php endforeach; ?>
+                </ul>
+            </div>
+        <?php endforeach; ?>
     </nav>
 
     <div class="sidebar-footer">
-        <?php
-        $rotulos_papel = ['admin' => 'Administrador', 'secretaria' => 'Secretaria', 'mecanico_chefe' => 'Mecânico-chefe', 'mecanico' => 'Mecânico', 'funcionario' => 'Funcionário'];
-        $papel_atual = $rotulos_papel[$_SESSION['usuario_tipo']] ?? ($_SESSION['usuario_tipo'] ?? '');
-        $url_perfil = $caminho_base . '/pages/auth/perfil.php';
-        ?>
-        <div class="sidebar-user" id="sidebarUser" title="<?php echo esc($_SESSION['usuario_nome'] ?? 'Usuário'); ?>">
-            <div class="sidebar-user-avatar">
-                <?php echo strtoupper(substr($_SESSION['usuario_nome'] ?? 'U', 0, 1)); ?>
-            </div>
-            <div class="sidebar-user-info">
-                <span class="user-name"><?php echo esc($_SESSION['usuario_nome'] ?? 'Usuário'); ?></span>
+        <button type="button" class="sidebar-user" id="sidebarUser"
+                aria-expanded="false" aria-controls="sidebarUserMenu" data-tooltip="<?php echo esc($nome_usuario); ?>">
+            <span class="sidebar-user-avatar" aria-hidden="true"><?php echo esc(strtoupper(substr($nome_usuario, 0, 1))); ?></span>
+            <span class="sidebar-user-info">
+                <span class="user-name"><?php echo esc($nome_usuario); ?></span>
                 <span class="user-role"><?php echo esc($papel_atual); ?></span>
-            </div>
-            <button type="button" class="sidebar-user-menu-btn" id="sidebarUserMenuBtn" aria-label="Menu do usuário" aria-expanded="false">
-                <i data-lucide="more-horizontal"></i>
-            </button>
-        </div>
+            </span>
+            <i data-lucide="chevrons-up-down" class="sidebar-user-chevron" aria-hidden="true"></i>
+        </button>
+
         <div class="sidebar-user-menu" id="sidebarUserMenu" hidden>
             <a href="<?php echo $url_perfil; ?>" class="sidebar-user-menu-item">
-                <i data-lucide="user-cog"></i>
+                <i data-lucide="user-cog" aria-hidden="true"></i>
                 <span>Meus dados</span>
             </a>
             <button type="button" class="sidebar-user-menu-item" id="themeToggle">
-                <i data-lucide="moon"></i>
+                <i data-lucide="moon" aria-hidden="true"></i>
                 <span>Tema</span>
             </button>
             <form method="POST" action="<?php echo $url_logout; ?>">
                 <input type="hidden" name="csrf_token" value="<?php echo esc(csrf_token()); ?>">
                 <button type="submit" class="sidebar-user-menu-item danger">
-                    <i data-lucide="log-out"></i>
+                    <i data-lucide="log-out" aria-hidden="true"></i>
                     <span>Sair</span>
                 </button>
             </form>
@@ -142,4 +143,5 @@ $url_logout = $caminho_base . '/pages/auth/logout.php';
     </div>
 </aside>
 
+<div class="sidebar-tooltip" id="sidebarTooltip" role="tooltip" hidden></div>
 <div class="sidebar-overlay" id="sidebarOverlay"></div>

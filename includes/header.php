@@ -18,16 +18,17 @@ $url_logout = $caminho_base . '/pages/auth/logout.php';
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="<?php echo $url_css; ?>" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/lucide@0.462.0/dist/umd/lucide.min.js"></script>
-    <style>body{opacity:0;transition:opacity .25s ease}</style>
+    <script>document.documentElement.classList.add('js');window.addEventListener('load',function(){document.body.style.opacity='1';});</script>
+    <style>html.js body{opacity:0;transition:opacity .25s ease}</style>
 </head>
-<body class="loading">
+<body>
     <script>
         window.CAMINHO_BASE = <?php echo json_encode($caminho_base); ?>;
         window.CSRF_TOKEN = <?php echo json_encode(csrf_token() ?? ''); ?>;
     </script>
     <?php require_once __DIR__ . '/sidebar.php'; ?>
 
-    <div class="main-wrapper">
+    <div class="main-wrapper" id="conteudo" tabindex="-1">
         <header class="topbar">
             <button class="topbar-burger" id="mobileMenuBtn" aria-label="Abrir menu">
                 <i data-lucide="menu"></i>
