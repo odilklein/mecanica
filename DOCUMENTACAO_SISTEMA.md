@@ -1,17 +1,24 @@
 # Documentacao do Sistema - Auto Mecanica
 
+> A documentacao navegavel em `mecanica-docs/` (site estatico, publicado no Cloudflare Pages)
+> e a referencia principal e costuma ser a mais atual. Este Markdown resume o sistema para
+> anexar ao relatorio do PI.
+
 ## 1. Objetivo
 
-Este projeto e um sistema interno de operacao para uma oficina mecanica. O fluxo principal foi simplificado para quatro areas:
+Este projeto e um sistema interno de operacao para uma oficina mecanica. O nucleo operacional cobre:
 
 1. Clientes e veiculos.
-2. Funcionarios e permissoes.
-3. Ordens de servico (OS).
+2. Funcionarios e permissoes (4 perfis: admin, secretaria, mecanico-chefe e mecanico).
+3. Ordens de servico (OS) — centro do dominio.
 4. Pedidos de pecas vinculados a OS.
 
-A OS e o centro do dominio. Ela registra a queixa do cliente, o diagnostico, as tarefas, os funcionarios responsaveis, as pecas necessarias, o andamento e a entrega/retirada do veiculo.
+Modulos de apoio: orcamentos, notificacoes e auditoria. A OS registra a queixa do cliente, o diagnostico, as tarefas, os funcionarios
+responsaveis, as pecas necessarias, o andamento e a entrega/retirada do veiculo.
 
-O sistema usa PHP procedural, PDO/MySQL, Bootstrap, CSS proprio e Lucide Icons. Nao ha framework PHP, Composer, API REST formal ou camada de servicos separada.
+O sistema usa PHP procedural, PDO/MySQL, Bootstrap, CSS proprio (tema claro/escuro e responsivo),
+Lucide Icons e Cloudflare Turnstile no login. Nao ha framework PHP, Composer, API REST formal nem
+camada de servicos separada. As credenciais ficam fora do Git (`.env`).
 
 ---
 
@@ -44,7 +51,7 @@ A OS deve ser a fonte do andamento operacional. Clientes, veiculos, tarefas, pec
 Os valores validos para `usuarios.tipo` sao:
 
 - `admin`: acesso administrativo completo.
-- `secretaria`: clientes, veiculos, funcionarios, OS, pedidos de pecas, catalogo administrativo e orcamentos.
+- `secretaria`: clientes, veiculos, funcionarios, OS, pedidos de pecas e orcamentos.
 - `mecanico_chefe`: supervisiona OS, cria atendimentos, designa funcionarios, valida solicitacoes e acompanha a operacao.
 - `mecanico`: ve somente OS atribuidas, atualiza tarefas/diagnostico e solicita pecas para as proprias OS.
 
@@ -64,7 +71,6 @@ Os valores validos para `usuarios.tipo` sao:
 | Atualizar tarefas | Sim | Nao | Sim | Sim, nas OS atribuidas |
 | Diagnostico tecnico | Sim | Visualizacao | Sim | Sim, nas OS atribuidas |
 | Solicitar peca | Sim | Sim | Sim | Sim, apenas para OS atribuida |
-| Catalogo completo de pecas | Sim | Sim | Nao | Nao |
 | Validar solicitacao | Sim | Sim | Sim | Nao |
 | Confirmar pedido ao fornecedor | Sim | Sim | Nao | Nao |
 | Registrar recebimento | Sim | Sim | Nao | Nao |
@@ -82,7 +88,8 @@ index.php                       Dashboard por papel
 api/
   notificacoes.php              JSON de notificacoes + marcar lida
 config/
-  conexao.php                   Conexao PDO, helpers de escaping/moeda e carregador de .env
+  conexao.php                   Conexao PDO e helpers de escaping/moeda
+  env.php                       Carrega o .env da raiz e expoe env()
   empresa.php                   Dados visuais da empresa
 css/style.css                   Design system e estilos globais
 includes/
@@ -94,7 +101,7 @@ includes/
   auditoria.php                 Registro de acoes sensiveis na tabela auditoria
   sessao.php                    Sessao, login obrigatorio, CSRF e roles
   sidebar.php                   Navegacao por papel
-js/main.js                      Mascara, wizard, listas dinamicas, audio, tema, notificacoes
+js/main.js                      Mascara, wizard, listas dinamicas, tema, notificacoes
 pages/
   auth/                         Login, logout e perfil (Meus dados)
   clientes/                     CRUD e detalhe do cliente
@@ -103,16 +110,11 @@ pages/
   ordens_servico/               Criacao (wizard), fila, detalhe e processamento da OS
   pedidos_pecas/                Solicitacao, validacao, pedido, recebimento parcial e total
   notificacoes/                 Tela dedicada com filtros, busca e paginacao
-  backup/                       Backup do banco (gera/baixa/exclui .sql) - somente admin
-  orcamentos/                   Modulo ainda existente, restrito a secretaria/chefia/admin
-  pecas/                        Modulo legado de catalogo/estoque, restrito
-  servicos/                     Modulo legado, fora da navegacao principal
-  agendamentos/                 Modulo legado, fora da navegacao principal
+  orcamentos/                   Documento comercial manual, restrito a secretaria/chefia/admin
 sql/
   mecanica_teste.sql            Banco completo recriado com dados de demonstracao e logins
-uploads/
-  audio/                        Audios gravados nas tarefas das OS
-  backups/                      Arquivos .sql gerados pela tela de backup
+docker-compose.yml              Stack local (app + MySQL + phpMyAdmin)
+Dockerfile                      Imagem Apache+PHP com pdo_mysql/mbstring
 ```
 
 ---
@@ -136,6 +138,11 @@ uploads/
 - `esc()` faz escaping HTML para saida.
 - `formatar_moeda()` formata valores em reais.
 
+`config/env.php`:
+
+- Expoe `env($chave, $padrao)`, que le variaveis do processo (Docker) ou, na falta
+  delas, um unico arquivo `.env` na raiz do projeto. Nao usa `putenv()`.
+
 ### Dashboard
 
 `index.php` exibe apenas informacoes relacionadas ao novo produto:
@@ -147,7 +154,7 @@ uploads/
 - Tabela de OS filtrada para mecanicos.
 - Acoes rapidas conforme role.
 
-Nao adicionar ao dashboard novo metricas de estoque, faturamento, agendamento ou servicos sem uma decisao explicita de produto.
+Nao adicionar ao dashboard novo metricas de faturamento ou agendamento sem uma decisao explicita de produto.
 
 ### Sidebar
 
@@ -162,9 +169,8 @@ Nao adicionar ao dashboard novo metricas de estoque, faturamento, agendamento ou
 - Pedidos de pecas.
 - Orcamentos, para admin/secretaria/mecanico chefe.
 - Relatorios, para admin/secretaria/mecanico chefe.
-- Backup do banco, somente admin.
 
-Estoque, servicos e agendamentos foram retirados da navegacao principal. As paginas legadas ainda existem, mas nao devem ser tratadas como fluxo principal.
+A navegacao principal cobre apenas o fluxo operacional descrito acima. Modulos de estoque, servicos e agendamentos foram removidos do sistema.
 
 ---
 
@@ -383,11 +389,10 @@ Tambem pode terminar em `cancelado` quando permitido.
 ### Regras por papel
 
 - Mecanico: cria solicitacao apenas para OS atribuida.
-- Mecanico: nao escolhe fornecedor nem ve catalogo completo.
+- Mecanico: nao escolhe fornecedor.
 - Secretaria ou mecanico chefe: valida a solicitacao.
 - Secretaria: confirma pedido ao fornecedor e registra chegada.
 - Mecanico: acompanha somente pedidos relacionados as suas OS.
-- Secretaria/admin: podem ver o catalogo administrativo.
 
 Status `solicitado` significa que ainda nao houve validacao. Nao tratar como compra realizada.
 
@@ -399,8 +404,6 @@ Ao receber:
 - Registrar usuario/data de recebimento.
 - Notificar responsaveis da OS.
 - Liberar a OS para `pronta_para_execucao` quando aplicavel.
-
-O catalogo legado em `pages/pecas` esta bloqueado para mecanicos e mecanico chefe por backend, mesmo que uma URL antiga seja acessada diretamente.
 
 ---
 
@@ -424,14 +427,13 @@ A secretaria pode adicionar/remover blocos e revisar o documento antes de salvar
 
 `pages/orcamentos/processar.php`:
 
-- Recebe IDs, descricao, quantidade e preco.
+- Recebe descricao, quantidade e preco de cada item.
 - Recalcula subtotal no servidor.
-- Valida quantidade e valor.
-- Para itens cadastrados, consulta preco atual no banco.
-- Para itens manuais, exige descricao.
+- Valida quantidade, valor e descricao.
 - Valida cliente e OS quando a OS e informada.
 
-Ainda existem telas antigas de editar/detalhes/imprimir. Ao evoluir o modulo, preservar a ideia de documento manual e evitar reintroduzir dependencia obrigatoria do catalogo de servicos/estoque.
+O modulo e 100% manual: nao depende de catalogo de pecas/servicos nem de estoque.
+As telas de editar/detalhes/imprimir usam apenas `orcamento_itens.descricao_item`.
 
 ---
 
@@ -454,13 +456,13 @@ O arquivo unico de referencia e `sql/mecanica_teste.sql`. Ele:
 
 - Cria o banco `mecanica`.
 - Remove tabelas existentes do mesmo banco.
-- Recria tabelas atuais (incluindo `os_tarefas_audios`).
+- Recria tabelas atuais.
 - Insere clientes, veiculos, funcionarios, OS, tarefas, pedidos, eventos, orcamentos, entregas e notificacoes de demonstracao.
 - Documenta os logins de teste no proprio arquivo.
 
 Para ambiente de teste, basta importar `mecanica_teste.sql` em um banco vazio no phpMyAdmin.
 
-As migracoes incrementais antigas (`sql/mecanica.sql`, `002_operacao_oficina.sql`, `003_simplificacao_operacional.sql`, `004_audio_tarefas.sql`) foram consolidadas no `mecanica_teste.sql` e nao sao mais entregues separadamente.
+As migracoes incrementais antigas (`sql/mecanica.sql`, `002_operacao_oficina.sql`, `003_simplificacao_operacional.sql`) foram consolidadas no `mecanica_teste.sql` e nao sao mais entregues separadamente.
 
 ### Tabelas relevantes
 
@@ -473,35 +475,52 @@ As migracoes incrementais antigas (`sql/mecanica.sql`, `002_operacao_oficina.sql
 | `os_eventos` | Historico de mudancas da OS |
 | `os_responsaveis` | Funcionarios designados |
 | `os_tarefas` | Trabalho detalhado da OS |
-| `os_tarefas_audios` | Audios anexados as tarefas |
 | `pedidos_pecas` | Solicitacao/compra/recebimento |
 | `pedido_pecas_itens` | Itens e quantidades do pedido |
 | `os_entregas` | Entrega/retirada do carro |
 | `cliente_servicos_historico` | Historico final do cliente |
 | `notificacoes` | Avisos internos |
 | `auditoria` | Registro de acoes sensiveis |
-| `pecas` | Catalogo legado/restrito da secretaria |
-| `servicos` | Catalogo legado/restrito; nao e dependencia do formulario manual |
-| `agendamentos` | Modulo legado fora da navegacao principal |
-| `orcamentos` | Documento comercial ainda existente |
+| `orcamentos` | Documento comercial manual |
+
+### Objetos de banco: View e Trigger
+
+Criados em `sql/mecanica_teste.sql` (no fim do seed), nao ficam no PHP.
+
+**View `vw_ordens_servico_detalhada`**
+- Reune `ordens_servico` + `clientes` + `veiculos` + `usuarios` (chefia) + `os_responsaveis`,
+  com `status_label` traduzido, veiculo concatenado, responsaveis ativos (`GROUP_CONCAT`) e
+  contadores de tarefas (`total`, `concluidas`) e pedidos pendentes.
+- Substitui o JOIN repetido em `index.php` e `pages/ordens_servico/listar.php` e centraliza
+  o mapa de nomes de status.
+
+**Trigger `trg_os_status_historico`**
+- `AFTER UPDATE` em `ordens_servico`: quando `OLD.status <> NEW.status`, grava automaticamente
+  um evento em `os_eventos` (tipo `status`, anterior/novo e autor).
+- O autor vem de `@usuario_atual`, definido em `config/conexao.php` a partir de
+  `$_SESSION['usuario_id']`; sem isso, usa o `criado_por` da OS.
+- Por causa da trigger, `pages/ordens_servico/processar.php` nao insere mais o evento de
+  status manualmente (evita registro duplicado).
+- Seguranca: a trigger roda como `DEFINER`. Em producao, crie-a com um usuario
+  administrador e conceda ao usuario da aplicacao apenas `UPDATE` em `ordens_servico`
+  (sem `INSERT` direto em `os_eventos`), impedindo historico forjado.
+- Com `PDO::ATTR_PERSISTENT`, a variavel de sessao pode vazar entre requisicoes; nesse caso
+  redefina `@usuario_atual` a cada request.
 
 ---
 
-## 12. Ambiente local com XAMPP
+## 12. Ambiente local
 
-Estrutura esperada:
+### Docker / Podman (recomendado)
 
-```text
-C:\xampp\htdocs\mecanica
-```
+- `docker-compose.yml` sobe tres servicos: `app` (Apache+PHP), `db` (MySQL 8.4) e `phpmyadmin`.
+- Aplicacao em `http://localhost:8080`; phpMyAdmin em `http://localhost:8081`.
+- O banco `mecanica` e criado e populado com `sql/mecanica_teste.sql` no primeiro start.
+- Credenciais padrao: usuario `mecanica`, senha `root123` (ajustaveis no `.env`).
+- `docker compose up -d --build` (ou `podman-compose up -d`) sobe a stack.
+- Para recriar o banco: `docker compose down -v` e subir novamente.
 
-ou, neste workspace Linux montado:
-
-```text
-/mnt/e/New folder/htdocs/mecanica
-```
-
-Passos:
+### XAMPP
 
 1. Inicie Apache e MySQL no XAMPP.
 2. Abra o phpMyAdmin.
@@ -511,18 +530,12 @@ Passos:
 
 ### Configuracao do banco
 
-`config/conexao.php` le variaveis de ambiente:
+`config/conexao.php` le `DB_HOST`, `DB_PORT`, `DB_USER`, `DB_PASS` e `DB_NAME`
+via `env()` (`config/env.php`). A precedencia e: variaveis do processo
+(ex.: Docker) -> arquivo `.env` na raiz -> padroes (`localhost`, `root`, senha
+vazia, banco `mecanica`).
 
-```text
-DB_HOST
-DB_USER
-DB_PASS
-DB_NAME
-```
-
-A conexao prioriza `getenv()` e, se um arquivo `.env` existir na raiz, um carregador PHP puro presente em `config/conexao.php` exporta as variaveis antes de definir os fallback (`localhost`, `root`, senha vazia, banco `mecanica`). Assim, definir `DB_USER=...` no `.env` passa a funcionar sem configurar o Apache manualmente.
-
-O `.env` atual contem apenas anotacoes de logins de teste. Ele e ignorado pelo Git e nao deve receber segredos de producao.
+O `.env` e ignorado pelo Git e nao deve receber segredos de producao.
 
 ---
 
@@ -547,7 +560,7 @@ O `.env` atual contem apenas anotacoes de logins de teste. Ele e ignorado pelo G
 - Usar Lucide Icons em botoes e labels importantes.
 - Usar `btn-icon` e `action-button` para manter botoes compactos.
 - Respeitar o visual existente em `css/style.css`.
-- Nao reintroduzir cards/telas para estoque, servicos ou agendamentos no fluxo principal sem decisao de produto.
+- Modulos de estoque, servicos e agendamentos foram removidos; nao reintroduzir sem decisao de produto.
 - Telas de mecanico devem ser operacionais e sem dados pessoais desnecessarios.
 
 ### Roles
@@ -581,7 +594,6 @@ Durante a implementacao:
 
 - Fazer a menor alteracao coerente com o dominio.
 - Nao criar um segundo conceito para algo que ja existe na OS.
-- Nao usar estoque/servicos como dependencia obrigatoria do atendimento simples.
 - Aplicar role e CSRF no backend.
 - Registrar eventos quando o estado mudar.
 - Preservar historico em vez de apagar registros.
@@ -607,12 +619,11 @@ Depois da implementacao:
 3. O modulo de notificacoes tem UI de sino, leitura e tela dedicada com filtros/paginacao; os registros sao criados em `notificacoes`.
 4. O recebimento de pecas aceita recebimento parcial por item; pode evoluir para conferencia com notas de entrega.
 5. A entrega possui estrutura de dados, mas pode ganhar fluxo separado para tentativa/retorno (hoje o registro ja conclui).
-6. Orcamentos ainda possuem telas legadas de edicao e impressao que devem ser alinhadas ao novo formato manual.
-7. O modulo de servicos, agendamentos, estoque e paginas antigas ainda existe fisicamente, embora esteja fora da navegacao principal.
+6. Orcamentos possuem telas de edicao e impressao alinhadas ao formato manual (descricao livre).
+7. Nao ha controle de estoque; as pecas sao descritas livremente nos pedidos.
 8. A senha de teste deve ser alterada ou removida antes de qualquer ambiente acessivel externamente.
 9. O sistema ainda precisa de rotacao de logs, politica de senha e rate limit de login.
 10. O sistema ainda nao possui portal do cliente, integracao real com WhatsApp, e-mail transacional ou pagamento Pix.
-11. A tela de backup gera `.sql` via PHP puro; para bancos grandes, avaliar `mysqldump` com agendamento externo.
 
 ---
 
@@ -636,7 +647,7 @@ Se uma proposta criar um fluxo paralelo fora dessa cadeia, revisar a modelagem a
 
 ---
 
-## 17. Notificacoes, audio nas tarefas, perfil e documentacao
+## 17. Notificacoes, perfil e documentacao
 
 ### Notificacoes
 
@@ -650,12 +661,6 @@ Se uma proposta criar um fluxo paralelo fora dessa cadeia, revisar a modelagem a
   - POST `marcar_lida` / `marcar_todas_lidas` (exige `X-CSRF-Token`).
 - Interface: sino no topbar com contador, atualizacao a cada 30s, clique marca lida e abre o detalhe da OS.
 
-### Audio nas tarefas
-
-- Tabela `os_tarefas_audios` (migracao `sql/004_audio_tarefas.sql`): `tarefa_id`, `arquivo`, `duracao_seg`, `criado_em`.
-- Fluxo: o wizard grava com `MediaRecorder` (ate ~120s), envia `data:audio/...;base64`, o backend valida MIME-mapeado e tamanho (max 15MB) e salva em `uploads/audio/`.
-- Regra: falha ao salvar audio nao derruba a criacao da OS (log via `error_log`).
-
 ### Perfil do usuario
 
 - `pages/auth/perfil.php` / `perfil_processar.php`: edicao de `nome`, `email` e `senha` pelo proprio usuario, com validacao de email unico e senha >= 8 caracteres. O perfil (`tipo`) nao pode ser alterado pelo proprio usuario.
@@ -664,16 +669,12 @@ Se uma proposta criar um fluxo paralelo fora dessa cadeia, revisar a modelagem a
 
 - Tabela `auditoria`: `usuario_id`, `entidade`, `entidade_id`, `acao`, `dados` (JSON) e data.
 - Helper em `includes/auditoria.php`: `registrar_auditoria($conn, $usuario_id, $acao, $entidade, $entidade_id, $descricao, $dados)`.
-- Registra login, logout, criacao/edicao de clientes, veiculos, funcionarios, OS, pedidos de pecas e orcamentos, exclusoes e acoes de backup.
+- Registra login, logout, criacao/edicao de clientes, veiculos, funcionarios, OS, pedidos de pecas e orcamentos, e exclusoes.
 - Uma falha ao gravar auditoria nunca bloqueia a acao principal (apenas `error_log`).
-
-### Backup do banco
-
-- `pages/backup/index.php` (somente admin): gera um dump `.sql` completo via PHP puro (sem `mysqldump`), salva em `uploads/backups/`, lista arquivos com tamanho/data e permite baixar `baixar.php` ou excluir.
-- Valores de data/hora e tamanho aparecem na lista; o download e protegido contra path traversal.
 
 ### Documentacao (site separado)
 
-- A documentacao do sistema (este arquivo em formato navegavel) vive em um **site estatico separado**, na pasta irma `mecanica-docs/` (fora do repositorio), servida por exemplo em `http://localhost/mecanica-docs/`.
-- Paginas: visao geral, regras de negocio, perfis/permissões, funcoes do sistema, banco de dados, seguranca, instalacao e convencoes.
-- E construida com HTML/CSS/JS puro (`assets/css/docs.css`, `assets/js/docs.js`), diagramas Mermaid via CDN, e nao exige login.
+- A documentacao do sistema (este arquivo em formato navegavel) vive em um **site estatico separado**, no repositorio irmao `mecanica-docs/`, publicado no Cloudflare Pages e sem login.
+- Paginas: visao geral, regras de negocio, perfis/permissões, funcoes do sistema, banco de dados, Trigger e View, seguranca, instalacao e convencoes.
+- E construida com a **mesma stack da apresentacao** (`mecanica-slide`): React + Vite + Tailwind CSS, diagramas interativos com React Flow, codigo destacado com Shiki e tema claro/escuro, com a mesma tipografia (Inter, Sora e JetBrains Mono).
+- Para rodar localmente: `npm install` e `npm run dev`. O build (`npm run build`) gera `dist/`.
