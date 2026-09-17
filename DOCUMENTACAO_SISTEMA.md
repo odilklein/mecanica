@@ -483,6 +483,30 @@ As migracoes incrementais antigas (`sql/mecanica.sql`, `002_operacao_oficina.sql
 | `auditoria` | Registro de acoes sensiveis |
 | `orcamentos` | Documento comercial manual |
 
+### Objetos de banco: View e Trigger
+
+Criados em `sql/mecanica_teste.sql` (no fim do seed), nao ficam no PHP.
+
+**View `vw_ordens_servico_detalhada`**
+- Reune `ordens_servico` + `clientes` + `veiculos` + `usuarios` (chefia) + `os_responsaveis`,
+  com `status_label` traduzido, veiculo concatenado, responsaveis ativos (`GROUP_CONCAT`) e
+  contadores de tarefas (`total`, `concluidas`) e pedidos pendentes.
+- Substitui o JOIN repetido em `index.php` e `pages/ordens_servico/listar.php` e centraliza
+  o mapa de nomes de status.
+
+**Trigger `trg_os_status_historico`**
+- `AFTER UPDATE` em `ordens_servico`: quando `OLD.status <> NEW.status`, grava automaticamente
+  um evento em `os_eventos` (tipo `status`, anterior/novo e autor).
+- O autor vem de `@usuario_atual`, definido em `config/conexao.php` a partir de
+  `$_SESSION['usuario_id']`; sem isso, usa o `criado_por` da OS.
+- Por causa da trigger, `pages/ordens_servico/processar.php` nao insere mais o evento de
+  status manualmente (evita registro duplicado).
+- Seguranca: a trigger roda como `DEFINER`. Em producao, crie-a com um usuario
+  administrador e conceda ao usuario da aplicacao apenas `UPDATE` em `ordens_servico`
+  (sem `INSERT` direto em `os_eventos`), impedindo historico forjado.
+- Com `PDO::ATTR_PERSISTENT`, a variavel de sessao pode vazar entre requisicoes; nesse caso
+  redefina `@usuario_atual` a cada request.
+
 ---
 
 ## 12. Ambiente local

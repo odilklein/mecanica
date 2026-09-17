@@ -8,6 +8,10 @@ USE mecanica;
 SET NAMES utf8mb4;
 SET FOREIGN_KEY_CHECKS = 0;
 
+-- Objetos de banco (View e Trigger). Precisam ser removidos antes das tabelas.
+DROP VIEW IF EXISTS vw_ordens_servico_detalhada;
+DROP TRIGGER IF EXISTS trg_os_status_historico;
+
 DROP TABLE IF EXISTS auditoria;
 DROP TABLE IF EXISTS notificacoes;
 DROP TABLE IF EXISTS cliente_servicos_historico;
@@ -397,6 +401,85 @@ INSERT INTO orcamento_itens (orcamento_id, tipo, descricao_item, quantidade, pre
 (7, 'servico', 'Troca de Embreagem', 1, 450.00, 450.00),
 (8, 'peca', 'Amortecedor Dianteiro (par)', 1, 280.00, 280.00),
 (8, 'servico', 'Suspensão Dianteira', 1, 180.00, 180.00);
+
+-- =============================================
+-- VIEW: vw_ordens_servico_detalhada
+-- Reune OS + cliente + veiculo + chefia + responsaveis + contadores.
+-- Centraliza o JOIN repetido em index.php e listar.php e o rotulo de status.
+-- Observacao de performance: as subconsultas rodam uma vez por OS retornada;
+-- com filtro por status/paginacao e pelos indices (FK os_id, unique os_id+usuario_id)
+-- o custo e baixo neste volume.
+-- =============================================
+CREATE OR REPLACE VIEW vw_ordens_servico_detalhada AS
+SELECT
+    os.id,
+    os.numero,
+    os.status,
+    CASE os.status
+        WHEN 'recebida' THEN 'Recebida'
+        WHEN 'triagem' THEN 'Triagem'
+        WHEN 'aguardando_diagnostico' THEN 'Aguardando diagnóstico'
+        WHEN 'aguardando_orcamento' THEN 'Aguardando orçamento'
+        WHEN 'aguardando_aprovacao' THEN 'Aguardando aprovação'
+        WHEN 'aguardando_peca' THEN 'Aguardando peça'
+        WHEN 'pronta_para_execucao' THEN 'Pronta para execução'
+        WHEN 'em_execucao' THEN 'Em execução'
+        WHEN 'aguardando_retorno' THEN 'Aguardando retorno'
+        WHEN 'pronta_para_entrega' THEN 'Pronta para entrega'
+        WHEN 'entregue' THEN 'Entregue'
+        WHEN 'cancelada' THEN 'Cancelada'
+    END AS status_label,
+    os.prioridade,
+    os.queixa_inicial,
+    os.diagnostico,
+    os.data_entrada,
+    os.data_conclusao,
+    c.id AS cliente_id,
+    c.nome AS cliente,
+    c.telefone AS cliente_telefone,
+    v.id AS veiculo_id,
+    v.marca,
+    v.modelo,
+    v.ano,
+    v.placa,
+    TRIM(CONCAT(COALESCE(v.marca, ''), ' ', COALESCE(v.modelo, ''))) AS veiculo,
+    u.nome AS responsavel_chefe,
+    (SELECT GROUP_CONCAT(ur.nome ORDER BY ur.nome SEPARATOR ', ')
+       FROM os_responsaveis r
+       JOIN usuarios ur ON ur.id = r.usuario_id
+      WHERE r.os_id = os.id AND r.concluido_em IS NULL) AS responsaveis,
+    (SELECT COUNT(*) FROM os_tarefas t WHERE t.os_id = os.id) AS total_tarefas,
+    (SELECT COUNT(*) FROM os_tarefas t WHERE t.os_id = os.id AND t.status = 'concluida') AS tarefas_concluidas,
+    (SELECT COUNT(*) FROM pedidos_pecas p WHERE p.os_id = os.id AND p.status NOT IN ('recebido', 'cancelado')) AS pedidos_pendentes
+FROM ordens_servico os
+JOIN clientes c ON c.id = os.cliente_id
+LEFT JOIN veiculos v ON v.id = os.veiculo_id
+LEFT JOIN usuarios u ON u.id = os.responsavel_chefe_id;
+
+-- =============================================
+-- TRIGGER: trg_os_status_historico
+-- Automatiza o historico: a cada UPDATE de ordens_servico cujo status muda,
+-- grava um evento em os_eventos (quem mudou vem de @usuario_atual; se a
+-- conexao nao definir, usa o criador da OS).
+-- =============================================
+DELIMITER $$
+CREATE TRIGGER trg_os_status_historico
+AFTER UPDATE ON ordens_servico
+FOR EACH ROW
+BEGIN
+    IF OLD.status <> NEW.status THEN
+        INSERT INTO os_eventos (os_id, tipo, status_anterior, status_novo, descricao, criado_por)
+        VALUES (
+            NEW.id,
+            'status',
+            OLD.status,
+            NEW.status,
+            CONCAT('Status alterado de "', OLD.status, '" para "', NEW.status, '".'),
+            COALESCE(@usuario_atual, NEW.criado_por)
+        );
+    END IF;
+END$$
+DELIMITER ;
 
 SET FOREIGN_KEY_CHECKS = 1;
 

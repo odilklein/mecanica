@@ -8,29 +8,31 @@ $titulo_pagina = 'Ordens de serviço';
 $status_nomes = ['recebida' => 'Recebida', 'triagem' => 'Triagem', 'aguardando_diagnostico' => 'Aguardando diagnóstico', 'aguardando_orcamento' => 'Aguardando orçamento', 'aguardando_aprovacao' => 'Aguardando aprovação', 'aguardando_peca' => 'Aguardando peça', 'pronta_para_execucao' => 'Pronta para execução', 'em_execucao' => 'Em execução', 'aguardando_retorno' => 'Aguardando retorno', 'pronta_para_entrega' => 'Pronta para entrega'];
 $prioridades = ['urgente' => 'Urgente', 'alta' => 'Alta', 'normal' => 'Normal', 'baixa' => 'Baixa'];
 
-// Mecânico enxerga apenas as OS atribuídas a ele
-$filtro_funcionario = $_SESSION['usuario_tipo'] === 'mecanico'
-    ? ' JOIN os_responsaveis r ON r.os_id = os.id AND r.usuario_id = ' . (int) $_SESSION['usuario_id'] . ' AND r.concluido_em IS NULL '
-    : '';
-$from = "FROM ordens_servico os JOIN clientes c ON c.id = os.cliente_id LEFT JOIN veiculos v ON v.id = os.veiculo_id $filtro_funcionario";
+// Consulta centralizada na View (OS + cliente + veículo + responsáveis + contadores)
+$from = 'FROM vw_ordens_servico_detalhada v';
 
 // ---------- Filtros (server-side) ----------
 $busca = limpar($_GET['busca'] ?? '');
 $prioridade = $_GET['prioridade'] ?? '';
 $status = $_GET['status'] ?? '';
 
-$condicoes = ["os.status NOT IN ('entregue', 'cancelada')"];
+$condicoes = ["v.status NOT IN ('entregue', 'cancelada')"];
 $params = [];
+// Mecânico enxerga apenas as OS atribuídas a ele
+if ($_SESSION['usuario_tipo'] === 'mecanico') {
+    $condicoes[] = 'EXISTS (SELECT 1 FROM os_responsaveis r WHERE r.os_id = v.id AND r.usuario_id = :uid AND r.concluido_em IS NULL)';
+    $params[':uid'] = (int) $_SESSION['usuario_id'];
+}
 if ($busca !== '') {
-    $condicoes[] = '(CAST(os.numero AS CHAR) LIKE :busca OR c.nome LIKE :busca OR v.placa LIKE :busca OR v.marca LIKE :busca OR v.modelo LIKE :busca OR os.queixa_inicial LIKE :busca)';
+    $condicoes[] = '(CAST(v.numero AS CHAR) LIKE :busca OR v.cliente LIKE :busca OR v.placa LIKE :busca OR v.marca LIKE :busca OR v.modelo LIKE :busca OR v.queixa_inicial LIKE :busca)';
     $params[':busca'] = '%' . $busca . '%';
 }
 if (array_key_exists($prioridade, $prioridades)) {
-    $condicoes[] = 'os.prioridade = :prioridade';
+    $condicoes[] = 'v.prioridade = :prioridade';
     $params[':prioridade'] = $prioridade;
 }
 if (array_key_exists($status, $status_nomes)) {
-    $condicoes[] = 'os.status = :status';
+    $condicoes[] = 'v.status = :status';
     $params[':status'] = $status;
 }
 $where = 'WHERE ' . implode(' AND ', $condicoes);
@@ -44,9 +46,9 @@ $st->execute($params);
 $total = (int) $st->fetchColumn();
 [$pagina, $offset, $total_paginas] = paginacao_calcular($total, $por_pagina, $pagina);
 
-$st = $conn->prepare("SELECT os.id, os.numero, os.status, os.prioridade, os.queixa_inicial, os.data_entrada, c.nome AS cliente, v.marca, v.modelo, v.placa
+$st = $conn->prepare("SELECT v.id, v.numero, v.status, v.status_label, v.prioridade, v.queixa_inicial, v.data_entrada, v.cliente, v.marca, v.modelo, v.placa
     $from $where
-    ORDER BY FIELD(os.prioridade, 'urgente', 'alta', 'normal', 'baixa'), os.data_entrada ASC
+    ORDER BY FIELD(v.prioridade, 'urgente', 'alta', 'normal', 'baixa'), v.data_entrada ASC
     LIMIT :limite OFFSET :offset");
 foreach ($params as $k => $v) {
     $st->bindValue($k, $v);
@@ -119,7 +121,7 @@ require_once __DIR__ . '/../../includes/mensagens.php';
                         <td data-label="Veículo"><?php echo esc(trim(($ordem['marca'] ?? '') . ' ' . ($ordem['modelo'] ?? '')) ?: 'Não informado'); ?><br><small class="text-muted"><?php echo esc($ordem['placa'] ?: ''); ?></small></td>
                         <td data-label="Queixa"><span title="<?php echo esc($ordem['queixa_inicial']); ?>"><?php echo esc(mb_strimwidth($ordem['queixa_inicial'], 0, 55, '...')); ?></span></td>
                         <td data-label="Prioridade"><span class="badge badge-prioridade-<?php echo esc($ordem['prioridade']); ?>"><?php echo esc(ucfirst($ordem['prioridade'])); ?></span></td>
-                        <td data-label="Status"><span class="badge badge-status-<?php echo esc($ordem['status']); ?>"><?php echo esc($status_nomes[$ordem['status']] ?? $ordem['status']); ?></span></td>
+                        <td data-label="Status"><span class="badge badge-status-<?php echo esc($ordem['status']); ?>"><?php echo esc($ordem['status_label']); ?></span></td>
                         <td data-label="Entrada"><small><?php echo date('d/m/Y H:i', strtotime($ordem['data_entrada'])); ?></small></td>
                     </tr>
                 <?php endforeach; ?>

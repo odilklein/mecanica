@@ -17,6 +17,14 @@ try {
     $conn = new PDO($dsn, $db_user, $db_pass);
     $conn->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
     $conn->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_ASSOC);
+
+    // Informa ao banco quem está executando a ação. A trigger
+    // trg_os_status_historico usa @usuario_atual para registrar o autor
+    // da mudança de status. Sem conexão persistente o valor não vaza
+    // entre requisições; com PDO::ATTR_PERSISTENT, redefina por request.
+    if (session_status() === PHP_SESSION_ACTIVE && !empty($_SESSION['usuario_id'])) {
+        $conn->exec('SET @usuario_atual = ' . (int) $_SESSION['usuario_id']);
+    }
 } catch (PDOException $e) {
     $fonte_txt = (defined('MECANICA_ENV_ARQUIVO') && MECANICA_ENV_ARQUIVO)
         ? MECANICA_ENV_ARQUIVO

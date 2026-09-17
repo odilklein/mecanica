@@ -110,8 +110,8 @@ if ($acao !== 'cadastrar') {
         $conn->beginTransaction();
         $stmt = $conn->prepare('UPDATE ordens_servico SET status = :status, data_conclusao = IF(:status = \'entregue\', NOW(), data_conclusao) WHERE id = :id');
         $stmt->execute([':status' => $novo_status, ':id' => $os_id]);
-        $stmt = $conn->prepare('INSERT INTO os_eventos (os_id, tipo, status_anterior, status_novo, descricao, criado_por) VALUES (:os_id, \'status\', :anterior, :novo, :descricao, :usuario)');
-        $stmt->execute([':os_id' => $os_id, ':anterior' => $os_atual['status'], ':novo' => $novo_status, ':descricao' => 'Status alterado manualmente', ':usuario' => $_SESSION['usuario_id']]);
+        // O evento de mudança de status é gravado automaticamente pela
+        // trigger trg_os_status_historico (ver sql/mecanica_teste.sql).
         $num_os = str_pad((string) $os_atual['numero'], 4, '0', STR_PAD_LEFT);
         $msg_status = 'O status da OS #' . $num_os . ' mudou para "' . str_replace('_', ' ', $novo_status) . '".';
         notificar_responsaveis_os($conn, $os_id, 'os_status', $msg_status, (int) $_SESSION['usuario_id']);
