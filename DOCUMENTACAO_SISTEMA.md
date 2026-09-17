@@ -674,6 +674,7 @@ Se uma proposta criar um fluxo paralelo fora dessa cadeia, revisar a modelagem a
 
 ### Documentacao (site separado)
 
-- A documentacao do sistema (este arquivo em formato navegavel) vive em um **site estatico separado**, na pasta irma `mecanica-docs/` (fora do repositorio), servida por exemplo em `http://localhost/mecanica-docs/`.
-- Paginas: visao geral, regras de negocio, perfis/permissões, funcoes do sistema, banco de dados, seguranca, instalacao e convencoes.
-- E construida com HTML/CSS/JS puro (`assets/css/docs.css`, `assets/js/docs.js`), diagramas Mermaid via CDN, e nao exige login.
+- A documentacao do sistema (este arquivo em formato navegavel) vive em um **site estatico separado**, no repositorio irmao `mecanica-docs/`, publicado no Cloudflare Pages e sem login.
+- Paginas: visao geral, regras de negocio, perfis/permissões, funcoes do sistema, banco de dados, Trigger e View, seguranca, instalacao e convencoes.
+- E construida com a **mesma stack da apresentacao** (`mecanica-slide`): React + Vite + Tailwind CSS, diagramas interativos com React Flow, codigo destacado com Shiki e tema claro/escuro, com a mesma tipografia (Inter, Sora e JetBrains Mono).
+- Para rodar localmente: `npm install` e `npm run dev`. O build (`npm run build`) gera `dist/`.
