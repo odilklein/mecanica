@@ -28,6 +28,11 @@ DROP TABLE IF EXISTS movimentacoes_estoque;
 DROP TABLE IF EXISTS pecas;
 DROP TABLE IF EXISTS servicos;
 DROP TABLE IF EXISTS ordens_servico;
+DROP TABLE IF EXISTS fipe_precos;
+DROP TABLE IF EXISTS fipe_modelos;
+DROP TABLE IF EXISTS fipe_modelos_base;
+DROP TABLE IF EXISTS fipe_marcas_alias;
+DROP TABLE IF EXISTS fipe_marcas;
 DROP TABLE IF EXISTS veiculos;
 DROP TABLE IF EXISTS clientes;
 DROP TABLE IF EXISTS usuarios;
@@ -60,6 +65,56 @@ CREATE TABLE clientes (
   data_atualizacao TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
+-- =============================================
+-- CATÁLOGO FIPE (espelho local da Tabela FIPE)
+-- Populado por scripts/sync_fipe.php a partir da API Parallelum.
+-- =============================================
+CREATE TABLE fipe_marcas (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  fipe_codigo VARCHAR(10) NOT NULL,
+  nome VARCHAR(100) NOT NULL,
+  nome_exibicao VARCHAR(100) NOT NULL,
+  atualizado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  UNIQUE KEY uq_fipe_marca_codigo (fipe_codigo)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE fipe_marcas_alias (
+  nome_fipe VARCHAR(100) PRIMARY KEY,
+  nome_exibicao VARCHAR(100) NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE fipe_modelos_base (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  marca_id INT NOT NULL,
+  nome_base VARCHAR(120) NOT NULL,
+  UNIQUE KEY uq_fipe_base (marca_id, nome_base),
+  FOREIGN KEY (marca_id) REFERENCES fipe_marcas(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE fipe_modelos (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  base_id INT NOT NULL,
+  fipe_codigo VARCHAR(20) NOT NULL,
+  nome_versao VARCHAR(150) NOT NULL,
+  atualizado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  UNIQUE KEY uq_fipe_modelo (base_id, fipe_codigo),
+  FOREIGN KEY (base_id) REFERENCES fipe_modelos_base(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE fipe_precos (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  modelo_id INT NOT NULL,
+  ano_codigo VARCHAR(20) NOT NULL,
+  ano INT NULL,
+  combustivel VARCHAR(30) NULL,
+  valor DECIMAL(10,2) NULL,
+  codigo_fipe VARCHAR(20) NULL,
+  mes_referencia VARCHAR(20) NULL,
+  atualizado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  UNIQUE KEY uq_fipe_preco (modelo_id, ano_codigo),
+  FOREIGN KEY (modelo_id) REFERENCES fipe_modelos(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
 CREATE TABLE veiculos (
   id INT AUTO_INCREMENT PRIMARY KEY,
   cliente_id INT NOT NULL,
@@ -70,7 +125,16 @@ CREATE TABLE veiculos (
   cor VARCHAR(30),
   km_atual INT DEFAULT 0,
   chassi VARCHAR(30),
-  FOREIGN KEY (cliente_id) REFERENCES clientes(id) ON DELETE CASCADE
+  marca_id INT NULL,
+  modelo_base_id INT NULL,
+  modelo_id INT NULL,
+  fipe_versao VARCHAR(150) NULL,
+  valor_fipe DECIMAL(10,2) NULL,
+  fipe_mes_referencia VARCHAR(20) NULL,
+  FOREIGN KEY (cliente_id) REFERENCES clientes(id) ON DELETE CASCADE,
+  FOREIGN KEY (marca_id) REFERENCES fipe_marcas(id) ON DELETE SET NULL,
+  FOREIGN KEY (modelo_base_id) REFERENCES fipe_modelos_base(id) ON DELETE SET NULL,
+  FOREIGN KEY (modelo_id) REFERENCES fipe_modelos(id) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE ordens_servico (

@@ -20,6 +20,7 @@ $url_logout = $caminho_base . '/pages/auth/logout.php';
     <script src="https://cdn.jsdelivr.net/npm/lucide@0.462.0/dist/umd/lucide.min.js"></script>
     <script>document.documentElement.classList.add('js');window.addEventListener('load',function(){document.body.style.opacity='1';});</script>
     <style>html.js body{opacity:0;transition:opacity .25s ease}</style>
+    <?php if (!empty($head_extra)) echo $head_extra; ?>
 </head>
 <body>
     <script>

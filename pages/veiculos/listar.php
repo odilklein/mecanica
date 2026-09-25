@@ -1,13 +1,46 @@
 <?php
 require_once __DIR__ . '/../../includes/sessao.php';
 require_once __DIR__ . '/../../config/conexao.php';
+require_once __DIR__ . '/../../includes/paginacao.php';
 exigir_papel(['admin', 'secretaria', 'mecanico_chefe']);
 
-$stmt_clientes = $conn->query("SELECT id, nome FROM clientes ORDER BY nome");
-$clientes_opcoes = $stmt_clientes->fetchAll();
+// ---------- Filtros (server-side) ----------
+$busca = limpar($_GET['busca'] ?? '');
+$cliente_id = (int) ($_GET['cliente_id'] ?? 0);
 
-$stmt = $conn->query("SELECT v.*, c.nome as cliente_nome FROM veiculos v LEFT JOIN clientes c ON c.id = v.cliente_id ORDER BY v.marca, v.modelo");
-$veiculos = $stmt->fetchAll();
+$condicoes = [];
+$params = [];
+if ($busca !== '') {
+    $condicoes[] = '(v.placa LIKE :busca OR v.marca LIKE :busca OR v.modelo LIKE :busca OR c.nome LIKE :busca)';
+    $params[':busca'] = '%' . $busca . '%';
+}
+if ($cliente_id > 0) {
+    $condicoes[] = 'v.cliente_id = :cliente_id';
+    $params[':cliente_id'] = $cliente_id;
+}
+$where = $condicoes ? 'WHERE ' . implode(' AND ', $condicoes) : '';
+
+// ---------- Paginação ----------
+$por_pagina = por_pagina_atual();
+$pagina = pagina_atual();
+
+$st = $conn->prepare("SELECT COUNT(*) FROM veiculos v LEFT JOIN clientes c ON c.id = v.cliente_id $where");
+$st->execute($params);
+$total = (int) $st->fetchColumn();
+[$pagina, $offset, $total_paginas] = paginacao_calcular($total, $por_pagina, $pagina);
+
+$st = $conn->prepare("SELECT v.*, c.nome AS cliente_nome FROM veiculos v LEFT JOIN clientes c ON c.id = v.cliente_id $where ORDER BY v.marca, v.modelo LIMIT :limite OFFSET :offset");
+foreach ($params as $k => $v) {
+    $st->bindValue($k, $v);
+}
+$st->bindValue(':limite', $por_pagina, PDO::PARAM_INT);
+$st->bindValue(':offset', $offset, PDO::PARAM_INT);
+$st->execute();
+$veiculos = $st->fetchAll();
+
+$clientes_opcoes = $conn->query("SELECT id, nome FROM clientes ORDER BY nome")->fetchAll();
+$filtros_pag = array_filter(['busca' => $busca, 'cliente_id' => $cliente_id ?: '', 'por_pagina' => $por_pagina], fn($v) => $v !== '');
+$tem_filtro = $busca !== '' || $cliente_id > 0;
 
 $titulo_pagina = "Veículos";
 require_once __DIR__ . '/../../includes/header.php';
@@ -19,38 +52,53 @@ require_once __DIR__ . '/../../includes/mensagens.php';
         <h1><i data-lucide="car" class="text-primary me-2"></i>Veículos</h1>
         <span class="page-subtitle">Gerencie os veículos dos clientes</span>
     </div>
-    <a href="cadastrar.php" class="btn btn-primary btn-icon">
-        <i data-lucide="plus"></i> Novo Veículo
-    </a>
+    <div class="d-flex gap-2">
+        <?php if (tem_papel(['admin'])): ?>
+        <form method="POST" action="sincronizar_fipe.php" onsubmit="this.querySelector('button').disabled=true; return confirm('Sincronizar o catálogo FIPE? Isso leva cerca de 1 minuto.');">
+            <input type="hidden" name="csrf_token" value="<?php echo esc(csrf_token()); ?>">
+            <button type="submit" class="btn btn-outline-secondary btn-icon" title="Atualizar marcas/modelos da Tabela FIPE">
+                <i data-lucide="refresh-cw"></i> Sincronizar FIPE
+            </button>
+        </form>
+        <?php endif; ?>
+        <a href="cadastrar.php" class="btn btn-primary btn-icon">
+            <i data-lucide="plus"></i> Novo Veículo
+        </a>
+    </div>
 </div>
 
 <div class="card">
     <div class="card-body">
-        <div class="filter-bar">
+        <form class="filter-bar" method="get" action="listar.php">
             <div class="filter-search">
                 <i data-lucide="search" class="search-icon"></i>
-                <input type="text" class="form-control" id="buscarVeiculo" data-filtro-busca="tabelaVeiculos" placeholder="Buscar por placa, marca, modelo, cliente...">
+                <input type="text" class="form-control" name="busca" value="<?php echo esc($busca); ?>" placeholder="Buscar por placa, marca, modelo, cliente...">
             </div>
             <div class="filter-group">
                 <label for="filtroCliente">Cliente</label>
-                <select class="form-select" id="filtroCliente" data-filtro-tabela="tabelaVeiculos" data-filtro-coluna="Cliente">
+                <select class="form-select" id="filtroCliente" name="cliente_id" onchange="this.form.submit()">
                     <option value="">Todos</option>
                     <?php foreach ($clientes_opcoes as $c): ?>
-                        <option value="<?php echo esc($c['nome']); ?>"><?php echo esc($c['nome']); ?></option>
+                        <option value="<?php echo (int) $c['id']; ?>" <?php echo $cliente_id === (int) $c['id'] ? 'selected' : ''; ?>><?php echo esc($c['nome']); ?></option>
                     <?php endforeach; ?>
                 </select>
             </div>
-            <button class="btn btn-outline-secondary btn-reset-filters" type="button" onclick="limparFiltros('tabelaVeiculos')">
-                <i data-lucide="filter-x"></i> Limpar
-            </button>
-        </div>
+            <div class="filter-group">
+                <label for="filtroPorPagina">Por página</label>
+                <select class="form-select" id="filtroPorPagina" name="por_pagina" onchange="this.form.submit()">
+                    <?php echo opcoes_por_pagina($por_pagina); ?>
+                </select>
+            </div>
+            <button class="btn btn-primary" type="submit"><i data-lucide="search"></i> Filtrar</button>
+            <a class="btn btn-outline-secondary btn-reset-filters" href="listar.php"><i data-lucide="filter-x"></i> Limpar</a>
+        </form>
 
         <div class="filter-results-info">
-            <span>Exibindo <strong data-filtro-total="tabelaVeiculos"><?php echo count($veiculos); ?></strong> de <?php echo count($veiculos); ?> veículos</span>
+            <span>Exibindo <strong><?php echo count($veiculos); ?></strong> de <strong><?php echo $total; ?></strong> veículos<?php echo $tem_filtro ? ' (filtrados)' : ''; ?></span>
         </div>
 
         <div class="table-responsive">
-            <table class="table table-hover align-middle responsive-card" id="tabelaVeiculos">
+            <table class="table table-hover align-middle responsive-card">
                 <thead>
                     <tr>
                         <th>Veículo</th>
@@ -59,6 +107,7 @@ require_once __DIR__ . '/../../includes/mensagens.php';
                         <th>Ano</th>
                         <th>Cor</th>
                         <th>KM Atual</th>
+                        <th>Valor FIPE</th>
                         <th class="actions-cell">Ações</th>
                     </tr>
                 </thead>
@@ -82,6 +131,7 @@ require_once __DIR__ . '/../../includes/mensagens.php';
                             <?php else: ?>-<?php endif; ?>
                         </td>
                         <td data-label="KM Atual"><?php echo number_format($v['km_atual'], 0, ',', '.'); ?> km</td>
+                        <td data-label="Valor FIPE"><?php echo !empty($v['valor_fipe']) ? '<small>' . formatar_moeda($v['valor_fipe']) . '</small>' : '<small class="text-muted">—</small>'; ?></td>
                         <td data-label="Ações" class="actions-cell">
                             <div class="dropdown table-dropdown">
                                 <button class="table-dropdown-btn" type="button" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Ações do veículo">
@@ -105,30 +155,25 @@ require_once __DIR__ . '/../../includes/mensagens.php';
                     </tr>
                     <?php endforeach; else: ?>
                     <tr class="row-empty">
-                        <td colspan="7">
+                        <td colspan="8">
                             <div class="empty-state">
-                                <div class="empty-state-icon"><i data-lucide="car"></i></div>
-                                <h4>Nenhum veículo cadastrado</h4>
-                                <p>Cadastre o primeiro veículo da oficina para começar.</p>
+                                <div class="empty-state-icon"><i data-lucide="<?php echo $tem_filtro ? 'filter' : 'car'; ?>"></i></div>
+                                <h4><?php echo $tem_filtro ? 'Nenhum veículo encontrado' : 'Nenhum veículo cadastrado'; ?></h4>
+                                <p><?php echo $tem_filtro ? 'Ajuste a busca ou limpe os filtros para ver todos os veículos.' : 'Cadastre o primeiro veículo da oficina para começar.'; ?></p>
+                                <?php if (!$tem_filtro): ?>
                                 <a href="cadastrar.php" class="btn btn-primary btn-icon">
                                     <i data-lucide="plus"></i> Cadastrar Veículo
                                 </a>
+                                <?php endif; ?>
                             </div>
                         </td>
                     </tr>
                     <?php endif; ?>
-                    <tr class="row-filtro-vazio" data-filtro-vazio="tabelaVeiculos" style="display:none;">
-                        <td colspan="7">
-                            <div class="empty-state">
-                                <div class="empty-state-icon"><i data-lucide="filter"></i></div>
-                                <h4>Nenhum veículo encontrado com esses filtros</h4>
-                                <p>Ajuste a busca ou limpe os filtros para ver todos os veículos.</p>
-                            </div>
-                        </td>
-                    </tr>
                 </tbody>
             </table>
         </div>
+
+        <?php echo paginacao_links($pagina, $total_paginas, $filtros_pag); ?>
     </div>
 </div>
 
