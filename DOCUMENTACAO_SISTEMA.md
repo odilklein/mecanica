@@ -141,7 +141,11 @@ Dockerfile                      Imagem Apache+PHP com pdo_mysql/mbstring
 `config/env.php`:
 
 - Expoe `env($chave, $padrao)`, que le variaveis do processo (Docker) ou, na falta
-  delas, um unico arquivo `.env` na raiz do projeto. Nao usa `putenv()`.
+  delas, `config/config.local.php` (ou `config.local.php` na raiz) e, por fim, um
+  unico arquivo `.env` na raiz do projeto. Nao usa `putenv()`.
+- `config.local.php` e PHP puro que retorna um array; tem prioridade sobre o `.env`
+  e serve para hospedagem que nao aceita `.env` (ex.: InfinityFree). Veja o modelo
+  em `config/config.local.example.php`.
 
 ### Dashboard
 
@@ -532,10 +536,11 @@ Criados em `sql/mecanica_teste.sql` (no fim do seed), nao ficam no PHP.
 
 `config/conexao.php` le `DB_HOST`, `DB_PORT`, `DB_USER`, `DB_PASS` e `DB_NAME`
 via `env()` (`config/env.php`). A precedencia e: variaveis do processo
-(ex.: Docker) -> arquivo `.env` na raiz -> padroes (`localhost`, `root`, senha
-vazia, banco `mecanica`).
+(ex.: Docker) -> `config/config.local.php` -> arquivo `.env` na raiz -> padroes
+(`localhost`, `root`, senha vazia, banco `mecanica`).
 
-O `.env` e ignorado pelo Git e nao deve receber segredos de producao.
+O `.env` e o `config.local.php` sao ignorados pelo Git e nao devem receber
+segredos de producao.
 
 ---
 

@@ -1,3 +1,5 @@
 .env
+config.local.php
+config/config.local.php
 *.log
 vendor/
