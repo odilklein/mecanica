@@ -1,9 +1,10 @@
 <?php
 require_once __DIR__ . '/../../includes/sessao.php';
 require_once __DIR__ . '/../../config/conexao.php';
+require_once __DIR__ . '/../../includes/fipe.php';
 exigir_papel(['admin', 'secretaria', 'mecanico_chefe']);
 
-$id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
+$id = isset($_GET['id']) ? (int) $_GET['id'] : 0;
 
 $stmt = $conn->prepare("SELECT v.*, c.nome as cliente_nome FROM veiculos v LEFT JOIN clientes c ON c.id = v.cliente_id WHERE v.id = :id");
 $stmt->bindParam(':id', $id);
@@ -17,8 +18,28 @@ if (!$veiculo) {
     exit();
 }
 
+fipe_garantir_schema($conn);
+$fipe_marcas = $conn->query("SELECT id, nome_exibicao FROM fipe_marcas ORDER BY nome_exibicao")->fetchAll();
+$catalogo_ok = count($fipe_marcas) > 0;
+
+$valor_fipe_formatado = $veiculo['valor_fipe'] !== null
+    ? formatar_moeda($veiculo['valor_fipe']) . ($veiculo['fipe_mes_referencia'] ? ' — ' . $veiculo['fipe_mes_referencia'] : '')
+    : '';
+
 $titulo_pagina = "Editar Veículo";
+$head_extra = '<link href="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/css/tom-select.bootstrap5.min.css" rel="stylesheet">';
 require_once __DIR__ . '/../../includes/header.php';
+require_once __DIR__ . '/../../includes/mensagens.php';
+
+$veiculo_fipe_config = [
+    'marcaId' => (int) ($veiculo['marca_id'] ?? 0),
+    'baseId' => (int) ($veiculo['modelo_base_id'] ?? 0),
+    'modeloId' => (int) ($veiculo['modelo_id'] ?? 0),
+    'valorAtualFormatado' => $valor_fipe_formatado,
+];
+$scripts_extra = '<script src="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/js/tom-select.complete.min.js"></script>';
+$scripts_extra .= '<script>window.VeiculoFipeConfig = ' . json_encode($veiculo_fipe_config) . ';</script>';
+$scripts_extra .= '<script src="' . $caminho_base . '/js/veiculo-fipe.js"></script>';
 ?>
 
 <div class="page-header">
@@ -35,9 +56,16 @@ require_once __DIR__ . '/../../includes/header.php';
     <div class="col-lg-10">
         <div class="card">
             <div class="card-body p-4">
+                <?php if ($catalogo_ok && empty($veiculo['marca_id']) && !empty($veiculo['marca'])): ?>
+                <div class="alert alert-info py-2"><i data-lucide="info"></i> Veículo cadastrado antes da integração FIPE. Valores atuais: <strong><?php echo esc($veiculo['marca']); ?> <?php echo esc($veiculo['modelo']); ?></strong>. Selecione marca/modelo para padronizar.</div>
+                <?php endif; ?>
                 <form method="POST" action="processar.php?acao=editar" onsubmit="return validarFormularioVeiculo()">
                     <input type="hidden" name="csrf_token" value="<?php echo esc(csrf_token()); ?>">
                     <input type="hidden" name="id" value="<?php echo $veiculo['id']; ?>">
+                    <?php if ($catalogo_ok): ?>
+                    <input type="hidden" name="marca_nome" id="marca_nome" value="<?php echo esc($veiculo['marca']); ?>">
+                    <input type="hidden" name="modelo_nome" id="modelo_nome" value="<?php echo esc($veiculo['modelo']); ?>">
+                    <?php endif; ?>
                     <div class="row g-3">
                         <div class="col-md-8">
                             <label for="cliente_id" class="form-label-with-icon"><i data-lucide="user"></i> Cliente *</label>
@@ -56,17 +84,45 @@ require_once __DIR__ . '/../../includes/header.php';
                             <label for="placa" class="form-label-with-icon"><i data-lucide="hash"></i> Placa *</label>
                             <input type="text" class="form-control text-uppercase" id="placa" name="placa" value="<?php echo esc($veiculo['placa']); ?>" oninput="formatarPlaca(this)" required>
                         </div>
+                        <?php if ($catalogo_ok): ?>
                         <div class="col-md-4">
-                            <label for="marca" class="form-label-with-icon"><i data-lucide="tag"></i> Marca *</label>
-                            <input type="text" class="form-control" id="marca" name="marca" value="<?php echo esc($veiculo['marca']); ?>" required>
+                            <label for="marca_id" class="form-label-with-icon"><i data-lucide="tag"></i> Marca *</label>
+                            <select class="form-select" id="marca_id" name="marca_id" data-placeholder="Selecione a marca">
+                                <option value="">Selecione a marca</option>
+                                <?php foreach ($fipe_marcas as $m): ?>
+                                    <option value="<?php echo (int) $m['id']; ?>" <?php echo (int) ($veiculo['marca_id'] ?? 0) === (int) $m['id'] ? 'selected' : ''; ?>><?php echo esc($m['nome_exibicao']); ?></option>
+                                <?php endforeach; ?>
+                            </select>
                         </div>
                         <div class="col-md-4">
-                            <label for="modelo" class="form-label-with-icon"><i data-lucide="car"></i> Modelo *</label>
-                            <input type="text" class="form-control" id="modelo" name="modelo" value="<?php echo esc($veiculo['modelo']); ?>" required>
+                            <label for="modelo_base_id" class="form-label-with-icon"><i data-lucide="car"></i> Modelo *</label>
+                            <select class="form-select" id="modelo_base_id" name="modelo_base_id" data-placeholder="Selecione o modelo">
+                                <option value="">Selecione a marca primeiro</option>
+                            </select>
                         </div>
+                        <div class="col-md-4">
+                            <label for="modelo_id" class="form-label-with-icon"><i data-lucide="git-branch"></i> Versão (opcional)</label>
+                            <select class="form-select" id="modelo_id" name="modelo_id" data-placeholder="Selecione a versão">
+                                <option value="">Selecione o modelo primeiro</option>
+                            </select>
+                        </div>
+                        <?php else: ?>
+                        <div class="col-md-4">
+                            <label for="marca_nome_input" class="form-label-with-icon"><i data-lucide="tag"></i> Marca *</label>
+                            <input type="text" class="form-control" id="marca_nome_input" name="marca_nome" value="<?php echo esc($veiculo['marca']); ?>" required>
+                        </div>
+                        <div class="col-md-4">
+                            <label for="modelo_nome_input" class="form-label-with-icon"><i data-lucide="car"></i> Modelo *</label>
+                            <input type="text" class="form-control" id="modelo_nome_input" name="modelo_nome" value="<?php echo esc($veiculo['modelo']); ?>" required>
+                        </div>
+                        <?php endif; ?>
                         <div class="col-md-4">
                             <label for="ano" class="form-label-with-icon"><i data-lucide="calendar"></i> Ano</label>
                             <input type="number" class="form-control" id="ano" name="ano" min="1950" max="2030" value="<?php echo $veiculo['ano']; ?>">
+                        </div>
+                        <div class="col-md-4">
+                            <label for="valorFipe" class="form-label-with-icon"><i data-lucide="badge-dollar-sign"></i> Valor FIPE</label>
+                            <input type="text" class="form-control" id="valorFipe" value="<?php echo esc($valor_fipe_formatado); ?>" readonly placeholder="Calculado ao informar versão e ano">
                         </div>
                         <div class="col-md-8">
                             <label for="cor" class="form-label-with-icon"><i data-lucide="palette"></i> Cor</label>
@@ -90,7 +146,7 @@ require_once __DIR__ . '/../../includes/header.php';
                             <input type="text" class="form-control" id="chassi" name="chassi" value="<?php echo esc($veiculo['chassi']); ?>">
                         </div>
                         <div class="col-md-6">
-                            <small class="text-muted">A cor fica vinculada ao veículo e aparece no quadro de veículos com o tom real.</small>
+                            <small class="text-muted">Dados de marcas/modelos: Tabela FIPE (base comunitária Parallelum).</small>
                         </div>
                     </div>
                     <div class="d-flex justify-content-between mt-4">
@@ -108,8 +164,8 @@ require_once __DIR__ . '/../../includes/header.php';
 <script>
 function validarFormularioVeiculo() {
     const placa = document.getElementById('placa').value;
-    if (!/^[A-Z]{3}-\d{4}$/.test(placa)) {
-        alert('Formato de placa inválido. Use o padrão ABC-1234');
+    if (!/^[A-Z]{3}-?\d[A-Z0-9]\d{2}$/.test(placa)) {
+        alert('Formato de placa inválido. Use ABC-1234 ou ABC1D23 (Mercosul).');
         return false;
     }
     return true;

@@ -1,10 +1,54 @@
 <?php
 require_once __DIR__ . '/../../includes/sessao.php';
 require_once __DIR__ . '/../../config/conexao.php';
+require_once __DIR__ . '/../../includes/paginacao.php';
 exigir_papel(['admin', 'secretaria', 'mecanico_chefe']);
 
-$stmt = $conn->query("SELECT o.*, c.nome as cliente_nome, v.marca, v.modelo, v.placa FROM orcamentos o LEFT JOIN clientes c ON c.id = o.cliente_id LEFT JOIN veiculos v ON v.id = o.veiculo_id ORDER BY o.id DESC");
-$orcamentos = $stmt->fetchAll();
+// ---------- Filtros (server-side) ----------
+$busca = limpar($_GET['busca'] ?? '');
+$status = $_GET['status'] ?? '';
+$periodo = $_GET['periodo'] ?? '';
+$status_validos = ['aberto', 'aprovado', 'reprovado', 'cancelado'];
+
+$condicoes = [];
+$params = [];
+if ($busca !== '') {
+    $condicoes[] = '(CAST(o.numero AS CHAR) LIKE :busca OR c.nome LIKE :busca OR v.marca LIKE :busca OR v.modelo LIKE :busca OR v.placa LIKE :busca)';
+    $params[':busca'] = '%' . $busca . '%';
+}
+if (in_array($status, $status_validos, true)) {
+    $condicoes[] = 'o.status = :status';
+    $params[':status'] = $status;
+}
+if ($periodo === 'hoje') {
+    $condicoes[] = 'DATE(o.data_orcamento) = CURDATE()';
+} elseif ($periodo === 'ultimos7') {
+    $condicoes[] = 'o.data_orcamento >= (CURDATE() - INTERVAL 6 DAY)';
+} elseif ($periodo === 'ultimos30') {
+    $condicoes[] = 'o.data_orcamento >= (CURDATE() - INTERVAL 29 DAY)';
+}
+$where = $condicoes ? 'WHERE ' . implode(' AND ', $condicoes) : '';
+
+// ---------- Paginação ----------
+$por_pagina = por_pagina_atual();
+$pagina = pagina_atual();
+
+$st = $conn->prepare("SELECT COUNT(*) FROM orcamentos o LEFT JOIN clientes c ON c.id = o.cliente_id LEFT JOIN veiculos v ON v.id = o.veiculo_id $where");
+$st->execute($params);
+$total = (int) $st->fetchColumn();
+[$pagina, $offset, $total_paginas] = paginacao_calcular($total, $por_pagina, $pagina);
+
+$st = $conn->prepare("SELECT o.*, c.nome AS cliente_nome, v.marca, v.modelo, v.placa FROM orcamentos o LEFT JOIN clientes c ON c.id = o.cliente_id LEFT JOIN veiculos v ON v.id = o.veiculo_id $where ORDER BY o.id DESC LIMIT :limite OFFSET :offset");
+foreach ($params as $k => $v) {
+    $st->bindValue($k, $v);
+}
+$st->bindValue(':limite', $por_pagina, PDO::PARAM_INT);
+$st->bindValue(':offset', $offset, PDO::PARAM_INT);
+$st->execute();
+$orcamentos = $st->fetchAll();
+
+$filtros_pag = array_filter(['busca' => $busca, 'status' => $status, 'periodo' => $periodo, 'por_pagina' => $por_pagina], fn($v) => $v !== '');
+$tem_filtro = $busca !== '' || $status !== '' || $periodo !== '';
 
 $titulo_pagina = "Orçamentos";
 require_once __DIR__ . '/../../includes/header.php';
@@ -30,41 +74,46 @@ $badge_status = [
 
 <div class="card">
     <div class="card-body">
-        <div class="filter-bar">
+        <form class="filter-bar" method="get" action="listar.php">
             <div class="filter-search">
                 <i data-lucide="search" class="search-icon"></i>
-                <input type="text" class="form-control" id="buscarOrcamento" data-filtro-busca="tabelaOrcamentos" placeholder="Buscar por número, cliente, veículo ou placa...">
+                <input type="text" class="form-control" name="busca" value="<?php echo esc($busca); ?>" placeholder="Buscar por número, cliente, veículo ou placa...">
             </div>
             <div class="filter-group">
                 <label for="filtroStatus">Status</label>
-                <select class="form-select" id="filtroStatus" data-filtro-tabela="tabelaOrcamentos" data-filtro-coluna="Status">
+                <select class="form-select" id="filtroStatus" name="status" onchange="this.form.submit()">
                     <option value="">Todos</option>
-                    <option value="Aberto">Aberto</option>
-                    <option value="Aprovado">Aprovado</option>
-                    <option value="Reprovado">Reprovado</option>
-                    <option value="Cancelado">Cancelado</option>
+                    <option value="aberto" <?php echo $status === 'aberto' ? 'selected' : ''; ?>>Aberto</option>
+                    <option value="aprovado" <?php echo $status === 'aprovado' ? 'selected' : ''; ?>>Aprovado</option>
+                    <option value="reprovado" <?php echo $status === 'reprovado' ? 'selected' : ''; ?>>Reprovado</option>
+                    <option value="cancelado" <?php echo $status === 'cancelado' ? 'selected' : ''; ?>>Cancelado</option>
                 </select>
             </div>
             <div class="filter-group">
                 <label for="filtroPeriodo">Período</label>
-                <select class="form-select" id="filtroPeriodo" data-filtro-tabela="tabelaOrcamentos" data-filtro-coluna="Data" data-filtro-data-range="date">
+                <select class="form-select" id="filtroPeriodo" name="periodo" onchange="this.form.submit()">
                     <option value="">Todos</option>
-                    <option value="hoje">Hoje</option>
-                    <option value="ultimos7">Últimos 7 dias</option>
-                    <option value="ultimos30">Últimos 30 dias</option>
+                    <option value="hoje" <?php echo $periodo === 'hoje' ? 'selected' : ''; ?>>Hoje</option>
+                    <option value="ultimos7" <?php echo $periodo === 'ultimos7' ? 'selected' : ''; ?>>Últimos 7 dias</option>
+                    <option value="ultimos30" <?php echo $periodo === 'ultimos30' ? 'selected' : ''; ?>>Últimos 30 dias</option>
                 </select>
             </div>
-            <button class="btn btn-outline-secondary btn-reset-filters" type="button" onclick="limparFiltros('tabelaOrcamentos')">
-                <i data-lucide="filter-x"></i> Limpar
-            </button>
-        </div>
+            <div class="filter-group">
+                <label for="filtroPorPagina">Por página</label>
+                <select class="form-select" id="filtroPorPagina" name="por_pagina" onchange="this.form.submit()">
+                    <?php echo opcoes_por_pagina($por_pagina); ?>
+                </select>
+            </div>
+            <button class="btn btn-primary" type="submit"><i data-lucide="search"></i> Filtrar</button>
+            <a class="btn btn-outline-secondary btn-reset-filters" href="listar.php"><i data-lucide="filter-x"></i> Limpar</a>
+        </form>
 
         <div class="filter-results-info">
-            <span>Exibindo <strong data-filtro-total="tabelaOrcamentos"><?php echo count($orcamentos); ?></strong> de <?php echo count($orcamentos); ?> orçamentos</span>
+            <span>Exibindo <strong><?php echo count($orcamentos); ?></strong> de <strong><?php echo $total; ?></strong> orçamentos<?php echo $tem_filtro ? ' (filtrados)' : ''; ?></span>
         </div>
 
         <div class="table-responsive">
-            <table class="table table-hover align-middle responsive-card" id="tabelaOrcamentos">
+            <table class="table table-hover align-middle responsive-card">
                 <thead>
                     <tr>
                         <th>Nº</th>
@@ -90,7 +139,7 @@ $badge_status = [
                                 <br><small><span class="badge bg-dark"><?php echo esc($o['placa']); ?></span></small>
                             <?php else: ?>-<?php endif; ?>
                         </td>
-                        <td data-label="Data" data-filtro-normalizado="<?php echo $o['data_orcamento']; ?>"><small><?php echo date('d/m/Y', strtotime($o['data_orcamento'])); ?></small></td>
+                        <td data-label="Data"><small><?php echo date('d/m/Y', strtotime($o['data_orcamento'])); ?></small></td>
                         <td data-label="Validade">
                             <?php if ($o['data_validade']): ?>
                                 <small class="<?php echo $expirado ? 'text-danger fw-bold' : ''; ?>">
@@ -133,28 +182,23 @@ $badge_status = [
                     <tr class="row-empty">
                         <td colspan="8">
                             <div class="empty-state">
-                                <div class="empty-state-icon"><i data-lucide="receipt-text"></i></div>
-                                <h4>Nenhum orçamento encontrado</h4>
-                                <p>Crie um novo orçamento para seus clientes.</p>
+                                <div class="empty-state-icon"><i data-lucide="<?php echo $tem_filtro ? 'filter' : 'receipt-text'; ?>"></i></div>
+                                <h4><?php echo $tem_filtro ? 'Nenhum orçamento encontrado' : 'Nenhum orçamento cadastrado'; ?></h4>
+                                <p><?php echo $tem_filtro ? 'Ajuste a busca ou limpe os filtros para ver todos os orçamentos.' : 'Crie um novo orçamento para seus clientes.'; ?></p>
+                                <?php if (!$tem_filtro): ?>
                                 <a href="cadastrar.php" class="btn btn-primary btn-icon">
                                     <i data-lucide="plus"></i> Novo Orçamento
                                 </a>
+                                <?php endif; ?>
                             </div>
                         </td>
                     </tr>
                     <?php endif; ?>
-                    <tr class="row-filtro-vazio" data-filtro-vazio="tabelaOrcamentos" style="display:none;">
-                        <td colspan="8">
-                            <div class="empty-state">
-                                <div class="empty-state-icon"><i data-lucide="filter"></i></div>
-                                <h4>Nenhum orçamento encontrado com esses filtros</h4>
-                                <p>Ajuste a busca ou limpe os filtros para ver todos os orçamentos.</p>
-                            </div>
-                        </td>
-                    </tr>
                 </tbody>
             </table>
         </div>
+
+        <?php echo paginacao_links($pagina, $total_paginas, $filtros_pag); ?>
     </div>
 </div>
 
