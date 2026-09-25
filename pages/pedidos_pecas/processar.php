@@ -3,6 +3,7 @@ require_once __DIR__ . '/../../includes/sessao.php';
 require_once __DIR__ . '/../../config/conexao.php';
 require_once __DIR__ . '/../../includes/notificacoes.php';
 require_once __DIR__ . '/../../includes/auditoria.php';
+require_once __DIR__ . '/../../includes/os_historico.php';
 exigir_papel(['admin', 'secretaria', 'mecanico_chefe', 'mecanico']);
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') { header('Location: listar.php'); exit(); }
 validar_csrf();
@@ -16,7 +17,7 @@ try {
         $previsao = $_POST['previsao_entrega'] ?? null;
         $observacoes = limpar($_POST['observacoes'] ?? '');
         if ($os_id <= 0 || $descricao === '' || $quantidade <= 0) { throw new RuntimeException('Informe a OS, a descrição e uma quantidade válida.'); }
-        $stmt = $conn->prepare("SELECT id, numero FROM ordens_servico WHERE id = :id AND status NOT IN ('entregue', 'cancelada')");
+        $stmt = $conn->prepare("SELECT id, numero, status FROM ordens_servico WHERE id = :id AND status NOT IN ('entregue', 'cancelada')");
         $stmt->execute([':id' => $os_id]);
         $os_pedido = $stmt->fetch();
         if (!$os_pedido) { throw new RuntimeException('A OS não está disponível para pedido.'); }
@@ -33,6 +34,7 @@ try {
         $stmt->execute([':pedido' => $pedido_id, ':descricao' => $descricao, ':quantidade' => $quantidade]);
         $stmt = $conn->prepare("UPDATE ordens_servico SET status = IF(status IN ('recebida', 'triagem', 'aguardando_diagnostico', 'aguardando_orcamento'), 'aguardando_peca', status) WHERE id = :id");
         $stmt->execute([':id' => $os_id]);
+        registrar_evento_status_os($conn, $os_id, $os_pedido['status'], (int) $_SESSION['usuario_id']);
         $stmt = $conn->prepare("INSERT INTO os_eventos (os_id, tipo, descricao, criado_por) VALUES (:os_id, 'peca_solicitada', 'Pedido de peça criado', :usuario)");
         $stmt->execute([':os_id' => $os_id, ':usuario' => $_SESSION['usuario_id']]);
         notificar_tipos($conn, ['admin', 'secretaria', 'mecanico_chefe'], $os_id, 'peca_pedido', 'Pedido de peça criado para a OS #' . str_pad((string) $os_pedido['numero'], 4, '0', STR_PAD_LEFT) . '.', (int) $_SESSION['usuario_id']);
@@ -63,8 +65,12 @@ try {
         if ($status === 'recebido') {
             $stmt = $conn->prepare('UPDATE pedido_pecas_itens SET recebido = quantidade, recebido_em = NOW() WHERE pedido_id = :id AND recebido < quantidade');
             $stmt->execute([':id' => $id]);
+            $stOs = $conn->prepare('SELECT status FROM ordens_servico WHERE id = :id');
+            $stOs->execute([':id' => $pedido['os_id']]);
+            $os_status_anterior = (string) $stOs->fetchColumn();
             $stmt = $conn->prepare("UPDATE ordens_servico SET status = IF(status = 'aguardando_peca', 'pronta_para_execucao', status) WHERE id = :id");
             $stmt->execute([':id' => $pedido['os_id']]);
+            registrar_evento_status_os($conn, (int) $pedido['os_id'], $os_status_anterior, (int) $_SESSION['usuario_id']);
             $stmt = $conn->prepare('SELECT usuario_id FROM os_responsaveis WHERE os_id = :os_id AND concluido_em IS NULL');
             $stmt->execute([':os_id' => $pedido['os_id']]);
             foreach ($stmt->fetchAll(PDO::FETCH_COLUMN) as $usuario_id) {
@@ -115,8 +121,12 @@ try {
         if ($todos_recebidos) {
             $upd = $conn->prepare("UPDATE pedidos_pecas SET status = 'recebido', recebido_por = :usuario, recebido_em = NOW() WHERE id = :id");
             $upd->execute([':usuario' => $_SESSION['usuario_id'], ':id' => $id]);
+            $stOs = $conn->prepare('SELECT status FROM ordens_servico WHERE id = :id');
+            $stOs->execute([':id' => $pedido['os_id']]);
+            $os_status_anterior = (string) $stOs->fetchColumn();
             $stmt = $conn->prepare("UPDATE ordens_servico SET status = IF(status = 'aguardando_peca', 'pronta_para_execucao', status) WHERE id = :id");
             $stmt->execute([':id' => $pedido['os_id']]);
+            registrar_evento_status_os($conn, (int) $pedido['os_id'], $os_status_anterior, (int) $_SESSION['usuario_id']);
             $stmt = $conn->prepare("INSERT INTO os_eventos (os_id, tipo, descricao, criado_por) VALUES (:os_id, 'peca_status', 'Todos os itens do pedido foram recebidos', :usuario)");
             $stmt->execute([':os_id' => $pedido['os_id'], ':usuario' => $_SESSION['usuario_id']]);
             $stmt = $conn->prepare('SELECT usuario_id FROM os_responsaveis WHERE os_id = :os_id AND concluido_em IS NULL');

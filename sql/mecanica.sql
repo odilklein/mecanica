@@ -8,9 +8,8 @@ USE mecanica;
 SET NAMES utf8mb4;
 SET FOREIGN_KEY_CHECKS = 0;
 
--- Objetos de banco (View e Trigger). Precisam ser removidos antes das tabelas.
+-- Objetos de banco (View). Precisam ser removidos antes das tabelas.
 DROP VIEW IF EXISTS vw_ordens_servico_detalhada;
-DROP TRIGGER IF EXISTS trg_os_status_historico;
 
 DROP TABLE IF EXISTS auditoria;
 DROP TABLE IF EXISTS notificacoes;
@@ -521,29 +520,11 @@ LEFT JOIN veiculos v ON v.id = os.veiculo_id
 LEFT JOIN usuarios u ON u.id = os.responsavel_chefe_id;
 
 -- =============================================
--- TRIGGER: trg_os_status_historico
--- Automatiza o historico: a cada UPDATE de ordens_servico cujo status muda,
--- grava um evento em os_eventos (quem mudou vem de @usuario_atual; se a
--- conexao nao definir, usa o criador da OS).
+-- HISTÓRICO DE STATUS DA OS
+-- NÃO usa trigger (hospedagem compartilhada como a InfinityFree não
+-- concede o privilégio TRIGGER). O histórico é gravado pela aplicação
+-- via includes/os_historico.php (registrar_evento_status_os).
 -- =============================================
-DELIMITER $$
-CREATE TRIGGER trg_os_status_historico
-AFTER UPDATE ON ordens_servico
-FOR EACH ROW
-BEGIN
-    IF OLD.status <> NEW.status THEN
-        INSERT INTO os_eventos (os_id, tipo, status_anterior, status_novo, descricao, criado_por)
-        VALUES (
-            NEW.id,
-            'status',
-            OLD.status,
-            NEW.status,
-            CONCAT('Status alterado de "', OLD.status, '" para "', NEW.status, '".'),
-            COALESCE(@usuario_atual, NEW.criado_por)
-        );
-    END IF;
-END$$
-DELIMITER ;
 
 SET FOREIGN_KEY_CHECKS = 1;
 

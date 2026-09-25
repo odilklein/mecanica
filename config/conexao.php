@@ -18,10 +18,9 @@ try {
     $conn->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
     $conn->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_ASSOC);
 
-    // Informa ao banco quem está executando a ação. A trigger
-    // trg_os_status_historico usa @usuario_atual para registrar o autor
-    // da mudança de status. Sem conexão persistente o valor não vaza
-    // entre requisições; com PDO::ATTR_PERSISTENT, redefina por request.
+    // Informa ao banco quem está executando a ação. O valor é usado apenas
+    // por triggers de auditoria antigos (compatibilidade); o histórico de
+    // status atual é gravado pela aplicação em includes/os_historico.php.
     if (session_status() === PHP_SESSION_ACTIVE && !empty($_SESSION['usuario_id'])) {
         $conn->exec('SET @usuario_atual = ' . (int) $_SESSION['usuario_id']);
     }
