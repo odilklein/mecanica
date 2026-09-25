@@ -3376,6 +3376,26 @@ body.loaded { opacity: 1; transition: opacity 0.25s ease; }
     color: var(--danger);
 }
 
+/* ============ RELATÓRIOS / GRÁFICOS ============ */
+.chart-box {
+    position: relative;
+    width: 100%;
+    height: 280px;
+}
+
+.chart-box-tall {
+    height: 320px;
+}
+
+.chart-box canvas {
+    max-width: 100%;
+}
+
+@media (max-width: 575.98px) {
+    .chart-box { height: 240px; }
+    .chart-box-tall { height: 280px; }
+}
+
 /* ============ ACESSIBILIDADE ============ */
 a:focus-visible,
 button:focus-visible,
