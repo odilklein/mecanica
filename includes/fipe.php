@@ -9,8 +9,8 @@
 if (!function_exists('fipe_base_url')) {
     function fipe_base_url(): string
     {
-        $url = getenv('FIPE_BASE_URL');
-        if ($url === false || $url === '') {
+        $url = function_exists('env') ? (string) env('FIPE_BASE_URL') : getenv('FIPE_BASE_URL');
+        if ($url === '' || $url === false) {
             $url = 'https://fipe.parallelum.com.br/api/v1';
         }
         return rtrim($url, '/');

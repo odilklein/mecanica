@@ -1,7 +1,11 @@
 <?php
 // =============================================
 // VARIÁVEIS DE AMBIENTE
-// Precedência: variáveis do processo (ex.: Docker) -> arquivo .env da raiz.
+// Precedência:
+//   1. Variáveis do processo (ex.: Docker)  -> getenv()/$_ENV
+//   2. config/config.local.php  (PHP puro, p/ hospedagem sem .env)
+//   3. arquivo .env da raiz
+//   4. Padrões definidos nos chamadores de env()
 // Não depende de putenv() e funciona também em hospedagem compartilhada.
 // =============================================
 
@@ -27,8 +31,12 @@ if (!function_exists('env')) {
 if (!defined('MECANICA_ENV_CARREGADO')) {
     define('MECANICA_ENV_CARREGADO', true);
 
+    // ---------- 1) Arquivo .env da raiz (prioridade mais baixa) ----------
     $arquivo_env = __DIR__ . '/../.env';
-    if (is_file($arquivo_env) && is_readable($arquivo_env)) {
+    $env_carregado = is_file($arquivo_env) && is_readable($arquivo_env);
+    define('MECANICA_ENV_ARQUIVO', $env_carregado ? $arquivo_env : null);
+
+    if ($env_carregado) {
         foreach (file($arquivo_env, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES) ?: [] as $linha) {
             $linha = trim($linha);
             if ($linha === '' || $linha[0] === '#' || strpos($linha, '=') === false) {
@@ -37,8 +45,28 @@ if (!defined('MECANICA_ENV_CARREGADO')) {
             [$chave, $valor] = explode('=', $linha, 2);
             $GLOBALS['_MECANICA_ENV'][trim($chave)] = trim(trim($valor), " \t\r\n\"'");
         }
-        define('MECANICA_ENV_ARQUIVO', $arquivo_env);
-    } else {
-        define('MECANICA_ENV_ARQUIVO', null);
+    }
+
+    // ---------- 2) config.local.php (sobrescreve o .env) ----------
+    // Ideal para hospedagem que não aceita .env: é um PHP que retorna um array.
+    // Localizações aceitas: config/config.local.php ou config.local.php na raiz.
+    $local = null;
+    if (is_file(__DIR__ . '/config.local.php')) {
+        $local = __DIR__ . '/config.local.php';
+    } elseif (is_file(__DIR__ . '/../config.local.php')) {
+        $local = __DIR__ . '/../config.local.php';
+    }
+    define('MECANICA_ENV_LOCAL_ARQUIVO', $local);
+
+    if ($local) {
+        $config_local = require $local;
+        if (is_array($config_local)) {
+            foreach ($config_local as $chave => $valor) {
+                if ($valor === null || $valor === false) {
+                    continue;
+                }
+                $GLOBALS['_MECANICA_ENV'][$chave] = (string) $valor;
+            }
+        }
     }
 }
