@@ -26,8 +26,15 @@ try {
         $conn->exec('SET @usuario_atual = ' . (int) $_SESSION['usuario_id']);
     }
 } catch (PDOException $e) {
-    $fonte_txt = (defined('MECANICA_ENV_ARQUIVO') && MECANICA_ENV_ARQUIVO)
-        ? MECANICA_ENV_ARQUIVO
+    $fontes = [];
+    if (defined('MECANICA_ENV_ARQUIVO') && MECANICA_ENV_ARQUIVO) {
+        $fontes[] = MECANICA_ENV_ARQUIVO;
+    }
+    if (defined('MECANICA_ENV_LOCAL_ARQUIVO') && MECANICA_ENV_LOCAL_ARQUIVO) {
+        $fontes[] = MECANICA_ENV_LOCAL_ARQUIVO;
+    }
+    $fonte_txt = $fontes
+        ? implode(' + ', $fontes)
         : 'nenhuma (usando variaveis de ambiente/padroes)';
     $detalhe = sprintf(
         '[%s] %s | host=%s port=%s db=%s user=%s | config=%s',
