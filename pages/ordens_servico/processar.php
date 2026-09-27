@@ -3,7 +3,6 @@ require_once __DIR__ . '/../../includes/sessao.php';
 require_once __DIR__ . '/../../config/conexao.php';
 require_once __DIR__ . '/../../includes/notificacoes.php';
 require_once __DIR__ . '/../../includes/auditoria.php';
-require_once __DIR__ . '/../../includes/os_historico.php';
 
 exigir_papel(['admin', 'secretaria', 'mecanico_chefe', 'mecanico']);
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
@@ -111,8 +110,8 @@ if ($acao !== 'cadastrar') {
         $conn->beginTransaction();
         $stmt = $conn->prepare('UPDATE ordens_servico SET status = :status, data_conclusao = IF(:status = \'entregue\', NOW(), data_conclusao) WHERE id = :id');
         $stmt->execute([':status' => $novo_status, ':id' => $os_id]);
-        // Histórico de status gravado pela aplicação (sem depender de trigger).
-        registrar_evento_status_os($conn, $os_id, $os_atual['status'], (int) $_SESSION['usuario_id']);
+        // O evento de mudança de status é gravado automaticamente pela
+        // trigger trg_os_status_historico (ver sql/mecanica_teste.sql).
         $num_os = str_pad((string) $os_atual['numero'], 4, '0', STR_PAD_LEFT);
         $msg_status = 'O status da OS #' . $num_os . ' mudou para "' . str_replace('_', ' ', $novo_status) . '".';
         notificar_responsaveis_os($conn, $os_id, 'os_status', $msg_status, (int) $_SESSION['usuario_id']);
@@ -169,7 +168,6 @@ if ($acao !== 'cadastrar') {
         $stmt->execute([':os_id' => $os_id, ':modalidade' => $modalidade, ':responsavel' => $responsavel ?: null, ':destino' => $destino ?: null, ':km_saida' => $km_saida ?: null, ':usuario' => $_SESSION['usuario_id']]);
         $stmt = $conn->prepare("UPDATE ordens_servico SET status = 'entregue', data_conclusao = NOW() WHERE id = :id");
         $stmt->execute([':id' => $os_id]);
-        registrar_evento_status_os($conn, $os_id, $os_atual['status'], (int) $_SESSION['usuario_id']);
         $stmt = $conn->prepare("INSERT INTO os_eventos (os_id, tipo, descricao, criado_por) VALUES (:os_id, 'entrega_planejada', 'Entrega ou retirada registrada', :usuario)");
         $stmt->execute([':os_id' => $os_id, ':usuario' => $_SESSION['usuario_id']]);
         notificar_tipos($conn, ['admin', 'secretaria', 'mecanico_chefe'], $os_id, 'entrega', 'Entrega da OS #' . str_pad((string) $os_atual['numero'], 4, '0', STR_PAD_LEFT) . ' registrada — aguardando confirmação.', (int) $_SESSION['usuario_id']);
@@ -295,7 +293,6 @@ try {
         }
         $stmt = $conn->prepare("UPDATE ordens_servico SET status = 'aguardando_peca' WHERE id = :id");
         $stmt->execute([':id' => $os_id]);
-        registrar_evento_status_os($conn, $os_id, 'recebida', (int) $_SESSION['usuario_id']);
     }
 
     $stmt = $conn->prepare("INSERT INTO os_eventos (os_id, tipo, status_novo, descricao, criado_por) VALUES (:os_id, 'criacao', 'recebida', 'Atendimento criado', :criado_por)");

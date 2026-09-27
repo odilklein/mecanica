@@ -498,12 +498,18 @@ Criados em `sql/mecanica_teste.sql` (no fim do seed), nao ficam no PHP.
 - Substitui o JOIN repetido em `index.php` e `pages/ordens_servico/listar.php` e centraliza
   o mapa de nomes de status.
 
-**Histórico de status (`includes/os_historico.php`)**
-- Substitui o antigo trigger `trg_os_status_historico`, que não pode ser criado em
-  hospedagem compartilhada (ex.: InfinityFree) por exigir o privilégio `TRIGGER`.
-- A função `registrar_evento_status_os()` é chamada depois de cada `UPDATE` que muda o
-  `status` de `ordens_servico` e grava em `os_eventos` o evento (tipo `status`,
-  anterior/novo e autor) somente quando o status realmente mudou.
+**Trigger `trg_os_status_historico`**
+- `AFTER UPDATE` em `ordens_servico`: quando `OLD.status <> NEW.status`, grava automaticamente
+  um evento em `os_eventos` (tipo `status`, anterior/novo e autor).
+- O autor vem de `@usuario_atual`, definido em `config/conexao.php` a partir de
+  `$_SESSION['usuario_id']`; sem isso, usa o `criado_por` da OS.
+- Por causa da trigger, `pages/ordens_servico/processar.php` nao insere mais o evento de
+  status manualmente (evita registro duplicado).
+- Seguranca: a trigger roda como `DEFINER`. Em producao, crie-a com um usuario
+  administrador e conceda ao usuario da aplicacao apenas `UPDATE` em `ordens_servico`
+  (sem `INSERT` direto em `os_eventos`), impedindo historico forjado.
+- Com `PDO::ATTR_PERSISTENT`, a variavel de sessao pode vazar entre requisicoes; nesse caso
+  redefina `@usuario_atual` a cada request.
 
 ---
 
