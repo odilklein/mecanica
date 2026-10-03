@@ -2,179 +2,242 @@
 require_once __DIR__ . '/../../includes/sessao.php';
 require_once __DIR__ . '/../../config/conexao.php';
 require_once __DIR__ . '/../../includes/paginacao.php';
+require_once __DIR__ . '/../../includes/crud.php';
+require_once __DIR__ . '/../../includes/campos.php';
+require_once __DIR__ . '/../../includes/fipe.php';
 exigir_papel(['admin', 'secretaria', 'mecanico_chefe']);
 
-// ---------- Filtros (server-side) ----------
-$busca = limpar($_GET['busca'] ?? '');
-$cliente_id = (int) ($_GET['cliente_id'] ?? 0);
-
-$condicoes = [];
-$params = [];
-if ($busca !== '') {
-    $condicoes[] = '(v.placa LIKE :busca OR v.marca LIKE :busca OR v.modelo LIKE :busca OR c.nome LIKE :busca)';
-    $params[':busca'] = '%' . $busca . '%';
-}
-if ($cliente_id > 0) {
-    $condicoes[] = 'v.cliente_id = :cliente_id';
-    $params[':cliente_id'] = $cliente_id;
-}
-$where = $condicoes ? 'WHERE ' . implode(' AND ', $condicoes) : '';
-
-// ---------- Paginação ----------
-$por_pagina = por_pagina_atual();
-$pagina = pagina_atual();
-
-$st = $conn->prepare("SELECT COUNT(*) FROM veiculos v LEFT JOIN clientes c ON c.id = v.cliente_id $where");
-$st->execute($params);
-$total = (int) $st->fetchColumn();
-[$pagina, $offset, $total_paginas] = paginacao_calcular($total, $por_pagina, $pagina);
-
-$st = $conn->prepare("SELECT v.*, c.nome AS cliente_nome FROM veiculos v LEFT JOIN clientes c ON c.id = v.cliente_id $where ORDER BY v.marca, v.modelo LIMIT :limite OFFSET :offset");
-foreach ($params as $k => $v) {
-    $st->bindValue($k, $v);
-}
-$st->bindValue(':limite', $por_pagina, PDO::PARAM_INT);
-$st->bindValue(':offset', $offset, PDO::PARAM_INT);
-$st->execute();
-$veiculos = $st->fetchAll();
+fipe_garantir_schema($conn);
+$fipe_marcas = $conn->query("SELECT id, nome_exibicao FROM fipe_marcas ORDER BY nome_exibicao")->fetchAll();
+$catalogo_ok = count($fipe_marcas) > 0;
 
 $clientes_opcoes = $conn->query("SELECT id, nome FROM clientes ORDER BY nome")->fetchAll();
-$filtros_pag = array_filter(['busca' => $busca, 'cliente_id' => $cliente_id ?: '', 'por_pagina' => $por_pagina], fn($v) => $v !== '');
-$tem_filtro = $busca !== '' || $cliente_id > 0;
 
-$titulo_pagina = "Veículos";
+$titulo_pagina = 'Veículos';
+$head_extra = '<link href="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/css/tom-select.bootstrap5.min.css" rel="stylesheet">';
 require_once __DIR__ . '/../../includes/header.php';
 require_once __DIR__ . '/../../includes/mensagens.php';
+
+$config = [
+    'apiUrl' => $caminho_base . '/api/veiculos.php',
+    'idCampo' => 'id',
+    'singular' => 'Veículo',
+    'plural' => 'veículos',
+    'porPagina' => 15,
+    'tplId' => 'tplVeiculo',
+    'emptyHtml' => crud_empty_state('car', 'Nenhum veículo encontrado', 'Ajuste a busca ou cadastre um novo veículo.'),
+];
+$scripts_extra  = '<script src="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/js/tom-select.complete.min.js"></script>';
+$scripts_config  = crud_config($config);
+$scripts_extra .= '<script src="' . $caminho_base . '/js/veiculo-fipe.js"></script>';
+$scripts_extra .= '<script src="' . $caminho_base . '/js/veiculos.js"></script>';
+
+$opcoes_cliente = '';
+foreach ($clientes_opcoes as $c) {
+    $opcoes_cliente .= '<option value="' . (int) $c['id'] . '">' . esc($c['nome']) . '</option>';
+}
 ?>
 
 <div class="page-header">
     <div>
-        <h1><i data-lucide="car" class="text-primary me-2"></i>Veículos</h1>
-        <span class="page-subtitle">Gerencie os veículos dos clientes</span>
+        <h1>Veículos</h1>
+        <span class="page-subtitle">Frota cadastrada e valores FIPE</span>
     </div>
-    <div class="d-flex gap-2">
+    <div class="d-flex align-items-center gap-2">
         <?php if (tem_papel(['admin'])): ?>
-        <form method="POST" action="sincronizar_fipe.php" onsubmit="this.querySelector('button').disabled=true; return confirm('Sincronizar o catálogo FIPE? Isso leva cerca de 1 minuto.');">
+        <form method="POST" action="sincronizar_fipe.php" class="d-inline" onsubmit="this.querySelector('button').disabled=true; return confirm('Sincronizar o catálogo FIPE? Isso leva cerca de 1 minuto.');">
             <input type="hidden" name="csrf_token" value="<?php echo esc(csrf_token()); ?>">
-            <button type="submit" class="btn btn-outline-secondary btn-icon" title="Atualizar marcas/modelos da Tabela FIPE">
-                <i data-lucide="refresh-cw"></i> Sincronizar FIPE
-            </button>
+            <button type="submit" class="btn btn-outline-secondary"><i class="icon-base ti tabler-refresh me-1"></i>Sincronizar FIPE</button>
         </form>
         <?php endif; ?>
-        <a href="cadastrar.php" class="btn btn-primary btn-icon">
-            <i data-lucide="plus"></i> Novo Veículo
-        </a>
+        <button type="button" class="btn btn-primary" data-crud="novo"><i class="icon-base ti tabler-plus me-1"></i>Novo Veículo</button>
     </div>
+</div>
+
+<div class="row g-3 mb-1">
+    <?php
+    echo crud_kpi('kpiTotal', 'Veículos', 'car', 'primary');
+    echo crud_kpi('kpiFipe', 'Com valor FIPE', 'currency-dollar', 'success');
+    echo crud_kpi('kpiSemFipe', 'Sem referência FIPE', 'help-circle', 'warning');
+    echo crud_kpi('kpiKm', 'KM médio', 'gauge', 'info');
+    ?>
 </div>
 
 <div class="card">
-    <div class="card-body">
-        <form class="filter-bar" method="get" action="listar.php">
-            <div class="filter-search">
-                <i data-lucide="search" class="search-icon"></i>
-                <input type="text" class="form-control" name="busca" value="<?php echo esc($busca); ?>" placeholder="Buscar por placa, marca, modelo, cliente...">
-            </div>
-            <div class="filter-group">
-                <label for="filtroCliente">Cliente</label>
-                <select class="form-select" id="filtroCliente" name="cliente_id" onchange="this.form.submit()">
-                    <option value="">Todos</option>
-                    <?php foreach ($clientes_opcoes as $c): ?>
-                        <option value="<?php echo (int) $c['id']; ?>" <?php echo $cliente_id === (int) $c['id'] ? 'selected' : ''; ?>><?php echo esc($c['nome']); ?></option>
-                    <?php endforeach; ?>
-                </select>
-            </div>
-            <div class="filter-group">
-                <label for="filtroPorPagina">Por página</label>
-                <select class="form-select" id="filtroPorPagina" name="por_pagina" onchange="this.form.submit()">
-                    <?php echo opcoes_por_pagina($por_pagina); ?>
-                </select>
-            </div>
-            <button class="btn btn-primary" type="submit"><i data-lucide="search"></i> Filtrar</button>
-            <a class="btn btn-outline-secondary btn-reset-filters" href="listar.php"><i data-lucide="filter-x"></i> Limpar</a>
-        </form>
+    <?php
+    $filtros = crud_filtro_select('cliente_id', array_column($clientes_opcoes, 'nome', 'id'), 'Todos os clientes');
+    echo crud_toolbar('Buscar por placa, marca, modelo, cliente...', $filtros);
+    echo crud_bulk_bar([
+        ['id' => 'excluir', 'rotulo' => 'Excluir', 'icone' => 'trash', 'tom' => 'outline-danger'],
+    ]);
+    echo crud_tabela_abrir([
+        ['rotulo' => 'Veículo'],
+        ['rotulo' => 'Placa'],
+        ['rotulo' => 'Cliente'],
+        ['rotulo' => 'Ano'],
+        ['rotulo' => 'Cor'],
+        ['rotulo' => 'KM Atual'],
+        ['rotulo' => 'Valor FIPE'],
+        ['rotulo' => 'Ações', 'classe' => 'actions-cell'],
+    ]);
+    echo crud_rodape();
+    ?>
+</div>
 
-        <div class="filter-results-info">
-            <span>Exibindo <strong><?php echo count($veiculos); ?></strong> de <strong><?php echo $total; ?></strong> veículos<?php echo $tem_filtro ? ' (filtrados)' : ''; ?></span>
-        </div>
+<template id="tplVeiculo">
+    <tr>
+        <td class="check-cell"><input class="form-check-input row-check" type="checkbox"></td>
+        <td data-label="Veículo">
+            <div class="d-flex align-items-center">
+                <i class="icon-base ti tabler-car text-body-secondary me-2"></i>
+                <div>
+                    <span class="fw-medium d-block veiculo-nome"></span>
+                    <small class="text-body-secondary veiculo-versao"></small>
+                </div>
+            </div>
+        </td>
+        <td data-label="Placa"><span class="badge bg-label-secondary veiculo-placa"></span></td>
+        <td data-label="Cliente" class="veiculo-cliente"></td>
+        <td data-label="Ano" class="veiculo-ano"></td>
+        <td data-label="Cor">
+            <span class="color-badge veiculo-cor-badge"></span>
+            <span class="ms-1 veiculo-cor"></span>
+        </td>
+        <td data-label="KM Atual" class="veiculo-km"></td>
+        <td data-label="Valor FIPE" class="veiculo-fipe"></td>
+        <td class="actions-cell">
+            <div class="dropdown table-dropdown">
+                <button class="table-dropdown-btn" type="button" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Ações do veículo">
+                    <i class="icon-base ti tabler-dots-vertical"></i>
+                </button>
+                <div class="dropdown-menu dropdown-menu-end table-dropdown-menu">
+                    <h6 class="dropdown-header">Ações do veículo</h6>
+                    <button class="dropdown-item acao-editar" type="button"><i class="icon-base ti tabler-pencil"></i> Editar</button>
+                    <button class="dropdown-item text-danger acao-excluir" type="button"><i class="icon-base ti tabler-trash"></i> Excluir</button>
+                </div>
+            </div>
+        </td>
+    </tr>
+</template>
 
-        <div class="table-responsive">
-            <table class="table table-hover align-middle responsive-card">
-                <thead>
-                    <tr>
-                        <th>Veículo</th>
-                        <th>Placa</th>
-                        <th>Cliente</th>
-                        <th>Ano</th>
-                        <th>Cor</th>
-                        <th>KM Atual</th>
-                        <th>Valor FIPE</th>
-                        <th class="actions-cell">Ações</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <?php if (count($veiculos) > 0): foreach ($veiculos as $v): ?>
-                    <tr>
-                        <td data-label="Veículo">
-                            <i data-lucide="car" class="text-muted me-2"></i>
-                            <strong><?php echo esc($v['marca']); ?> <?php echo esc($v['modelo']); ?></strong>
-                        </td>
-                        <td data-label="Placa"><span class="badge bg-dark"><?php echo esc($v['placa']); ?></span></td>
-                        <td data-label="Cliente"><?php echo esc($v['cliente_nome']); ?></td>
-                        <td data-label="Ano"><?php echo $v['ano']; ?></td>
-                        <td data-label="Cor">
-                            <?php
-                            $cor_hex = cor_para_hex($v['cor']);
-                            if ($cor_hex):
-                            ?>
-                                <span class="color-badge" style="background-color:<?php echo esc($cor_hex); ?>" title="<?php echo esc($v['cor']); ?>"></span>
-                                <span class="ms-1"><?php echo esc($v['cor']); ?></span>
-                            <?php else: ?>-<?php endif; ?>
-                        </td>
-                        <td data-label="KM Atual"><?php echo number_format($v['km_atual'], 0, ',', '.'); ?> km</td>
-                        <td data-label="Valor FIPE"><?php echo !empty($v['valor_fipe']) ? '<small>' . formatar_moeda($v['valor_fipe']) . '</small>' : '<small class="text-muted">—</small>'; ?></td>
-                        <td data-label="Ações" class="actions-cell">
-                            <div class="dropdown table-dropdown">
-                                <button class="table-dropdown-btn" type="button" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Ações do veículo">
-                                    <i data-lucide="more-horizontal"></i>
-                                </button>
-                                <div class="dropdown-menu dropdown-menu-end table-dropdown-menu">
-                                    <h6 class="dropdown-header">Ações do veículo</h6>
-                                    <a class="dropdown-item" href="editar.php?id=<?php echo $v['id']; ?>">
-                                        <i data-lucide="pencil"></i> Editar
-                                    </a>
-                                    <form method="POST" action="excluir.php" id="excluirVeiculo<?php echo (int) $v['id']; ?>" onsubmit="return confirmarExclusao('excluirVeiculo<?php echo (int) $v['id']; ?>', 'Excluir o veículo <?php echo esc(addslashes($v['marca'])); ?> <?php echo esc(addslashes($v['modelo'])); ?> - <?php echo esc(addslashes($v['placa'])); ?>?');">
-                                        <input type="hidden" name="csrf_token" value="<?php echo esc(csrf_token()); ?>">
-                                        <input type="hidden" name="id" value="<?php echo $v['id']; ?>">
-                                        <button type="submit" class="dropdown-item text-danger">
-                                            <i data-lucide="trash-2"></i> Excluir
-                                        </button>
-                                    </form>
-                                </div>
-                            </div>
-                        </td>
-                    </tr>
-                    <?php endforeach; else: ?>
-                    <tr class="row-empty">
-                        <td colspan="8">
-                            <div class="empty-state">
-                                <div class="empty-state-icon"><i data-lucide="<?php echo $tem_filtro ? 'filter' : 'car'; ?>"></i></div>
-                                <h4><?php echo $tem_filtro ? 'Nenhum veículo encontrado' : 'Nenhum veículo cadastrado'; ?></h4>
-                                <p><?php echo $tem_filtro ? 'Ajuste a busca ou limpe os filtros para ver todos os veículos.' : 'Cadastre o primeiro veículo da oficina para começar.'; ?></p>
-                                <?php if (!$tem_filtro): ?>
-                                <a href="cadastrar.php" class="btn btn-primary btn-icon">
-                                    <i data-lucide="plus"></i> Cadastrar Veículo
-                                </a>
-                                <?php endif; ?>
-                            </div>
-                        </td>
-                    </tr>
+<?php echo crud_toast('veiculosToast'); ?>
+
+<div class="modal fade" id="veiculoModal" tabindex="-1" data-crud="modal" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content">
+            <form data-crud="form" onsubmit="return validarFormularioVeiculo()">
+                <div class="modal-header">
+                    <h5 class="modal-title" data-crud="modal-titulo">Novo Veículo</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="alert alert-danger" data-crud="modal-erro" hidden></div>
+                    <input type="hidden" name="id" value="">
+                    <?php if ($catalogo_ok): ?>
+                    <input type="hidden" name="marca_nome" id="marca_nome" value="">
+                    <input type="hidden" name="modelo_nome" id="modelo_nome" value="">
                     <?php endif; ?>
-                </tbody>
-            </table>
+                    <div class="row g-3">
+                        <div class="col-md-8">
+                            <label for="cliente_id" class="form-label">Cliente *</label>
+                            <select class="form-select" id="cliente_id" name="cliente_id" required>
+                                <option value="">-- Selecione o cliente --</option>
+                                <?php echo $opcoes_cliente; ?>
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <?php echo campo_icone('placa', 'Placa *', 'license', 'text', ['required' => true, 'class' => 'text-uppercase', 'oninput' => 'formatarPlaca(this)'], 'ABC-1234'); ?>
+                        </div>
+                        <?php if ($catalogo_ok): ?>
+                        <div class="col-md-4">
+                            <label for="marca_id" class="form-label">Marca *</label>
+                            <select class="form-select" id="marca_id" name="marca_id" data-placeholder="Selecione a marca">
+                                <option value="">Selecione a marca</option>
+                                <?php foreach ($fipe_marcas as $m): ?>
+                                    <option value="<?php echo (int) $m['id']; ?>"><?php echo esc($m['nome_exibicao']); ?></option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label for="modelo_base_id" class="form-label">Modelo *</label>
+                            <select class="form-select" id="modelo_base_id" name="modelo_base_id" data-placeholder="Selecione o modelo">
+                                <option value="">Selecione a marca primeiro</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label for="modelo_id" class="form-label">Versão (opcional)</label>
+                            <select class="form-select" id="modelo_id" name="modelo_id" data-placeholder="Selecione a versão">
+                                <option value="">Selecione o modelo primeiro</option>
+                            </select>
+                        </div>
+                        <?php else: ?>
+                        <div class="col-md-4">
+                            <label for="marca_nome_input" class="form-label">Marca *</label>
+                            <input type="text" class="form-control" id="marca_nome_input" name="marca_nome" placeholder="Ex: Volkswagen" required>
+                        </div>
+                        <div class="col-md-4">
+                            <label for="modelo_nome_input" class="form-label">Modelo *</label>
+                            <input type="text" class="form-control" id="modelo_nome_input" name="modelo_nome" placeholder="Ex: Gol" required>
+                        </div>
+                        <div class="col-12">
+                            <div class="alert alert-warning py-2 mb-0"><i class="icon-base ti tabler-alert-triangle"></i> Catálogo FIPE não sincronizado. Rode <code>php scripts/sync_fipe.php</code> para habilitar as listas.</div>
+                        </div>
+                        <?php endif; ?>
+                        <div class="col-md-4">
+                            <label for="ano" class="form-label">Ano</label>
+                            <?php if ($catalogo_ok): ?>
+                            <select class="form-select" id="ano" name="ano" data-placeholder="Selecione o ano">
+                                <option value="">Selecione a versão primeiro</option>
+                            </select>
+                            <?php else: ?>
+                            <input type="number" class="form-control" id="ano" name="ano" min="1950" max="2030" placeholder="Ex: 2020">
+                            <?php endif; ?>
+                        </div>
+                        <div class="col-md-4">
+                            <label for="valorFipe" class="form-label">Valor FIPE</label>
+                            <input type="text" class="form-control" id="valorFipe" readonly placeholder="Calculado ao informar versão e ano">
+                        </div>
+                        <div class="col-md-8">
+                            <?php echo campo_icone('cor', 'Cor', 'palette', 'text', ['autocomplete' => 'off', 'maxlength' => 30], 'Preto, #b3261e'); ?>
+                            <div class="color-palette" id="corPalette">
+                                <?php foreach (cores_veiculo() as $nome => $hex): ?>
+                                    <button type="button" class="color-swatch" data-cor="<?php echo esc($nome); ?>" data-hex="<?php echo esc($hex); ?>" title="<?php echo esc($nome); ?>" style="background-color:<?php echo esc($hex); ?>;"></button>
+                                <?php endforeach; ?>
+                                <label class="color-swatch color-picker-swatch" title="Cor personalizada (seletor de cor)">
+                                    <input type="color" id="corPicker" value="#b3261e" aria-label="Cor personalizada">
+                                    <i class="icon-base ti tabler-color-picker color-picker-icon"></i>
+                                </label>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <?php echo campo_icone('km_atual', 'KM Atual', 'gauge', 'number', ['min' => 0], '0'); ?>
+                        </div>
+                        <div class="col-md-6">
+                            <?php echo campo_icone('chassi', 'Chassi', 'fingerprint', 'text', ['maxlength' => 30], 'Opcional'); ?>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary"><i class="icon-base ti tabler-device-floppy me-1"></i> Salvar Veículo</button>
+                </div>
+            </form>
         </div>
-
-        <?php echo paginacao_links($pagina, $total_paginas, $filtros_pag); ?>
     </div>
 </div>
+
+<?php echo crud_confirm_modal(); ?>
+
+<script>
+function validarFormularioVeiculo() {
+    const placa = document.getElementById('placa').value;
+    if (!/^[A-Z]{3}-?\d[A-Z0-9]\d{2}$/.test(placa)) {
+        const erro = document.querySelector('#veiculoModal [data-crud="modal-erro"]');
+        if (erro) { erro.textContent = 'Formato de placa inválido. Use ABC-1234 ou ABC1D23 (Mercosul).'; erro.hidden = false; }
+        return false;
+    }
+    return true;
+}
+</script>
 
 <?php require_once __DIR__ . '/../../includes/footer.php'; ?>

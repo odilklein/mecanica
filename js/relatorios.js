@@ -440,6 +440,10 @@
 
     construir();
 
+    // Expõe as instâncias para que a página possa redimensionar os
+    // gráficos ao exibir uma aba (canvases ocultos Renderizam com 0px).
+    window.RelatoriosGraficos = instancias;
+
     if (typeof MutationObserver !== 'undefined') {
         new MutationObserver(aoMudarTema).observe(document.body, {
             attributes: true,

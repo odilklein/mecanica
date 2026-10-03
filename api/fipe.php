@@ -42,6 +42,15 @@ try {
             echo json_encode($stmt->fetchAll());
             exit();
 
+        case 'anos':
+            $modeloId = (int) ($_GET['modelo_id'] ?? 0);
+            if ($modeloId <= 0) {
+                echo json_encode([]);
+                exit();
+            }
+            echo json_encode(fipe_anos_por_modelo($conn, $modeloId));
+            exit();
+
         case 'valor':
             $modeloId = (int) ($_GET['modelo_id'] ?? 0);
             $ano = (int) ($_GET['ano'] ?? 0);

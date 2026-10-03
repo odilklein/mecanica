@@ -1,107 +1,251 @@
 <?php
 require_once __DIR__ . '/../../includes/sessao.php';
 require_once __DIR__ . '/../../config/conexao.php';
-require_once __DIR__ . '/../../includes/paginacao.php';
-
+require_once __DIR__ . '/../../includes/crud.php';
 exigir_papel(['admin', 'secretaria', 'mecanico_chefe', 'mecanico']);
-$status_nomes = ['solicitado' => 'Aguardando validação', 'validado' => 'Validado', 'pedido' => 'Pedido realizado', 'a_caminho' => 'A caminho', 'recebido' => 'Recebido', 'cancelado' => 'Cancelado'];
 
-$from = 'FROM pedidos_pecas p
-    JOIN ordens_servico os ON os.id = p.os_id
-    JOIN clientes c ON c.id = os.cliente_id
-    LEFT JOIN veiculos v ON v.id = os.veiculo_id';
+$eh_mecanico = $_SESSION['usuario_tipo'] === 'mecanico';
 
-// ---------- Filtros (server-side) ----------
-$busca = limpar($_GET['busca'] ?? '');
-$status = $_GET['status'] ?? '';
-
-$condicoes = [];
-$params = [];
-// Mecânico enxerga apenas pedidos das OS atribuídas a ele
-if ($_SESSION['usuario_tipo'] === 'mecanico') {
-    $condicoes[] = 'EXISTS (SELECT 1 FROM os_responsaveis r WHERE r.os_id = os.id AND r.usuario_id = :uid_scope AND r.concluido_em IS NULL)';
-    $condicoes[] = "(p.criado_por = :uid_criado OR p.status IN ('validado', 'pedido', 'a_caminho', 'recebido'))";
-    $params[':uid_scope'] = (int) $_SESSION['usuario_id'];
-    $params[':uid_criado'] = (int) $_SESSION['usuario_id'];
+// OS disponíveis para solicitação (mecânico enxerga as atribuídas a ele).
+$ordens_disponiveis = [];
+if (!$eh_mecanico || tem_papel(['admin', 'secretaria', 'mecanico_chefe', 'mecanico'])) {
+    $filtro_os = $eh_mecanico
+        ? 'JOIN os_responsaveis r ON r.os_id = os.id AND r.usuario_id = ' . (int) $_SESSION['usuario_id'] . ' AND r.concluido_em IS NULL'
+        : '';
+    $ordens_disponiveis = $conn->query("SELECT os.id, os.numero, c.nome AS cliente, v.modelo, v.placa
+        FROM ordens_servico os
+        $filtro_os
+        JOIN clientes c ON c.id = os.cliente_id
+        LEFT JOIN veiculos v ON v.id = os.veiculo_id
+        WHERE os.status NOT IN ('entregue', 'cancelada')
+        ORDER BY os.data_entrada DESC")->fetchAll();
 }
-if ($busca !== '') {
-    $condicoes[] = '(p.id LIKE :busca OR CAST(os.numero AS CHAR) LIKE :busca OR c.nome LIKE :busca OR p.fornecedor LIKE :busca
-        OR EXISTS (SELECT 1 FROM pedido_pecas_itens pi WHERE pi.pedido_id = p.id AND pi.descricao LIKE :busca))';
-    $params[':busca'] = '%' . $busca . '%';
-}
-if (array_key_exists($status, $status_nomes)) {
-    $condicoes[] = 'p.status = :status';
-    $params[':status'] = $status;
-}
-$where = $condicoes ? 'WHERE ' . implode(' AND ', $condicoes) : '';
-
-// ---------- Paginação ----------
-$por_pagina = por_pagina_atual();
-$pagina = pagina_atual();
-
-$st = $conn->prepare("SELECT COUNT(*) $from $where");
-$st->execute($params);
-$total = (int) $st->fetchColumn();
-[$pagina, $offset, $total_paginas] = paginacao_calcular($total, $por_pagina, $pagina);
-
-$st = $conn->prepare("SELECT p.id, p.os_id, p.status, p.fornecedor, p.previsao_entrega, p.criado_em, os.numero, c.nome AS cliente, v.modelo, v.placa, GROUP_CONCAT(pi.descricao SEPARATOR ', ') AS itens
-    $from
-    LEFT JOIN pedido_pecas_itens pi ON pi.pedido_id = p.id
-    $where
-    GROUP BY p.id
-    ORDER BY p.criado_em DESC
-    LIMIT :limite OFFSET :offset");
-foreach ($params as $k => $v) {
-    $st->bindValue($k, $v);
-}
-$st->bindValue(':limite', $por_pagina, PDO::PARAM_INT);
-$st->bindValue(':offset', $offset, PDO::PARAM_INT);
-$st->execute();
-$pedidos = $st->fetchAll();
-
-$filtros_pag = array_filter(['busca' => $busca, 'status' => $status, 'por_pagina' => $por_pagina], fn($v) => $v !== '');
-$tem_filtro = $busca !== '' || $status !== '';
 
 $titulo_pagina = 'Pedidos de peças';
 require_once __DIR__ . '/../../includes/header.php';
 require_once __DIR__ . '/../../includes/mensagens.php';
+
+$config = [
+    'apiUrl' => $caminho_base . '/api/pedidos_pecas.php',
+    'idCampo' => 'id',
+    'singular' => 'Pedido',
+    'plural' => 'pedidos',
+    'porPagina' => 15,
+    'tplId' => 'tplPedido',
+    'ehMecanico' => $eh_mecanico,
+    'emptyHtml' => crud_empty_state('package', 'Nenhum pedido encontrado', 'Ajuste a busca ou crie um novo pedido de peça.'),
+];
+$scripts_config = crud_config($config);
+$scripts_extra = '<script src="' . $caminho_base . '/js/pedidos_pecas.js"></script>';
+
+$opcoes_os = '';
+foreach ($ordens_disponiveis as $o) {
+    $rotulo = 'OS #' . str_pad((int) $o['numero'], 4, '0', STR_PAD_LEFT)
+        . ($eh_mecanico ? '' : ' - ' . $o['cliente'])
+        . ' - ' . ($o['placa'] ?: $o['modelo'] ?: 'veículo');
+    $opcoes_os .= '<option value="' . (int) $o['id'] . '">' . esc($rotulo) . '</option>';
+}
 ?>
-<div class="page-header"><div><h1><i data-lucide="truck" class="text-primary me-2"></i>Pedidos de peças</h1><span class="page-subtitle"><?php echo $_SESSION['usuario_tipo'] === 'mecanico' ? 'Solicitações das suas ordens de serviço' : 'Valide solicitações e acompanhe compras'; ?></span></div><?php if ($_SESSION['usuario_tipo'] !== 'mecanico'): ?><a href="cadastrar.php" class="btn btn-primary btn-icon"> <i data-lucide="plus"></i>Novo pedido</a><?php endif; ?></div>
 
-<div class="card"><div class="card-body p-0">
-    <form class="filter-bar mb-0 rounded-bottom-0" method="get" action="listar.php">
-        <div class="filter-search">
-            <i data-lucide="search" class="search-icon"></i>
-            <input type="text" class="form-control" name="busca" value="<?php echo esc($busca); ?>" placeholder="Buscar por pedido, OS, cliente, item ou fornecedor...">
-        </div>
-        <div class="filter-group">
-            <label for="filtroStatusPedido">Status</label>
-            <select class="form-select" id="filtroStatusPedido" name="status" onchange="this.form.submit()">
-                <option value="">Todos</option>
-                <?php foreach ($status_nomes as $key => $label) : ?>
-                    <option value="<?php echo esc($key); ?>" <?php echo $status === $key ? 'selected' : ''; ?>><?php echo esc($label); ?></option>
-                <?php endforeach; ?>
-            </select>
-        </div>
-        <div class="filter-group">
-            <label for="filtroPorPagina">Por página</label>
-            <select class="form-select" id="filtroPorPagina" name="por_pagina" onchange="this.form.submit()">
-                <?php echo opcoes_por_pagina($por_pagina); ?>
-            </select>
-        </div>
-        <button class="btn btn-primary" type="submit"><i data-lucide="search"></i> Filtrar</button>
-        <a class="btn btn-outline-secondary btn-reset-filters" href="listar.php"><i data-lucide="filter-x"></i> Limpar</a>
-    </form>
-
-    <div class="px-3 pt-3 filter-results-info">
-        <span>Exibindo <strong><?php echo count($pedidos); ?></strong> de <strong><?php echo $total; ?></strong> pedidos<?php echo $tem_filtro ? ' (filtrados)' : ''; ?></span>
+<div class="page-header">
+    <div>
+        <h1>Pedidos de peças</h1>
+        <span class="page-subtitle">Solicitações, fornecedores e recebimento</span>
     </div>
+    <div class="d-flex align-items-center gap-2">
+        <button type="button" class="btn btn-primary" data-crud="novo">
+            <i class="icon-base ti tabler-plus me-1"></i><?php echo $eh_mecanico ? 'Solicitar peça' : 'Novo pedido'; ?>
+        </button>
+    </div>
+</div>
 
-    <div class="table-responsive"><table class="table table-hover align-middle mb-0 responsive-card"><thead><tr><th>Pedido</th><th>OS / Cliente</th><th>Itens</th><th>Fornecedor</th><th>Previsão</th><th>Status</th><th>Ação</th></tr></thead><tbody>
-    <?php foreach ($pedidos as $pedido): ?><tr><td data-label="Pedido">#<?php echo (int) $pedido['id']; ?></td><td data-label="OS / Cliente"><a href="../ordens_servico/detalhes.php?id=<?php echo (int) $pedido['os_id']; ?>">OS #<?php echo str_pad((int) $pedido['numero'], 4, '0', STR_PAD_LEFT); ?></a><?php if (tem_papel(['admin', 'secretaria', 'mecanico_chefe'])): ?><br><small><?php echo esc($pedido['cliente']); ?> · <?php echo esc($pedido['placa'] ?: $pedido['modelo'] ?: 'Sem veículo'); ?></small><?php endif; ?></td><td data-label="Itens"><?php echo esc($pedido['itens'] ?: '-'); ?></td><td data-label="Fornecedor"><?php echo tem_papel(['admin', 'secretaria', 'mecanico_chefe']) ? esc($pedido['fornecedor'] ?: '-') : 'Restrito'; ?></td><td data-label="Previsão"><?php echo $pedido['previsao_entrega'] ? date('d/m/Y', strtotime($pedido['previsao_entrega'])) : '-'; ?></td><td data-label="Status"><span class="badge badge-status-<?php echo esc($pedido['status']); ?>"><?php echo esc($status_nomes[$pedido['status']] ?? $pedido['status']); ?></span></td><td data-label="Ação" class="actions-cell"><div class="dropdown table-dropdown"><button class="table-dropdown-btn" type="button" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Ações do pedido"><i data-lucide="more-horizontal"></i></button><div class="dropdown-menu dropdown-menu-end table-dropdown-menu"><h6 class="dropdown-header">Ações do pedido</h6><?php if (tem_papel(['admin', 'secretaria', 'mecanico_chefe'])): ?><a class="dropdown-item" href="editar.php?id=<?php echo (int) $pedido['id']; ?>"><i data-lucide="pencil"></i> Atualizar pedido</a><?php else: ?><span class="dropdown-item-text text-muted"><i data-lucide="eye"></i> Acompanhar</span><?php endif; ?></div></div></td></tr><?php endforeach; ?>
-    <?php if (!$pedidos): ?><tr class="row-empty"><td colspan="7"><div class="empty-state"><div class="empty-state-icon"><i data-lucide="<?php echo $tem_filtro ? 'filter' : 'package-search'; ?>"></i></div><h4><?php echo $tem_filtro ? 'Nenhum pedido encontrado' : 'Nenhum pedido de peça'; ?></h4><p><?php echo $tem_filtro ? 'Ajuste a busca ou limpe os filtros para ver todos os pedidos.' : ($_SESSION['usuario_tipo'] === 'mecanico' ? 'Nenhuma solicitação de peça encontrada para suas OS.' : 'Nenhum pedido cadastrado ainda.'); ?></p><?php if (!$tem_filtro && $_SESSION['usuario_tipo'] !== 'mecanico'): ?><a href="cadastrar.php" class="btn btn-primary btn-icon"><i data-lucide="plus"></i> Novo pedido</a><?php endif; ?></div></td></tr><?php endif; ?>
-    </tbody></table></div>
+<div class="row g-3 mb-1">
+    <?php
+    echo crud_kpi('kpiTotal', 'Pedidos', 'package', 'primary');
+    echo crud_kpi('kpiPendentes', 'Pendentes', 'hourglass', 'warning');
+    echo crud_kpi('kpiRecebidos', 'Recebidos', 'circle-check', 'success');
+    echo crud_kpi('kpiCancelados', 'Cancelados', 'ban', 'danger');
+    ?>
+</div>
 
-    <?php echo paginacao_links($pagina, $total_paginas, $filtros_pag); ?>
-</div></div>
+<div class="card">
+    <?php
+    $filtros = crud_filtro_select('status', [
+        'solicitado' => 'Aguardando validação',
+        'validado' => 'Validado',
+        'pedido' => 'Pedido realizado',
+        'a_caminho' => 'A caminho',
+        'recebido' => 'Recebido',
+        'cancelado' => 'Cancelado',
+    ], 'Todos os status');
+    echo crud_toolbar('Buscar por pedido, OS, cliente, item ou fornecedor...', $filtros);
+    echo crud_tabela_abrir([
+        ['rotulo' => 'Pedido'],
+        ['rotulo' => 'OS / Cliente'],
+        ['rotulo' => 'Itens'],
+        ['rotulo' => 'Fornecedor'],
+        ['rotulo' => 'Previsão'],
+        ['rotulo' => 'Status'],
+        ['rotulo' => 'Ações', 'classe' => 'actions-cell'],
+    ], false);
+    echo crud_rodape();
+    ?>
+</div>
+
+<template id="tplPedido">
+    <tr>
+        <td data-label="Pedido"><span class="fw-medium pedido-id"></span></td>
+        <td data-label="OS / Cliente">
+            <a class="pedido-os-link" href="#"><span class="pedido-os"></span></a>
+            <small class="text-body-secondary d-block pedido-cliente"></small>
+        </td>
+        <td data-label="Itens" class="pedido-itens"></td>
+        <td data-label="Fornecedor" class="pedido-fornecedor"></td>
+        <td data-label="Previsão" class="pedido-previsao"></td>
+        <td data-label="Status"><span class="badge pedido-status"></span></td>
+        <td class="actions-cell">
+            <div class="dropdown table-dropdown">
+                <button class="table-dropdown-btn" type="button" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Ações do pedido">
+                    <i class="icon-base ti tabler-dots-vertical"></i>
+                </button>
+                <div class="dropdown-menu dropdown-menu-end table-dropdown-menu">
+                    <h6 class="dropdown-header">Ações do pedido</h6>
+                    <button class="dropdown-item acao-atualizar" type="button"><i class="icon-base ti tabler-pencil"></i> Atualizar pedido</button>
+                    <button class="dropdown-item acao-receber" type="button"><i class="icon-base ti tabler-package-import"></i> Registrar recebimento</button>
+                </div>
+            </div>
+        </td>
+    </tr>
+</template>
+
+<?php echo crud_toast('pedidosToast'); ?>
+
+<!-- Modal: novo pedido -->
+<div class="modal fade" id="pedidoModal" tabindex="-1" data-crud="modal" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content">
+            <form id="pedidoNovoForm">
+                <div class="modal-header">
+                    <h5 class="modal-title" data-crud="modal-titulo">Novo pedido de peça</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="alert alert-danger" data-crud="modal-erro" hidden></div>
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Ordem de serviço *</label>
+                            <select class="form-select" name="os_id" required>
+                                <option value="">Selecione a OS</option>
+                                <?php echo $opcoes_os; ?>
+                            </select>
+                        </div>
+                        <?php if (!$eh_mecanico): ?>
+                        <div class="col-md-6">
+                            <label class="form-label">Fornecedor</label>
+                            <input class="form-control" name="fornecedor" maxlength="120" placeholder="Nome do fornecedor">
+                        </div>
+                        <?php endif; ?>
+                        <div class="col-md-<?php echo $eh_mecanico ? '8' : '6'; ?>">
+                            <label class="form-label">Descrição da peça *</label>
+                            <input class="form-control" name="descricao" maxlength="200" required placeholder="Ex.: Filtro de óleo, Pastilha de freio...">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Quantidade *</label>
+                            <input class="form-control" type="number" name="quantidade" min="1" value="1" required>
+                        </div>
+                        <?php if (!$eh_mecanico): ?>
+                        <div class="col-md-3">
+                            <label class="form-label">Previsão entrega</label>
+                            <input class="form-control" type="date" name="previsao_entrega">
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label">Observações</label>
+                            <textarea class="form-control" name="observacoes" rows="2" maxlength="1000"></textarea>
+                        </div>
+                        <?php endif; ?>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary"><i class="icon-base ti tabler-device-floppy me-1"></i> <?php echo $eh_mecanico ? 'Enviar solicitação' : 'Criar pedido'; ?></button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: atualizar pedido (status/dados) -->
+<div class="modal fade" id="pedidoAtualizarModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content">
+            <form id="pedidoAtualizarForm">
+                <div class="modal-header">
+                    <h5 class="modal-title">Atualizar pedido</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="alert alert-danger" id="pedidoAtualizarErro" hidden></div>
+                    <input type="hidden" name="id">
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <label class="form-label">Status</label>
+                            <select class="form-select" name="status"></select>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Fornecedor</label>
+                            <input class="form-control" name="fornecedor" maxlength="120">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Previsão</label>
+                            <input class="form-control" type="date" name="previsao_entrega">
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label">Observações</label>
+                            <textarea class="form-control" name="observacoes" rows="4"></textarea>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary"><i class="icon-base ti tabler-device-floppy me-1"></i> Atualizar pedido</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: receber itens -->
+<div class="modal fade" id="pedidoReceberModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content">
+            <form id="pedidoReceberForm">
+                <div class="modal-header">
+                    <h5 class="modal-title">Registrar recebimento</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="alert alert-danger" id="pedidoReceberErro" hidden></div>
+                    <input type="hidden" name="id">
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0">
+                            <thead><tr><th>Peça</th><th>Qtd. pedida</th><th>Qtd. recebida</th><th>Receber agora</th></tr></thead>
+                            <tbody id="pedidoReceberTbody"></tbody>
+                        </table>
+                    </div>
+                    <div class="form-check mt-3">
+                        <input class="form-check-input" type="checkbox" name="recebido_no_pedido" id="recebidoNoPedido" value="1">
+                        <label class="form-check-label" for="recebidoNoPedido">Receber todos os itens restantes (total)</label>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-success"><i class="icon-base ti tabler-package me-1"></i> Registrar recebimento</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<?php echo crud_confirm_modal(); ?>
+
 <?php require_once __DIR__ . '/../../includes/footer.php'; ?>

@@ -13,10 +13,10 @@ require_once __DIR__ . '/../../includes/mensagens.php';
 ?>
 <div class="page-header">
     <div>
-        <h1><i data-lucide="user-cog" class="text-primary me-2"></i>Meus dados</h1>
+        <h1><i class="icon-base ti tabler-user-cog text-primary me-2"></i>Meus dados</h1>
         <span class="page-subtitle">Atualize suas informações de acesso</span>
     </div>
-    <a href="../../index.php" class="btn btn-outline-secondary btn-icon"><i data-lucide="arrow-left"></i>Voltar</a>
+    <a href="../../index.php" class="btn btn-outline-secondary"><i class="icon-base ti tabler-arrow-left"></i>Voltar</a>
 </div>
 <div class="row justify-content-center">
     <div class="col-lg-7">
@@ -25,7 +25,7 @@ require_once __DIR__ . '/../../includes/mensagens.php';
                 <form method="POST" action="perfil_processar.php">
                     <input type="hidden" name="csrf_token" value="<?php echo esc(csrf_token()); ?>">
                     <div class="panel-header">
-                        <i data-lucide="user-round"></i>
+                        <i class="icon-base ti tabler-user"></i>
                         <div>
                             <h3 class="panel-title">Informações pessoais</h3>
                             <p class="panel-subtitle">Estes dados são usados no seu acesso ao sistema</p>
@@ -33,11 +33,11 @@ require_once __DIR__ . '/../../includes/mensagens.php';
                     </div>
                     <div class="row g-3">
                         <div class="col-md-6">
-                            <label class="form-label-with-icon" for="nome"><i data-lucide="user"></i> Nome *</label>
+                            <label class="form-label-with-icon" for="nome"><i class="icon-base ti tabler-user"></i> Nome *</label>
                             <input class="form-control" id="nome" name="nome" maxlength="100" value="<?php echo esc($usuario['nome']); ?>" required>
                         </div>
                         <div class="col-md-6">
-                            <label class="form-label-with-icon" for="email"><i data-lucide="mail"></i> E-mail *</label>
+                            <label class="form-label-with-icon" for="email"><i class="icon-base ti tabler-mail"></i> E-mail *</label>
                             <input class="form-control" type="email" id="email" name="email" maxlength="120" value="<?php echo esc($usuario['email']); ?>" required>
                         </div>
                         <div class="col-md-6">
@@ -48,16 +48,16 @@ require_once __DIR__ . '/../../includes/mensagens.php';
                             <hr style="border-color: var(--border-color);">
                         </div>
                         <div class="col-md-6">
-                            <label class="form-label-with-icon" for="senha"><i data-lucide="lock"></i> Nova senha</label>
+                            <label class="form-label-with-icon" for="senha"><i class="icon-base ti tabler-lock"></i> Nova senha</label>
                             <input class="form-control" type="password" id="senha" name="senha" minlength="8" placeholder="Deixe em branco para manter">
                         </div>
                         <div class="col-md-6">
-                            <label class="form-label-with-icon" for="senha_confirmacao"><i data-lucide="shield-check"></i> Confirmar nova senha</label>
+                            <label class="form-label-with-icon" for="senha_confirmacao"><i class="icon-base ti tabler-shield-check"></i> Confirmar nova senha</label>
                             <input class="form-control" type="password" id="senha_confirmacao" name="senha_confirmacao" placeholder="Repita a nova senha">
                         </div>
                         <div class="col-12 d-flex justify-content-end gap-2 mt-3">
-                            <a href="../../index.php" class="btn btn-outline-secondary btn-icon">Cancelar</a>
-                            <button type="submit" class="btn btn-primary btn-icon"><i data-lucide="save"></i>Salvar alterações</button>
+                            <a href="../../index.php" class="btn btn-outline-secondary">Cancelar</a>
+                            <button type="submit" class="btn btn-primary"><i class="icon-base ti tabler-device-floppy"></i>Salvar alterações</button>
                         </div>
                     </div>
                 </form>

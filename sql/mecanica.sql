@@ -29,6 +29,7 @@ DROP TABLE IF EXISTS pecas;
 DROP TABLE IF EXISTS servicos;
 DROP TABLE IF EXISTS ordens_servico;
 DROP TABLE IF EXISTS fipe_precos;
+DROP TABLE IF EXISTS fipe_anos;
 DROP TABLE IF EXISTS fipe_modelos;
 DROP TABLE IF EXISTS fipe_modelos_base;
 DROP TABLE IF EXISTS fipe_marcas_alias;
@@ -61,6 +62,7 @@ CREATE TABLE clientes (
   endereco VARCHAR(255),
   cidade VARCHAR(80),
   observacoes TEXT,
+  ativo TINYINT(1) NOT NULL DEFAULT 1,
   data_cadastro TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   data_atualizacao TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
@@ -112,6 +114,17 @@ CREATE TABLE fipe_precos (
   mes_referencia VARCHAR(20) NULL,
   atualizado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   UNIQUE KEY uq_fipe_preco (modelo_id, ano_codigo),
+  FOREIGN KEY (modelo_id) REFERENCES fipe_modelos(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE fipe_anos (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  modelo_id INT NOT NULL,
+  ano_codigo VARCHAR(20) NOT NULL,
+  ano INT NOT NULL,
+  nome VARCHAR(60) NOT NULL,
+  atualizado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  UNIQUE KEY uq_fipe_ano (modelo_id, ano_codigo),
   FOREIGN KEY (modelo_id) REFERENCES fipe_modelos(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 

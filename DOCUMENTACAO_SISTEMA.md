@@ -91,17 +91,19 @@ config/
   conexao.php                   Conexao PDO e helpers de escaping/moeda
   env.php                       Carrega o .env da raiz e expoe env()
   empresa.php                   Dados visuais da empresa
-css/style.css                   Design system e estilos globais
+assets/vendor/                 Tema Vuexy (core.css, Tabler, helpers/menu/bootstrap.js)
+css/mecanica.css               Camada do sistema sobre o Vuexy (tokens + componentes)
 includes/
   base_url.php                  Calcula caminho base da aplicacao
-  header.php                    Cabecalho, CSS, Bootstrap e Lucide
+  header.php                    Cabecalho, CSS (Vuexy) e shell do layout
   footer.php                    Scripts finais
   mensagens.php                 Mensagens flash
   notificacoes.php              Helpers: notificar_usuarios/tipos/responsaveis_os
   auditoria.php                 Registro de acoes sensiveis na tabela auditoria
   sessao.php                    Sessao, login obrigatorio, CSRF e roles
   sidebar.php                   Navegacao por papel
-js/main.js                      Mascara, wizard, listas dinamicas, tema, notificacoes
+js/shell.js                     Init do layout Vuexy (menu, tema, notificacoes)
+js/main.js                      Mascara, wizard, listas dinamicas, filtros
 pages/
   auth/                         Login, logout e perfil (Meus dados)
   clientes/                     CRUD e detalhe do cliente
@@ -562,9 +564,9 @@ segredos de producao.
 
 ### Interface
 
-- Usar Lucide Icons em botoes e labels importantes.
-- Usar `btn-icon` e `action-button` para manter botoes compactos.
-- Respeitar o visual existente em `css/style.css`.
+- Usar ícones Tabler (`<i class="icon-base ti tabler-*"></i>`) em botões e labels.
+- Usar componentes Vuexy (cards, tables, badges, avatars, modals) como base de layout.
+- Respeitar o visual existente em `css/mecanica.css`.
 - Modulos de estoque, servicos e agendamentos foram removidos; nao reintroduzir sem decisao de produto.
 - Telas de mecanico devem ser operacionais e sem dados pessoais desnecessarios.
 

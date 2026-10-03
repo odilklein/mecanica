@@ -1,190 +1,162 @@
 <?php
 require_once __DIR__ . '/../../includes/sessao.php';
 require_once __DIR__ . '/../../config/conexao.php';
-require_once __DIR__ . '/../../includes/paginacao.php';
+require_once __DIR__ . '/../../includes/clientes.php';
+require_once __DIR__ . '/../../includes/crud.php';
+require_once __DIR__ . '/../../includes/campos.php';
 exigir_papel(['admin', 'secretaria', 'mecanico_chefe']);
 
-// ---------- Filtros (server-side) ----------
-$busca = limpar($_GET['busca'] ?? '');
-$cidade = limpar($_GET['cidade'] ?? '');
-$periodo = $_GET['periodo'] ?? '';
+// Garante a coluna de status em bancos existentes (idempotente).
+clientes_garantir_schema($conn);
 
-$condicoes = [];
-$params = [];
-if ($busca !== '') {
-    $condicoes[] = '(nome LIKE :busca OR cpf LIKE :busca OR telefone LIKE :busca OR email LIKE :busca)';
-    $params[':busca'] = '%' . $busca . '%';
-}
-if ($cidade !== '') {
-    $condicoes[] = 'cidade = :cidade';
-    $params[':cidade'] = $cidade;
-}
-if ($periodo === 'hoje') {
-    $condicoes[] = 'DATE(data_cadastro) = CURDATE()';
-} elseif ($periodo === 'ultimos7') {
-    $condicoes[] = 'data_cadastro >= (CURDATE() - INTERVAL 6 DAY)';
-} elseif ($periodo === 'ultimos30') {
-    $condicoes[] = 'data_cadastro >= (CURDATE() - INTERVAL 29 DAY)';
-}
-$where = $condicoes ? 'WHERE ' . implode(' AND ', $condicoes) : '';
-
-// ---------- Paginação ----------
-$por_pagina = por_pagina_atual();
-$pagina = pagina_atual();
-
-$st = $conn->prepare("SELECT COUNT(*) FROM clientes $where");
-$st->execute($params);
-$total = (int) $st->fetchColumn();
-[$pagina, $offset, $total_paginas] = paginacao_calcular($total, $por_pagina, $pagina);
-
-$st = $conn->prepare("SELECT * FROM clientes $where ORDER BY nome LIMIT :limite OFFSET :offset");
-foreach ($params as $k => $v) {
-    $st->bindValue($k, $v);
-}
-$st->bindValue(':limite', $por_pagina, PDO::PARAM_INT);
-$st->bindValue(':offset', $offset, PDO::PARAM_INT);
-$st->execute();
-$clientes = $st->fetchAll();
-
-$cidades = $conn->query("SELECT DISTINCT cidade FROM clientes WHERE cidade IS NOT NULL AND cidade <> '' ORDER BY cidade")->fetchAll();
-$filtros_pag = array_filter(['busca' => $busca, 'cidade' => $cidade, 'periodo' => $periodo, 'por_pagina' => $por_pagina], fn($v) => $v !== '');
-$tem_filtro = $busca !== '' || $cidade !== '' || $periodo !== '';
-
-$titulo_pagina = "Clientes";
+$titulo_pagina = 'Clientes';
 require_once __DIR__ . '/../../includes/header.php';
 require_once __DIR__ . '/../../includes/mensagens.php';
+
+$config = [
+    'apiUrl' => $caminho_base . '/api/clientes.php',
+    'idCampo' => 'id',
+    'singular' => 'Cliente',
+    'plural' => 'clientes',
+    'porPagina' => 15,
+    'tplId' => 'tplCliente',
+    'emptyHtml' => crud_empty_state('users', 'Nenhum cliente encontrado', 'Ajuste a busca ou cadastre um novo cliente.'),
+];
+$scripts_config = crud_config($config);
+$scripts_extra = '<script src="' . $caminho_base . '/js/clientes.js"></script>';
 ?>
 
 <div class="page-header">
     <div>
-        <h1><i data-lucide="users" class="text-primary me-2"></i>Clientes</h1>
-        <span class="page-subtitle">Gerencie os clientes da oficina</span>
+        <h1>Clientes</h1>
+        <span class="page-subtitle">Cadastro e contatos da oficina</span>
     </div>
-    <a href="cadastrar.php" class="btn btn-primary btn-icon">
-        <i data-lucide="plus"></i> Novo Cliente
-    </a>
+    <button type="button" class="btn btn-primary" data-crud="novo"><i class="icon-base ti tabler-user-plus me-1"></i>Novo Cliente</button>
+</div>
+
+<div class="row g-3 mb-1">
+    <?php
+    echo crud_kpi('kpiTotal', 'Clientes', 'users', 'primary');
+    echo crud_kpi('kpiAtivos', 'Ativos', 'user-check', 'success');
+    echo crud_kpi('kpiInativos', 'Suspensos', 'user-off', 'danger');
+    echo crud_kpi('kpiCidades', 'Cidades', 'map-pin', 'info');
+    ?>
 </div>
 
 <div class="card">
-    <div class="card-body">
-        <form class="filter-bar" method="get" action="listar.php">
-            <div class="filter-search">
-                <i data-lucide="search" class="search-icon"></i>
-                <input type="text" class="form-control" name="busca" value="<?php echo esc($busca); ?>" placeholder="Buscar por nome, CPF, telefone ou email...">
-            </div>
-            <div class="filter-group">
-                <label for="filtroCidade">Cidade</label>
-                <select class="form-select" id="filtroCidade" name="cidade" onchange="this.form.submit()">
-                    <option value="">Todas</option>
-                    <?php foreach ($cidades as $c): ?>
-                        <option value="<?php echo esc($c['cidade']); ?>" <?php echo $cidade === $c['cidade'] ? 'selected' : ''; ?>><?php echo esc($c['cidade']); ?></option>
-                    <?php endforeach; ?>
-                </select>
-            </div>
-            <div class="filter-group">
-                <label for="filtroPeriodo">Cadastro</label>
-                <select class="form-select" id="filtroPeriodo" name="periodo" onchange="this.form.submit()">
-                    <option value="">Todos</option>
-                    <option value="hoje" <?php echo $periodo === 'hoje' ? 'selected' : ''; ?>>Hoje</option>
-                    <option value="ultimos7" <?php echo $periodo === 'ultimos7' ? 'selected' : ''; ?>>Últimos 7 dias</option>
-                    <option value="ultimos30" <?php echo $periodo === 'ultimos30' ? 'selected' : ''; ?>>Últimos 30 dias</option>
-                </select>
-            </div>
-            <div class="filter-group">
-                <label for="filtroPorPagina">Por página</label>
-                <select class="form-select" id="filtroPorPagina" name="por_pagina" onchange="this.form.submit()">
-                    <?php echo opcoes_por_pagina($por_pagina); ?>
-                </select>
-            </div>
-            <button class="btn btn-primary" type="submit"><i data-lucide="search"></i> Filtrar</button>
-            <a class="btn btn-outline-secondary btn-reset-filters" href="listar.php"><i data-lucide="filter-x"></i> Limpar</a>
-        </form>
+    <?php
+    $filtros = crud_filtro_select('ordem', [
+        'recentes' => 'Mais recentes',
+    ], 'Ordenação');
+    echo crud_toolbar('Buscar por nome, CPF, telefone ou email...', $filtros);
+    echo crud_bulk_bar([
+        ['id' => 'ativar', 'rotulo' => 'Ativar', 'icone' => 'user-check', 'tom' => 'outline-info'],
+        ['id' => 'suspender', 'rotulo' => 'Suspender', 'icone' => 'user-off', 'tom' => 'outline-secondary'],
+        ['id' => 'excluir', 'rotulo' => 'Excluir', 'icone' => 'trash', 'tom' => 'outline-danger'],
+    ]);
+    echo crud_tabela_abrir([
+        ['rotulo' => 'Cliente'],
+        ['rotulo' => 'Contato'],
+        ['rotulo' => 'CPF'],
+        ['rotulo' => 'Endereço'],
+        ['rotulo' => 'Veículos'],
+        ['rotulo' => 'Ações', 'classe' => 'actions-cell'],
+    ]);
+    echo crud_rodape();
+    ?>
+</div>
 
-        <div class="filter-results-info">
-            <span>Exibindo <strong><?php echo count($clientes); ?></strong> de <strong><?php echo $total; ?></strong> clientes<?php echo $tem_filtro ? ' (filtrados)' : ''; ?></span>
+<template id="tplCliente">
+    <tr>
+        <td class="check-cell"><input class="form-check-input row-check" type="checkbox"></td>
+        <td data-label="Cliente">
+            <div class="d-flex align-items-center">
+                <div class="avatar avatar-sm me-3"><span class="avatar-initial rounded-circle bg-label-primary cliente-inicial"></span></div>
+                <div>
+                    <span class="fw-medium text-heading cliente-nome"></span>
+                    <br><small class="text-body-secondary cliente-id"></small>
+                </div>
+            </div>
+        </td>
+        <td data-label="Contato">
+            <div class="cliente-telefone"></div>
+            <small class="text-body-secondary cliente-email"></small>
+        </td>
+        <td data-label="CPF"><span class="cliente-cpf"></span></td>
+        <td data-label="Endereço">
+            <div class="d-flex flex-column">
+                <span class="cliente-endereco"></span>
+                <small class="text-body-secondary cliente-cidade"></small>
+            </div>
+        </td>
+        <td data-label="Veículos" class="cliente-veiculos-cell">
+            <span class="cliente-veiculos-texto" title=""></span>
+        </td>
+        <td class="actions-cell">
+            <div class="dropdown table-dropdown">
+                <button class="table-dropdown-btn" type="button" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Ações do cliente">
+                    <i class="icon-base ti tabler-dots-vertical"></i>
+                </button>
+                <div class="dropdown-menu dropdown-menu-end table-dropdown-menu">
+                    <h6 class="dropdown-header">Ações do cliente</h6>
+                    <a class="dropdown-item acao-detalhes" href="#"><i class="icon-base ti tabler-info-circle"></i> Informações</a>
+                    <button class="dropdown-item acao-editar" type="button"><i class="icon-base ti tabler-pencil"></i> Editar</button>
+                    <button class="dropdown-item text-danger acao-excluir" type="button"><i class="icon-base ti tabler-trash"></i> Excluir</button>
+                </div>
+            </div>
+        </td>
+    </tr>
+</template>
+
+<?php echo crud_toast('clientesToast'); ?>
+
+<div class="modal fade" id="clienteModal" tabindex="-1" data-crud="modal" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content">
+            <form data-crud="form">
+                <div class="modal-header">
+                    <h5 class="modal-title" data-crud="modal-titulo">Novo Cliente</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="alert alert-danger" data-crud="modal-erro" hidden></div>
+                    <input type="hidden" name="id" value="">
+                    <div class="row g-3">
+                        <div class="col-md-8">
+                            <?php echo campo_icone('nome', 'Nome completo *', 'user', 'text', ['required' => true, 'maxlength' => 120]); ?>
+                        </div>
+                        <div class="col-md-4">
+                            <?php echo campo_icone('cpf', 'CPF', 'id', 'text', ['maxlength' => 14, 'oninput' => 'formatarCPF(this)'], '000.000.000-00'); ?>
+                        </div>
+                        <div class="col-md-4">
+                            <?php echo campo_icone('telefone', 'Telefone', 'phone', 'text', ['maxlength' => 20, 'inputmode' => 'tel', 'oninput' => 'formatarTelefone(this)']); ?>
+                        </div>
+                        <div class="col-md-4">
+                            <?php echo campo_icone('email', 'E-mail', 'mail', 'email', ['maxlength' => 120]); ?>
+                        </div>
+                        <div class="col-md-4">
+                            <?php echo campo_icone('cidade', 'Cidade', 'building', 'text', ['maxlength' => 120]); ?>
+                        </div>
+                        <div class="col-12">
+                            <?php echo campo_icone('endereco', 'Endereço', 'road', 'text', ['maxlength' => 255], 'Rua, número, bairro'); ?>
+                        </div>
+                        <div class="col-12">
+                            <?php echo campo_textarea_icone('observacoes', 'Observações', 'notebook', ['rows' => 3]); ?>
+                        </div>
+                        <div class="col-12">
+                            <?php echo campo_check_icone('ativo', 'Cliente ativo', 'user-check', true, 'clienteAtivo'); ?>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary"><i class="icon-base ti tabler-device-floppy me-1"></i> Salvar Cliente</button>
+                </div>
+            </form>
         </div>
-
-        <div class="table-responsive">
-            <table class="table table-hover align-middle responsive-card">
-                <thead>
-                    <tr>
-                        <th>Cliente</th>
-                        <th>CPF</th>
-                        <th>Telefone</th>
-                        <th>Email</th>
-                        <th>Cidade</th>
-                        <th>Cadastro</th>
-                        <th class="actions-cell">Ações</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <?php if (count($clientes) > 0): foreach ($clientes as $cliente): ?>
-                    <tr>
-                        <td data-label="Cliente">
-                            <div class="d-flex align-items-center">
-                                <div class="avatar-circle me-2">
-                                    <?php echo esc(strtoupper(substr($cliente['nome'], 0, 1))); ?>
-                                </div>
-                                <div>
-                                    <strong><?php echo esc($cliente['nome']); ?></strong>
-                                    <br>
-                                    <small class="text-muted">Cliente #<?php echo (int) $cliente['id']; ?></small>
-                                </div>
-                            </div>
-                        </td>
-                        <td data-label="CPF"><?php echo esc($cliente['cpf']); ?></td>
-                        <td data-label="Telefone"><?php echo esc($cliente['telefone']); ?></td>
-                        <td data-label="Email"><?php echo esc($cliente['email']); ?></td>
-                        <td data-label="Cidade"><?php echo esc($cliente['cidade'] ?: '-'); ?></td>
-                        <td data-label="Cadastro">
-                            <small class="text-muted"><?php echo date('d/m/Y', strtotime($cliente['data_cadastro'])); ?></small>
-                        </td>
-                        <td data-label="Ações" class="actions-cell">
-                            <div class="dropdown table-dropdown">
-                                <button class="table-dropdown-btn" type="button" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Ações do cliente">
-                                    <i data-lucide="more-horizontal"></i>
-                                </button>
-                                <div class="dropdown-menu dropdown-menu-end table-dropdown-menu">
-                                    <h6 class="dropdown-header">Ações do cliente</h6>
-                                    <a class="dropdown-item" href="detalhes.php?id=<?php echo (int) $cliente['id']; ?>">
-                                        <i data-lucide="car"></i> Cliente, veículos e histórico
-                                    </a>
-                                    <a class="dropdown-item" href="editar.php?id=<?php echo (int) $cliente['id']; ?>">
-                                        <i data-lucide="pencil"></i> Editar
-                                    </a>
-                                    <form method="POST" action="excluir.php" id="excluirCliente<?php echo (int) $cliente['id']; ?>" onsubmit="return confirmarExclusao('excluirCliente<?php echo (int) $cliente['id']; ?>', 'Excluir o cliente <?php echo esc(addslashes($cliente['nome'])); ?>? Todos os dados vinculados serão removidos.');">
-                                        <input type="hidden" name="csrf_token" value="<?php echo esc(csrf_token()); ?>">
-                                        <input type="hidden" name="id" value="<?php echo (int) $cliente['id']; ?>">
-                                        <button type="submit" class="dropdown-item text-danger">
-                                            <i data-lucide="trash-2"></i> Excluir
-                                        </button>
-                                    </form>
-                                </div>
-                            </div>
-                        </td>
-                    </tr>
-                    <?php endforeach; else: ?>
-                    <tr class="row-empty">
-                        <td colspan="7">
-                            <div class="empty-state">
-                                <div class="empty-state-icon"><i data-lucide="<?php echo $tem_filtro ? 'filter' : 'users'; ?>"></i></div>
-                                <h4><?php echo $tem_filtro ? 'Nenhum cliente encontrado' : 'Nenhum cliente cadastrado'; ?></h4>
-                                <p><?php echo $tem_filtro ? 'Ajuste a busca ou limpe os filtros para ver todos os clientes.' : 'Cadastre o primeiro cliente para começar a usar o sistema.'; ?></p>
-                                <?php if (!$tem_filtro): ?>
-                                <a href="cadastrar.php" class="btn btn-primary btn-icon">
-                                    <i data-lucide="plus"></i> Cadastrar Cliente
-                                </a>
-                                <?php endif; ?>
-                            </div>
-                        </td>
-                    </tr>
-                    <?php endif; ?>
-                </tbody>
-            </table>
-        </div>
-
-        <?php echo paginacao_links($pagina, $total_paginas, $filtros_pag); ?>
     </div>
 </div>
+
+<?php echo crud_confirm_modal(); ?>
 
 <?php require_once __DIR__ . '/../../includes/footer.php'; ?>

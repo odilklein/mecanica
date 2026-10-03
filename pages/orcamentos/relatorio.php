@@ -250,194 +250,242 @@ require_once __DIR__ . '/../../includes/header.php';
 
 <div class="page-header">
     <div>
-        <h1><i data-lucide="chart-line"></i>Relatórios</h1>
+        <h1><i class="icon-base ti tabler-report-analytics"></i>Relatórios</h1>
         <span class="page-subtitle">Análise de desempenho da oficina - <?php echo ucfirst($mes_nome); ?> <?php echo $ano_atual; ?></span>
     </div>
 </div>
 
-<!-- ============ KPIs DO MÊS ============ -->
-<div class="row g-3 mb-4">
-    <div class="col-6 col-xl-3">
-        <div class="stat-card border-accent">
-            <span class="stat-border"></span>
-            <div class="stat-header">
-                <span class="stat-label">Orçamentos</span>
-                <span class="stat-icon"><i data-lucide="file-text"></i></span>
+<!-- Navegação por seções -->
+<ul class="nav nav-tabs mb-4" id="relatorioTabs" role="tablist">
+    <li class="nav-item" role="presentation">
+        <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#tab-visao-geral" type="button" role="tab" aria-selected="true">
+            <i class="icon-base ti tabler-layout-dashboard me-1"></i>Visão geral
+        </button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-ordens" type="button" role="tab" aria-selected="false">
+            <i class="icon-base ti tabler-clipboard-list me-1"></i>Ordens de serviço
+        </button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-servicos" type="button" role="tab" aria-selected="false">
+            <i class="icon-base ti tabler-tools me-1"></i>Serviços e peças
+        </button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-financeiro" type="button" role="tab" aria-selected="false">
+            <i class="icon-base ti tabler-cash me-1"></i>Financeiro
+        </button>
+    </li>
+</ul>
+
+<div class="tab-content">
+
+    <!-- ============ VISÃO GERAL ============ -->
+    <div class="tab-pane fade show active" id="tab-visao-geral" role="tabpanel">
+        <div class="row g-3 mb-4">
+            <div class="col-6 col-xl-3">
+                <div class="stat-card border-accent">
+                    <span class="stat-border"></span>
+                    <div class="stat-header">
+                        <span class="stat-label">Orçamentos</span>
+                        <span class="stat-icon"><i class="icon-base ti tabler-file-text"></i></span>
+                    </div>
+                    <div class="stat-value"><?php echo (int) $resumo['total_orcamentos']; ?></div>
+                    <div class="stat-delta"><?php echo (int) $resumo['aprovados']; ?> aprovados no mês</div>
+                </div>
             </div>
-            <div class="stat-value"><?php echo (int) $resumo['total_orcamentos']; ?></div>
-            <div class="stat-delta"><?php echo (int) $resumo['aprovados']; ?> aprovados no mês</div>
+            <div class="col-6 col-xl-3">
+                <div class="stat-card border-green">
+                    <span class="stat-border"></span>
+                    <div class="stat-header">
+                        <span class="stat-label">Faturado</span>
+                        <span class="stat-icon green"><i class="icon-base ti tabler-cash"></i></span>
+                    </div>
+                    <div class="stat-value" style="font-size:1.15rem;"><?php echo formatar_moeda($resumo['faturado']); ?></div>
+                    <div class="stat-delta up"><i class="icon-base ti tabler-trending-up"></i> Ticket médio <?php echo formatar_moeda($ticket_medio); ?></div>
+                </div>
+            </div>
+            <div class="col-6 col-xl-3">
+                <div class="stat-card border-yellow">
+                    <span class="stat-border"></span>
+                    <div class="stat-header">
+                        <span class="stat-label">Em Aberto</span>
+                        <span class="stat-icon yellow"><i class="icon-base ti tabler-hourglass"></i></span>
+                    </div>
+                    <div class="stat-value" style="font-size:1.15rem;"><?php echo formatar_moeda($resumo['em_aberto']); ?></div>
+                    <div class="stat-delta">aguardando aprovação</div>
+                </div>
+            </div>
+            <div class="col-6 col-xl-3">
+                <div class="stat-card border-blue">
+                    <span class="stat-border"></span>
+                    <div class="stat-header">
+                        <span class="stat-label">Taxa Aprovação</span>
+                        <span class="stat-icon blue"><i class="icon-base ti tabler-percentage"></i></span>
+                    </div>
+                    <div class="stat-value"><?php echo $taxa_aprovacao; ?>%</div>
+                    <div class="stat-delta"><i class="icon-base ti tabler-clock"></i> conclusão em <?php echo $tempo_medio_dias > 0 ? $tempo_medio_dias . ' dias' : '-'; ?></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row g-3">
+            <div class="col-xl-8">
+                <div class="card h-100">
+                    <div class="card-header">
+                        <i class="icon-base ti tabler-chart-bar me-2"></i> Faturamento por Mês <span class="text-muted small ms-2">(orçamentos aprovados)</span>
+                    </div>
+                    <div class="card-body">
+                        <div class="chart-box"><canvas id="chartFaturamento"></canvas></div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-xl-4">
+                <div class="card h-100">
+                    <div class="card-header">
+                        <i class="icon-base ti tabler-chart-pie me-2"></i> Orçamentos por Status
+                    </div>
+                    <div class="card-body">
+                        <div class="chart-box"><canvas id="chartOrcamentosStatus"></canvas></div>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
-    <div class="col-6 col-xl-3">
-        <div class="stat-card border-green">
-            <span class="stat-border"></span>
-            <div class="stat-header">
-                <span class="stat-label">Faturado</span>
-                <span class="stat-icon green"><i data-lucide="banknote"></i></span>
+
+    <!-- ============ ORDENS DE SERVIÇO ============ -->
+    <div class="tab-pane fade" id="tab-ordens" role="tabpanel">
+        <div class="row g-3 mb-3">
+            <div class="col-xl-7">
+                <div class="card h-100">
+                    <div class="card-header">
+                        <i class="icon-base ti tabler-calendar-stats me-2"></i> Ordens de Serviço por Mês
+                    </div>
+                    <div class="card-body">
+                        <div class="chart-box"><canvas id="chartOsMes"></canvas></div>
+                    </div>
+                </div>
             </div>
-            <div class="stat-value" style="font-size:1.15rem;"><?php echo formatar_moeda($resumo['faturado']); ?></div>
-            <div class="stat-delta up"><i data-lucide="trending-up"></i> Ticket médio <?php echo formatar_moeda($ticket_medio); ?></div>
+            <div class="col-xl-5">
+                <div class="card h-100">
+                    <div class="card-header">
+                        <i class="icon-base ti tabler-flag me-2"></i> OS por Prioridade
+                    </div>
+                    <div class="card-body">
+                        <div class="chart-box"><canvas id="chartOsPrioridade"></canvas></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="row g-3">
+            <div class="col-xl-6">
+                <div class="card h-100">
+                    <div class="card-header">
+                        <i class="icon-base ti tabler-clipboard-list me-2"></i> Ordens de Serviço por Status
+                    </div>
+                    <div class="card-body">
+                        <div class="chart-box chart-box-tall"><canvas id="chartOsStatus"></canvas></div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-xl-6">
+                <div class="card h-100">
+                    <div class="card-header">
+                        <i class="icon-base ti tabler-truck me-2"></i> Pedidos de Peças por Status
+                    </div>
+                    <div class="card-body">
+                        <div class="chart-box chart-box-tall"><canvas id="chartPedidosStatus"></canvas></div>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
-    <div class="col-6 col-xl-3">
-        <div class="stat-card border-yellow">
-            <span class="stat-border"></span>
-            <div class="stat-header">
-                <span class="stat-label">Em Aberto</span>
-                <span class="stat-icon yellow"><i data-lucide="hourglass"></i></span>
+
+    <!-- ============ SERVIÇOS E PEÇAS ============ -->
+    <div class="tab-pane fade" id="tab-servicos" role="tabpanel">
+        <div class="row g-3 mb-3">
+            <div class="col-xl-6">
+                <div class="card h-100">
+                    <div class="card-header">
+                        <i class="icon-base ti tabler-tools me-2"></i> Serviços Mais Executados
+                    </div>
+                    <div class="card-body">
+                        <div class="chart-box chart-box-tall"><canvas id="chartServicos"></canvas></div>
+                    </div>
+                </div>
             </div>
-            <div class="stat-value" style="font-size:1.15rem;"><?php echo formatar_moeda($resumo['em_aberto']); ?></div>
-            <div class="stat-delta">aguardando aprovação</div>
+            <div class="col-xl-6">
+                <div class="card h-100">
+                    <div class="card-header">
+                        <i class="icon-base ti tabler-package me-2"></i> Peças Mais Requisitadas
+                    </div>
+                    <div class="card-body">
+                        <div class="chart-box chart-box-tall"><canvas id="chartPecas"></canvas></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="row g-3">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <i class="icon-base ti tabler-car me-2"></i> Atendimentos por Marca de Veículo
+                    </div>
+                    <div class="card-body">
+                        <div class="chart-box"><canvas id="chartMarcas"></canvas></div>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
-    <div class="col-6 col-xl-3">
-        <div class="stat-card border-blue">
-            <span class="stat-border"></span>
-            <div class="stat-header">
-                <span class="stat-label">Taxa Aprovação</span>
-                <span class="stat-icon blue"><i data-lucide="percent"></i></span>
+
+    <!-- ============ FINANCEIRO ============ -->
+    <div class="tab-pane fade" id="tab-financeiro" role="tabpanel">
+        <div class="row g-3">
+            <div class="col-xl-5">
+                <div class="card h-100">
+                    <div class="card-header">
+                        <i class="icon-base ti tabler-chart-pie me-2"></i> Composição da Receita
+                    </div>
+                    <div class="card-body d-flex flex-column">
+                        <div class="chart-box chart-box-tall flex-grow-1"><canvas id="chartReceitaComposicao"></canvas></div>
+                        <p class="text-muted small text-center mb-0 mt-2">
+                            Total aprovado: <strong><?php echo formatar_moeda($composicao['pecas'] + $composicao['mao_obra']); ?></strong>
+                        </p>
+                    </div>
+                </div>
             </div>
-            <div class="stat-value"><?php echo $taxa_aprovacao; ?>%</div>
-            <div class="stat-delta"><i data-lucide="timer"></i> conclusão em <?php echo $tempo_medio_dias > 0 ? $tempo_medio_dias . ' dias' : '-'; ?></div>
+            <div class="col-xl-7">
+                <div class="card h-100">
+                    <div class="card-header">
+                        <i class="icon-base ti tabler-trophy me-2"></i> Top Clientes <span class="text-muted small ms-2">(maior valor gasto)</span>
+                    </div>
+                    <div class="card-body">
+                        <div class="chart-box chart-box-tall"><canvas id="chartClientes"></canvas></div>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
+
 </div>
 
-<!-- ============ FATURAMENTO + STATUS DOS ORÇAMENTOS ============ -->
-<div class="row g-3 mb-3">
-    <div class="col-xl-8">
-        <div class="card h-100">
-            <div class="card-header">
-                <i data-lucide="chart-column" class="me-2"></i> Faturamento por Mês <span class="text-muted small ms-2">(orçamentos aprovados)</span>
-            </div>
-            <div class="card-body">
-                <div class="chart-box"><canvas id="chartFaturamento"></canvas></div>
-            </div>
-        </div>
-    </div>
-    <div class="col-xl-4">
-        <div class="card h-100">
-            <div class="card-header">
-                <i data-lucide="circle-check-big" class="me-2"></i> Orçamentos por Status
-            </div>
-            <div class="card-body">
-                <div class="chart-box"><canvas id="chartOrcamentosStatus"></canvas></div>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- ============ NOVAS OS + PRIORIDADE ============ -->
-<div class="row g-3 mb-3">
-    <div class="col-xl-7">
-        <div class="card h-100">
-            <div class="card-header">
-                <i data-lucide="activity" class="me-2"></i> Novas Ordens de Serviço por Mês
-            </div>
-            <div class="card-body">
-                <div class="chart-box"><canvas id="chartOsMes"></canvas></div>
-            </div>
-        </div>
-    </div>
-    <div class="col-xl-5">
-        <div class="card h-100">
-            <div class="card-header">
-                <i data-lucide="flame" class="me-2"></i> OS por Prioridade
-            </div>
-            <div class="card-body">
-                <div class="chart-box"><canvas id="chartOsPrioridade"></canvas></div>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- ============ TOP SERVIÇOS + TOP PEÇAS ============ -->
-<div class="row g-3 mb-3">
-    <div class="col-xl-6">
-        <div class="card h-100">
-            <div class="card-header">
-                <i data-lucide="wrench" class="me-2"></i> Serviços Mais Realizados
-            </div>
-            <div class="card-body">
-                <div class="chart-box chart-box-tall"><canvas id="chartServicos"></canvas></div>
-            </div>
-        </div>
-    </div>
-    <div class="col-xl-6">
-        <div class="card h-100">
-            <div class="card-header">
-                <i data-lucide="boxes" class="me-2"></i> Peças Mais Vendidas
-            </div>
-            <div class="card-body">
-                <div class="chart-box chart-box-tall"><canvas id="chartPecas"></canvas></div>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- ============ TOP CLIENTES + COMPOSIÇÃO DA RECEITA ============ -->
-<div class="row g-3 mb-3">
-    <div class="col-xl-7">
-        <div class="card h-100">
-            <div class="card-header">
-                <i data-lucide="trophy" class="me-2"></i> Top Clientes <span class="text-muted small ms-2">(maior valor gasto)</span>
-            </div>
-            <div class="card-body">
-                <div class="chart-box chart-box-tall"><canvas id="chartClientes"></canvas></div>
-            </div>
-        </div>
-    </div>
-    <div class="col-xl-5">
-        <div class="card h-100">
-            <div class="card-header">
-                <i data-lucide="pie-chart" class="me-2"></i> Composição da Receita
-            </div>
-            <div class="card-body d-flex flex-column">
-                <div class="chart-box chart-box-tall flex-grow-1"><canvas id="chartReceitaComposicao"></canvas></div>
-                <p class="text-muted small text-center mb-0 mt-2">
-                    Total aprovado: <strong><?php echo formatar_moeda($composicao['pecas'] + $composicao['mao_obra']); ?></strong>
-                </p>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- ============ OS POR STATUS + PEDIDOS DE PEÇAS ============ -->
-<div class="row g-3 mb-3">
-    <div class="col-xl-6">
-        <div class="card h-100">
-            <div class="card-header">
-                <i data-lucide="clipboard-list" class="me-2"></i> Ordens de Serviço por Status
-            </div>
-            <div class="card-body">
-                <div class="chart-box chart-box-tall"><canvas id="chartOsStatus"></canvas></div>
-            </div>
-        </div>
-    </div>
-    <div class="col-xl-6">
-        <div class="card h-100">
-            <div class="card-header">
-                <i data-lucide="truck" class="me-2"></i> Pedidos de Peças por Status
-            </div>
-            <div class="card-body">
-                <div class="chart-box chart-box-tall"><canvas id="chartPedidosStatus"></canvas></div>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- ============ VEÍCULOS POR MARCA ============ -->
-<div class="row g-3">
-    <div class="col-12">
-        <div class="card">
-            <div class="card-header">
-                <i data-lucide="car-front" class="me-2"></i> Atendimentos por Marca de Veículo
-            </div>
-            <div class="card-body">
-                <div class="chart-box"><canvas id="chartMarcas"></canvas></div>
-            </div>
-        </div>
-    </div>
-</div>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    var abas = document.getElementById('relatorioTabs');
+    if (!abas) return;
+    abas.addEventListener('shown.bs.tab', function () {
+        // Canvases dentro de abas ocultas são criados com 0px; forçamos o resize.
+        var instancias = window.RelatoriosGraficos || {};
+        Object.keys(instancias).forEach(function (id) {
+            var grafico = instancias[id];
+            if (grafico && typeof grafico.resize === 'function') {
+                grafico.resize();
+            }
+        });
+    });
+});
+</script>
 
 <?php require_once __DIR__ . '/../../includes/footer.php'; ?>
