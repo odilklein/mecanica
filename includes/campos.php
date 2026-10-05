@@ -130,8 +130,8 @@ if (!function_exists('campo_textarea_icone')) {
 
         $html  = '<div class="mb-3">';
         $html .= '<label class="form-label" for="' . $id . '">' . esc($rotulo) . '</label>';
-        $html .= '<div class="input-group input-group-merge">';
-        $html .= '<span class="input-group-text align-self-start"><i class="icon-base ti tabler-' . esc($icone) . '"></i></span>';
+        $html .= '<div class="input-group input-group-merge input-group-merge-textarea">';
+        $html .= '<span class="input-group-text"><i class="icon-base ti tabler-' . esc($icone) . '"></i></span>';
         $html .= '<textarea class="form-control" id="' . $id . '" name="' . $id . '" rows="3"'
             . ($placeholder !== '' ? ' placeholder="' . esc($placeholder) . '"' : '')
             . $attrs . '></textarea>';

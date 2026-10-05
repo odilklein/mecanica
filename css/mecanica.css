@@ -71,49 +71,149 @@
 }
 
 /* =============================================
-   TEMA ESCURO
-   - Mantém o MESMO vermelho do tema claro (#b8270f),
-     garantindo identidade visual consistente.
-   - Fundo preto (não azul-acinzentado), mais natural
-     para um sistema de oficina.
+   TEMA ESCURO — clean, monocromático + vermelho
+   - Apenas variações de PRETO, CINZA, BRANCO e o
+     vermelho da marca (#b8270f).
+   - Sobrescreve integralmente as variáveis do tema
+     Vuexy (que usam azul-acinzentado, ex. #2f3349).
+   - Cores "info" viram cinza neutro (sem azul).
    ============================================= */
 [data-bs-theme="dark"] {
-    /* Mesmo vermelho do tema claro */
+    color-scheme: dark;
+
+    /* ---------- Escala neutra: preto → cinza → branco ---------- */
+    --bs-gray-25: #101012;
+    --bs-gray-50: #141416;
+    --bs-gray-75: #18181b;
+    --bs-gray-100: #27272a;
+    --bs-gray-200: #2e2e33;
+    --bs-gray-300: #3f3f46;
+    --bs-gray-400: #52525b;
+    --bs-gray-500: #71717a;
+    --bs-gray-600: #a1a1aa;
+    --bs-gray-700: #c8c8cf;
+    --bs-gray-800: #e4e4e7;
+    --bs-gray-900: #fafafa;
+
+    /* ---------- Superfícies ---------- */
+    --bs-body-bg: #09090b;
+    --bs-body-bg-rgb: 9, 9, 11;
+    --bs-paper-bg: #121214;
+    --bs-paper-bg-rgb: 18, 18, 20;
+    --bs-secondary-bg: #18181b;
+    --bs-secondary-bg-rgb: 24, 24, 27;
+    --bs-tertiary-bg: #27272a;
+    --bs-tertiary-bg-rgb: 39, 39, 42;
+
+    /* ---------- Texto ---------- */
+    --bs-body-color: #d4d4d8;
+    --bs-body-color-rgb: 212, 212, 216;
+    --bs-secondary-color: #a1a1aa;
+    --bs-secondary-color-rgb: 161, 161, 170;
+    --bs-emphasis-color: #ffffff;
+    --bs-emphasis-color-rgb: 255, 255, 255;
+    --bs-tertiary-color: rgba(212, 212, 216, 0.5);
+    --bs-tertiary-color-rgb: 212, 212, 216;
+    --bs-heading-color: #fafafa;
+    --bs-base-color: #fafafa;
+    --bs-base-color-rgb: 250, 250, 250;
+
+    /* ---------- Bordas ---------- */
+    --bs-border-color: #27272a;
+    --bs-border-color-rgb: 39, 39, 42;
+    --bs-border-color-translucent: rgba(255, 255, 255, 0.1);
+
+    /* ---------- Marca (vermelho) ---------- */
     --bs-primary: #b8270f;
     --bs-primary-rgb: 184, 39, 15;
     --bs-primary-contrast: #ffffff;
     --bs-primary-bg-subtle: rgba(184, 39, 15, 0.22);
     --bs-primary-border-subtle: rgba(184, 39, 15, 0.45);
     --bs-primary-text-emphasis: #f0a595;
+
+    /* ---------- Neutros de contexto (tema Vuexy) ---------- */
+    --bs-secondary: #3f3f46;
+    --bs-secondary-rgb: 63, 63, 70;
+    --bs-secondary-bg-subtle: #27272a;
+    --bs-secondary-border-subtle: #3f3f46;
+    --bs-secondary-text-emphasis: #d4d4d8;
+    --bs-light: #27272a;
+    --bs-light-rgb: 39, 39, 42;
+    --bs-light-bg-subtle: #18181b;
+    --bs-light-border-subtle: #27272a;
+    --bs-light-text-emphasis: #d4d4d8;
+    --bs-dark: #3f3f46;
+    --bs-dark-rgb: 63, 63, 70;
+    --bs-dark-bg-subtle: #27272a;
+    --bs-dark-border-subtle: #3f3f46;
+    --bs-dark-text-emphasis: #fafafa;
+    --bs-gray: #71717a;
+    --bs-gray-rgb: 113, 113, 122;
+
+    /* ---------- Status (info = cinza, sem azul) ---------- */
+    --bs-success: #22c55e;
+    --bs-success-rgb: 34, 197, 94;
+    --bs-success-bg-subtle: rgba(34, 197, 94, 0.16);
+    --bs-success-border-subtle: rgba(34, 197, 94, 0.4);
+    --bs-success-text-emphasis: #4ade80;
+    --bs-danger: #ef4444;
+    --bs-danger-rgb: 239, 68, 68;
+    --bs-danger-bg-subtle: rgba(239, 68, 68, 0.16);
+    --bs-danger-border-subtle: rgba(239, 68, 68, 0.4);
+    --bs-danger-text-emphasis: #f87171;
+    --bs-warning: #f59e0b;
+    --bs-warning-rgb: 245, 158, 11;
+    --bs-warning-bg-subtle: rgba(245, 158, 11, 0.16);
+    --bs-warning-border-subtle: rgba(245, 158, 11, 0.4);
+    --bs-warning-text-emphasis: #fcd34d;
+    --bs-info: #71717a;
+    --bs-info-rgb: 113, 113, 122;
+    --bs-info-bg-subtle: #27272a;
+    --bs-info-border-subtle: #3f3f46;
+    --bs-info-text-emphasis: #d4d4d8;
+
+    /* ---------- Links / código ---------- */
     --bs-link-color: #e8705c;
     --bs-link-hover-color: #f08a78;
+    --bs-link-color-rgb: 232, 112, 92;
+    --bs-link-hover-color-rgb: 240, 138, 120;
+    --bs-code-color: #f0a595;
 
-    /* Fundos pretos */
-    --bs-body-bg: #000000;
-    --bs-body-bg-rgb: 0, 0, 0;
-    --bs-paper-bg: #0d0d0d;
-    --bs-paper-bg-rgb: 13, 13, 13;
-    --bs-secondary-bg: #141414;
-    --bs-tertiary-bg: #1a1a1a;
-    --bs-border-color: #262626;
-    --bs-border-color-translucent: rgba(255, 255, 255, 0.12);
-    --bs-body-color: #d4d4d4;
-    --bs-body-color-rgb: 212, 212, 212;
-    --bs-emphasis-color: #ffffff;
-    --bs-secondary-color: #9a9a9a;
+    /* ---------- Layout (menu, navbar, footer) ---------- */
+    --bs-menu-bg: #121214;
+    --bs-menu-bg-rgb: 18, 18, 20;
+    --bs-menu-color: #d4d4d8;
+    --bs-menu-color-rgb: 212, 212, 216;
+    --bs-menu-hover-color: #fafafa;
+    --bs-menu-sub-active-color: #fafafa;
+    --bs-menu-horizontal-active-bg: #27272a;
+    --bs-menu-box-shadow: none;
+    --bs-navbar-color: #d4d4d8;
+    --bs-navbar-hover-color: #fafafa;
+    --bs-navbar-brand-color: #fafafa;
+    --bs-navbar-theme-color: #09090b;
+    --bg-navbar-theme: #09090b;
+    --bg-footer-theme: #09090b;
 
-    /* Barra de navegação e menu herdam o preto */
-    --bs-navbar-theme-color: #000000;
-    --bg-navbar-theme: #000000;
-    --bg-footer-theme: #000000;
-
-    --table-hover: rgba(255, 255, 255, 0.04);
+    /* ---------- Sombras / utilidades ---------- */
+    --bs-box-shadow: 0 0.1875rem 0.75rem 0 rgba(0, 0, 0, 0.5);
+    --bs-box-shadow-xs: 0 0.0625rem 0.375rem 0 rgba(0, 0, 0, 0.4);
+    --bs-box-shadow-sm: 0 0.125rem 0.5rem 0 rgba(0, 0, 0, 0.45);
+    --bs-box-shadow-lg: 0 0.25rem 1.125rem 0 rgba(0, 0, 0, 0.55);
+    --bs-box-shadow-xl: 0 0.3125rem 1.875rem 0 rgba(0, 0, 0, 0.6);
+    --bs-floating-component-shadow: 0 0.31rem 1.25rem 0 rgba(0, 0, 0, 0.6);
     --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.6);
     --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.7);
     --shadow-lg: 0 8px 30px rgba(0, 0, 0, 0.8);
-    --scrollbar-thumb: #333333;
+    --table-hover: rgba(255, 255, 255, 0.04);
+    --scrollbar-thumb: #3f3f46;
 
-    /* Cores de status ajustadas ao fundo preto */
+    /* ---------- Extras ---------- */
+    --bs-carousel-indicator-active-bg: #fafafa;
+    --bs-carousel-caption-color: #09090b;
+    --bs-input-group-addon-border-color: var(--bs-border-color);
+
+    /* ---------- Cores dos componentes do sistema ---------- */
     --c-violet: #b794f6;
     --c-orange: #fdba74;
     --c-amber: #fcd34d;
@@ -122,7 +222,42 @@
     --c-blue: #93c5fd;
     --c-purple: #c4b5fd;
     --c-green: #4ade80;
-    --c-gray: #9ca3af;
+    --c-gray: #a1a1aa;
+}
+
+/* Componentes do Vuexy com variáveis escopadas em azul-acinzentado:
+   reescritos para os neutros do tema. */
+[data-bs-theme="dark"] .pagination {
+    --bs-pagination-color: var(--bs-body-color);
+    --bs-pagination-bg: var(--bs-secondary-bg);
+    --bs-pagination-hover-bg: var(--bs-tertiary-bg);
+}
+[data-bs-theme="dark"] .pagination[class*=pagination-outline-] .page-item:not(.active) .page-link,
+[data-bs-theme="dark"] .pagination[class*=pagination-outline-] li > a:not(.page-link) {
+    --bs-pagination-hover-bg: var(--bs-tertiary-bg);
+}
+[data-bs-theme="dark"] .accordion-custom-button {
+    --bs-accordion-btn-bg: var(--bs-secondary-bg);
+    --bs-accordion-btn-active-bg: var(--bs-tertiary-bg);
+}
+[data-bs-theme="dark"] .input-group {
+    --bs-input-group-addon-border-color: var(--bs-border-color);
+}
+[data-bs-theme="dark"] .blockquote-footer {
+    color: var(--bs-secondary-color);
+}
+
+/* ---------- Campo de texto (textarea) com ícone ----------
+   O addon precisa esticar junto com o textarea para a borda
+   esquerda permanecer contínua; o ícone fica no topo, alinhado
+   à primeira linha do texto. */
+.input-group.input-group-merge.input-group-merge-textarea > .input-group-text {
+    align-self: stretch;
+    align-items: flex-start;
+}
+.input-group.input-group-merge.input-group-merge-textarea > textarea.form-control {
+    min-height: 120px;
+    resize: vertical;
 }
 
 /* ---------- Base / utilidades ---------- */
