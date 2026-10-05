@@ -49,13 +49,7 @@ $scripts_extra = '<script src="' . $caminho_base . '/js/ordens_servico.js"></scr
     $filtros = crud_filtro_select('prioridade', [
         'urgente' => 'Urgente', 'alta' => 'Alta', 'normal' => 'Normal', 'baixa' => 'Baixa',
     ], 'Prioridade: todas');
-    $filtros .= crud_filtro_select('status', [
-        'recebida' => 'Recebida', 'triagem' => 'Triagem', 'aguardando_diagnostico' => 'Aguardando diagnóstico',
-        'aguardando_orcamento' => 'Aguardando orçamento', 'aguardando_aprovacao' => 'Aguardando aprovação',
-        'aguardando_peca' => 'Aguardando peça', 'pronta_para_execucao' => 'Pronta para execução',
-        'em_execucao' => 'Em execução', 'aguardando_retorno' => 'Aguardando retorno',
-        'pronta_para_entrega' => 'Pronta para entrega',
-    ], 'Status: todos');
+    $filtros .= crud_filtro_select('status', os_status_opcoes(false), 'Status: todos');
     echo crud_toolbar('Buscar por OS, cliente, veículo, placa ou queixa...', $filtros);
     if (tem_papel(['admin', 'secretaria', 'mecanico_chefe'])) {
         echo crud_bulk_bar([

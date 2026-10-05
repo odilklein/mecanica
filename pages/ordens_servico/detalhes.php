@@ -48,7 +48,13 @@ require_once __DIR__ . '/../../includes/header.php';
 require_once __DIR__ . '/../../includes/mensagens.php';
 $scripts_extra = '<script>window.OrdemServicoDetalheApi = ' . json_encode($caminho_base . '/api/ordens_servico.php') . ';</script>';
 $scripts_extra .= '<script src="' . $caminho_base . '/js/os-detalhes.js"></script>';
-$status_nomes = ['recebida' => 'Recebida', 'triagem' => 'Triagem', 'aguardando_diagnostico' => 'Aguardando diagnóstico', 'aguardando_orcamento' => 'Aguardando orçamento', 'aguardando_aprovacao' => 'Aguardando aprovação', 'aguardando_peca' => 'Aguardando peça', 'pronta_para_execucao' => 'Pronta para execução', 'em_execucao' => 'Em execução', 'aguardando_retorno' => 'Aguardando retorno', 'pronta_para_entrega' => 'Pronta para entrega', 'entregue' => 'Entregue', 'cancelada' => 'Cancelada'];
+$status_nomes = os_status_labels();
+// Status que o operador pode escolher manualmente: o atual + os
+// próximos válidos. "entregue" só via confirmação de entrega/retirada.
+$status_disponiveis = array_values(array_unique(array_merge(
+    [$os['status']],
+    array_diff(os_status_proximos((string) $os['status']), ['entregue'])
+)));
 $tarefa_status_nomes = ['pendente' => 'Pendente', 'em_execucao' => 'Em execução', 'concluida' => 'Concluída', 'bloqueada' => 'Bloqueada'];
 $tarefa_status_cores = ['pendente' => '', 'em_execucao' => 'info', 'concluida' => 'success', 'bloqueada' => 'danger'];
 $pedido_status_nomes = ['solicitado' => 'Aguardando validação', 'validado' => 'Validado', 'pedido' => 'Pedido realizado', 'a_caminho' => 'A caminho', 'recebido' => 'Recebido', 'cancelado' => 'Cancelado'];
@@ -123,7 +129,7 @@ $pedido_status_nomes = ['solicitado' => 'Aguardando validação', 'validado' => 
     </div>
     <div class="col-lg-4">
         <?php if (tem_papel(['admin', 'secretaria', 'mecanico_chefe'])): ?><a href="../orcamentos/editor.php?os_id=<?php echo $id; ?>&cliente_id=<?php echo (int) $os['cliente_id']; ?>&veiculo_id=<?php echo (int) $os['veiculo_id']; ?>" class="btn btn-primary w-100 mb-3"><i class="icon-base ti tabler-file-plus"></i>Novo orçamento desta OS</a><?php endif; ?>
-        <?php if (tem_papel(['admin', 'secretaria', 'mecanico_chefe'])): ?><div class="card mb-3"><div class="card-header"><i class="icon-base ti tabler-refresh me-2"></i>Atualizar status</div><div class="card-body"><form method="POST" data-os-acao="mudar_status"><input type="hidden" name="csrf_token" value="<?php echo esc(csrf_token()); ?>"><input type="hidden" name="os_id" value="<?php echo $id; ?>"><select class="form-select mb-3" name="status"><?php foreach ($status_nomes as $status => $nome): ?><?php if ($status !== 'entregue'): ?><option value="<?php echo esc($status); ?>" <?php echo $os['status'] === $status ? 'selected' : ''; ?>><?php echo esc($nome); ?></option><?php endif; ?><?php endforeach; ?></select><button class="btn btn-primary w-100" type="submit">Salvar status</button></form></div></div><?php endif; ?>
+        <?php if (tem_papel(['admin', 'secretaria', 'mecanico_chefe'])): ?><div class="card mb-3"><div class="card-header"><i class="icon-base ti tabler-refresh me-2"></i>Atualizar status</div><div class="card-body"><form method="POST" data-os-acao="mudar_status"><input type="hidden" name="csrf_token" value="<?php echo esc(csrf_token()); ?>"><input type="hidden" name="os_id" value="<?php echo $id; ?>"><select class="form-select mb-3" name="status"><?php foreach ($status_disponiveis as $status): ?><option value="<?php echo esc($status); ?>" <?php echo $os['status'] === $status ? 'selected' : ''; ?>><?php echo esc(os_status_label($status)); ?></option><?php endforeach; ?></select><button class="btn btn-primary w-100" type="submit">Salvar status</button></form></div></div><?php endif; ?>
         <?php if ($mecanicos): ?><div class="card mb-3"><div class="card-header"><i class="icon-base ti tabler-user-plus me-2"></i>Designar mecânico</div><div class="card-body"><form method="POST" data-os-acao="atribuir"><input type="hidden" name="csrf_token" value="<?php echo esc(csrf_token()); ?>"><input type="hidden" name="os_id" value="<?php echo $id; ?>"><select class="form-select mb-3" name="usuario_id" required><option value="">Selecione</option><?php foreach ($mecanicos as $mecanico): ?><option value="<?php echo (int) $mecanico['id']; ?>"><?php echo esc($mecanico['nome']); ?> (<?php echo esc($mecanico['tipo']); ?>)</option><?php endforeach; ?></select><button class="btn btn-outline-primary w-100" type="submit">Atribuir</button></form></div></div><?php endif; ?>
         <div class="card mb-3"><div class="card-header"><i class="icon-base ti tabler-users me-2"></i>Responsáveis</div><div class="card-body">
             <?php if ($responsaveis): ?>

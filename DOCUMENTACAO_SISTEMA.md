@@ -329,20 +329,23 @@ Estados existentes:
 
 ```text
 recebida
-triagem
-aguardando_diagnostico
-aguardando_orcamento
+em_analise
 aguardando_aprovacao
 aguardando_peca
-pronta_para_execucao
 em_execucao
-aguardando_retorno
 pronta_para_entrega
 entregue
 cancelada
 ```
 
-Transicoes permitidas ficam em `pages/ordens_servico/processar.php`. Nao permitir saltos arbitrarios.
+Fluxo condensado (8 estados): `triagem` foi absorvida por `recebida`;
+`aguardando_diagnostico` e `aguardando_orcamento` foram fundidas em
+`em_analise`; `pronta_para_execucao` e `aguardando_retorno` foram
+absorvidas por `em_execucao`.
+
+As definicoes (rotulos e transicoes) ficam em `config/status_os.php`,
+fonte unica consumida pelo PHP e exposta ao JS em `window.OS_STATUS`.
+Nao permitir saltos arbitrarios.
 
 A OS nao pode ser marcada como `entregue` manualmente. Deve haver entrega/retirada confirmada em `os_entregas`.
 
@@ -409,7 +412,7 @@ Ao receber:
 - Quando todos os itens estao recebidos, o pedido vai para `recebido`.
 - Registrar usuario/data de recebimento.
 - Notificar responsaveis da OS.
-- Liberar a OS para `pronta_para_execucao` quando aplicavel.
+- Liberar a OS para `em_execucao` quando aplicavel.
 
 ---
 

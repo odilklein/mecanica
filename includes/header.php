@@ -1,13 +1,18 @@
 <?php
 require_once __DIR__ . '/base_url.php';
 require_once __DIR__ . '/../config/empresa.php';
+require_once __DIR__ . '/../config/status_os.php';
 
 // `base_url.php` grava em $GLOBALS; expõe como variável local.
 $caminho_base = $GLOBALS['caminho_base'] ?? '';
 
+// Cache-busting: anexa a data de modificação para o navegador não
+// servir uma versão antiga do CSS após deploy/edição.
+$v_mecanica = @filemtime(__DIR__ . '/../css/mecanica.css') ?: time();
+
 $url_core = $caminho_base . '/assets/vendor/css/core.css';
 $url_demo = $caminho_base . '/assets/css/demo.css';
-$url_mecanica = $caminho_base . '/css/mecanica.css';
+$url_mecanica = $caminho_base . '/css/mecanica.css?v=' . $v_mecanica;
 $url_icons = $caminho_base . '/assets/vendor/fonts/iconify-icons.css';
 $url_index = $caminho_base . '/index.php';
 ?>
@@ -52,6 +57,7 @@ $url_index = $caminho_base . '/index.php';
     <script>
         window.CAMINHO_BASE = <?php echo json_encode($caminho_base); ?>;
         window.CSRF_TOKEN = <?php echo json_encode(csrf_token() ?? ''); ?>;
+        window.OS_STATUS = <?php echo json_encode(os_status_payload(), JSON_UNESCAPED_UNICODE); ?>;
     </script>
 
     <!-- Layout wrapper -->

@@ -155,7 +155,7 @@ CREATE TABLE ordens_servico (
   numero INT NOT NULL UNIQUE,
   cliente_id INT NOT NULL,
   veiculo_id INT NULL,
-  status ENUM('recebida','triagem','aguardando_diagnostico','aguardando_orcamento','aguardando_aprovacao','aguardando_peca','pronta_para_execucao','em_execucao','aguardando_retorno','pronta_para_entrega','entregue','cancelada') NOT NULL DEFAULT 'recebida',
+  status ENUM('recebida','em_analise','aguardando_aprovacao','aguardando_peca','em_execucao','pronta_para_entrega','entregue','cancelada') NOT NULL DEFAULT 'recebida',
   prioridade ENUM('baixa','normal','alta','urgente') NOT NULL DEFAULT 'normal',
   queixa_inicial TEXT NOT NULL,
   diagnostico TEXT,
@@ -394,8 +394,8 @@ INSERT INTO ordens_servico (numero, cliente_id, veiculo_id, status, prioridade, 
 (1004, 5, 6, 'aguardando_peca', 'alta', 'Revisao dos 60.000 km', 'Correia dentada proxima do limite de uso.', 'Aguardando kit de correia do fornecedor.', 3, 2, NOW() - INTERVAL 3 DAY, NULL),
 (1005, 4, 5, 'aguardando_aprovacao', 'normal', 'Pastilhas dianteiras desgastadas', 'Pastilhas abaixo da espessura recomendada.', 'Orcamento enviado para aprovacao.', 3, 2, NOW() - INTERVAL 2 DAY, NULL),
 (1006, 7, 8, 'cancelada', 'baixa', 'Troca de bateria e revisao eletrica', 'Bateria sem capacidade de carga.', 'Cliente cancelou o servico.', 3, 2, NOW() - INTERVAL 12 DAY, NULL),
-(1007, 9, 10, 'pronta_para_execucao', 'urgente', 'Motor fazendo ruido metalico', 'Correia e tensores precisam ser substituidos.', 'Pecas recebidas e separadas para execucao.', 3, 1, NOW() - INTERVAL 7 DAY, NULL),
-(1008, 10, 12, 'aguardando_diagnostico', 'normal', 'Embreagem patinando', NULL, 'Realizar teste de rodagem e diagnostico.', 3, 2, NOW() - INTERVAL 1 DAY, NULL);
+(1007, 9, 10, 'em_execucao', 'urgente', 'Motor fazendo ruido metalico', 'Correia e tensores precisam ser substituidos.', 'Pecas recebidas e separadas para execucao.', 3, 1, NOW() - INTERVAL 7 DAY, NULL),
+(1008, 10, 12, 'em_analise', 'normal', 'Embreagem patinando', NULL, 'Realizar teste de rodagem e diagnostico.', 3, 2, NOW() - INTERVAL 1 DAY, NULL);
 INSERT INTO os_responsaveis (os_id, usuario_id, atribuido_por, atribuido_em, concluido_em, observacoes) VALUES
 (1, 4, 3, NOW() - INTERVAL 12 DAY, NOW() - INTERVAL 10 DAY, 'Servico concluido.'),
 (2, 4, 3, NOW() - INTERVAL 8 DAY, NULL, 'Conferir liberacao do veiculo.'),
@@ -417,18 +417,18 @@ INSERT INTO os_tarefas (os_id, descricao, status, criado_por, concluido_por, cri
 
 INSERT INTO os_eventos (os_id, tipo, status_anterior, status_novo, descricao, criado_por, criado_em) VALUES
 (1, 'criacao', NULL, 'recebida', 'Atendimento criado', 2, NOW() - INTERVAL 12 DAY),
-(1, 'diagnostico', 'aguardando_diagnostico', 'aguardando_orcamento', 'Diagnostico concluido', 4, NOW() - INTERVAL 11 DAY),
+(1, 'diagnostico', 'em_analise', 'em_analise', 'Diagnostico concluido', 4, NOW() - INTERVAL 11 DAY),
 (1, 'status', 'pronta_para_entrega', 'entregue', 'Veiculo retirado pelo cliente', 2, NOW() - INTERVAL 10 DAY),
 (2, 'criacao', NULL, 'recebida', 'Atendimento criado', 2, NOW() - INTERVAL 8 DAY),
 (2, 'status', 'em_execucao', 'pronta_para_entrega', 'Servico concluido', 4, NOW() - INTERVAL 1 DAY),
 (3, 'criacao', NULL, 'recebida', 'Atendimento criado', 1, NOW() - INTERVAL 5 DAY),
-(3, 'diagnostico', 'aguardando_diagnostico', 'aguardando_orcamento', 'Diagnostico dos freios registrado', 5, NOW() - INTERVAL 4 DAY),
+(3, 'diagnostico', 'em_analise', 'em_analise', 'Diagnostico dos freios registrado', 5, NOW() - INTERVAL 4 DAY),
 (3, 'status', 'aguardando_aprovacao', 'em_execucao', 'Orcamento aprovado e servico iniciado', 1, NOW() - INTERVAL 1 DAY),
 (4, 'peca_solicitada', NULL, NULL, 'Pedido de kit de correia criado', 2, NOW() - INTERVAL 2 DAY),
-(4, 'status', 'aguardando_orcamento', 'aguardando_peca', 'OS aguardando recebimento de peca', 2, NOW() - INTERVAL 2 DAY),
-(5, 'status', 'aguardando_orcamento', 'aguardando_aprovacao', 'Orcamento enviado para aprovacao', 2, NOW() - INTERVAL 1 DAY),
+(4, 'status', 'em_analise', 'aguardando_peca', 'OS aguardando recebimento de peca', 2, NOW() - INTERVAL 2 DAY),
+(5, 'status', 'em_analise', 'aguardando_aprovacao', 'Orcamento enviado para aprovacao', 2, NOW() - INTERVAL 1 DAY),
 (7, 'peca_status', NULL, NULL, 'Pedido de pecas recebido', 2, NOW() - INTERVAL 1 DAY),
-(7, 'status', 'aguardando_peca', 'pronta_para_execucao', 'Pecas disponiveis para execucao', 2, NOW() - INTERVAL 1 DAY),
+(7, 'status', 'aguardando_peca', 'em_execucao', 'Pecas disponiveis para execucao', 2, NOW() - INTERVAL 1 DAY),
 (8, 'criacao', NULL, 'recebida', 'Atendimento criado', 2, NOW() - INTERVAL 1 DAY);
 
 INSERT INTO os_entregas (os_id, modalidade, responsavel, destino, km_saida, checklist, observacoes, status, criado_por, concluido_por, criado_em, concluido_em) VALUES
@@ -494,14 +494,10 @@ SELECT
     os.status,
     CASE os.status
         WHEN 'recebida' THEN 'Recebida'
-        WHEN 'triagem' THEN 'Triagem'
-        WHEN 'aguardando_diagnostico' THEN 'Aguardando diagnóstico'
-        WHEN 'aguardando_orcamento' THEN 'Aguardando orçamento'
+        WHEN 'em_analise' THEN 'Em análise'
         WHEN 'aguardando_aprovacao' THEN 'Aguardando aprovação'
         WHEN 'aguardando_peca' THEN 'Aguardando peça'
-        WHEN 'pronta_para_execucao' THEN 'Pronta para execução'
         WHEN 'em_execucao' THEN 'Em execução'
-        WHEN 'aguardando_retorno' THEN 'Aguardando retorno'
         WHEN 'pronta_para_entrega' THEN 'Pronta para entrega'
         WHEN 'entregue' THEN 'Entregue'
         WHEN 'cancelada' THEN 'Cancelada'

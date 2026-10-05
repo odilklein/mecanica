@@ -16,37 +16,15 @@
         normal: 'badge-prioridade-normal',
         baixa: 'badge-prioridade-baixa'
     };
-    var statusBadges = {
-        recebida: 'badge-status-recebida', triagem: 'badge-status-triagem',
-        aguardando_diagnostico: 'badge-status-aguardando_diagnostico',
-        aguardando_orcamento: 'badge-status-aguardando_orcamento',
-        aguardando_aprovacao: 'badge-status-aguardando_aprovacao',
-        aguardando_peca: 'badge-status-aguardando_peca',
-        pronta_para_execucao: 'badge-status-pronta_para_execucao',
-        em_execucao: 'badge-status-em_execucao',
-        aguardando_retorno: 'badge-status-aguardando_retorno',
-        pronta_para_entrega: 'badge-status-pronta_para_entrega'
-    };
-    // Próximos status possíveis (espelha as transições da API).
-    var transicoes = {
-        recebida: ['triagem', 'aguardando_diagnostico', 'cancelada'],
-        triagem: ['aguardando_diagnostico', 'aguardando_orcamento', 'cancelada'],
-        aguardando_diagnostico: ['aguardando_orcamento', 'aguardando_peca', 'cancelada'],
-        aguardando_orcamento: ['aguardando_aprovacao', 'aguardando_peca', 'cancelada'],
-        aguardando_aprovacao: ['aguardando_peca', 'pronta_para_execucao', 'cancelada'],
-        aguardando_peca: ['pronta_para_execucao', 'cancelada'],
-        pronta_para_execucao: ['em_execucao', 'cancelada'],
-        em_execucao: ['aguardando_retorno', 'pronta_para_entrega', 'aguardando_peca', 'cancelada'],
-        aguardando_retorno: ['em_execucao', 'pronta_para_entrega', 'cancelada'],
-        pronta_para_entrega: ['entregue', 'aguardando_retorno']
-    };
-    var statusNomes = {
-        recebida: 'Recebida', triagem: 'Triagem', aguardando_diagnostico: 'Aguardando diagnóstico',
-        aguardando_orcamento: 'Aguardando orçamento', aguardando_aprovacao: 'Aguardando aprovação',
-        aguardando_peca: 'Aguardando peça', pronta_para_execucao: 'Pronta para execução',
-        em_execucao: 'Em execução', aguardando_retorno: 'Aguardando retorno',
-        pronta_para_entrega: 'Pronta para entrega', entregue: 'Entregue', cancelada: 'Cancelada'
-    };
+    // Rótulos e transições vêm da fonte única do backend (config/status_os.php)
+    // exposta em window.OS_STATUS pelo header.php.
+    var osStatus = window.OS_STATUS || { labels: {}, transicoes: {} };
+    var statusNomes = osStatus.labels || {};
+    var transicoes = osStatus.transicoes || {};
+    var statusBadges = {};
+    Object.keys(statusNomes).forEach(function (s) {
+        statusBadges[s] = 'badge-status-' + s;
+    });
 
     function formatarData(valor) {
         if (!valor) { return '—'; }

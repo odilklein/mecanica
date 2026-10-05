@@ -208,7 +208,7 @@ try {
         $pedido_id = (int) $conn->lastInsertId();
         $st = $conn->prepare('INSERT INTO pedido_pecas_itens (pedido_id, descricao, quantidade) VALUES (:pedido, :descricao, :quantidade)');
         $st->execute([':pedido' => $pedido_id, ':descricao' => $descricao, ':quantidade' => $quantidade]);
-        $st = $conn->prepare("UPDATE ordens_servico SET status = IF(status IN ('recebida', 'triagem', 'aguardando_diagnostico', 'aguardando_orcamento'), 'aguardando_peca', status) WHERE id = :id");
+        $st = $conn->prepare("UPDATE ordens_servico SET status = IF(status IN ('recebida', 'em_analise'), 'aguardando_peca', status) WHERE id = :id");
         $st->execute([':id' => $os_id]);
         $st = $conn->prepare("INSERT INTO os_eventos (os_id, tipo, descricao, criado_por) VALUES (:os_id, 'peca_solicitada', 'Pedido de peça criado', :usuario)");
         $st->execute([':os_id' => $os_id, ':usuario' => $_SESSION['usuario_id']]);
@@ -261,7 +261,7 @@ try {
         if ($status === 'recebido') {
             $st = $conn->prepare('UPDATE pedido_pecas_itens SET recebido = quantidade, recebido_em = NOW() WHERE pedido_id = :id AND recebido < quantidade');
             $st->execute([':id' => $id]);
-            $st = $conn->prepare("UPDATE ordens_servico SET status = IF(status = 'aguardando_peca', 'pronta_para_execucao', status) WHERE id = :id");
+            $st = $conn->prepare("UPDATE ordens_servico SET status = IF(status = 'aguardando_peca', 'em_execucao', status) WHERE id = :id");
             $st->execute([':id' => $pedido['os_id']]);
             pp_api_notificar_responsaveis($conn, (int) $pedido['os_id'], 'peca_disponivel', 'A peça solicitada para uma ordem de serviço está disponível.');
         }
@@ -321,7 +321,7 @@ try {
         if ($todos_recebidos) {
             $upd = $conn->prepare("UPDATE pedidos_pecas SET status = 'recebido', recebido_por = :usuario, recebido_em = NOW() WHERE id = :id");
             $upd->execute([':usuario' => $_SESSION['usuario_id'], ':id' => $id]);
-            $st = $conn->prepare("UPDATE ordens_servico SET status = IF(status = 'aguardando_peca', 'pronta_para_execucao', status) WHERE id = :id");
+            $st = $conn->prepare("UPDATE ordens_servico SET status = IF(status = 'aguardando_peca', 'em_execucao', status) WHERE id = :id");
             $st->execute([':id' => $pedido['os_id']]);
             $st = $conn->prepare("INSERT INTO os_eventos (os_id, tipo, descricao, criado_por) VALUES (:os_id, 'peca_status', 'Todos os itens do pedido foram recebidos', :usuario)");
             $st->execute([':os_id' => $pedido['os_id'], ':usuario' => $_SESSION['usuario_id']]);

@@ -77,7 +77,7 @@ require_once __DIR__ . '/../../includes/header.php';
                                 <td data-label="Veículo"><?php echo esc(trim(($ordem['modelo'] ?? '') . ' ' . ($ordem['placa'] ?? '')) ?: '—'); ?></td>
                                 <td data-label="Queixa"><?php echo esc(mb_strimwidth($ordem['queixa_inicial'], 0, 70, '...')); ?></td>
                                 <td data-label="Data"><?php echo date('d/m/Y', strtotime($ordem['data_entrada'])); ?></td>
-                                <td data-label="Status"><span class="badge badge-status-<?php echo esc($ordem['status']); ?>"><?php echo esc(ucfirst(str_replace('_', ' ', $ordem['status']))); ?></span></td>
+                                <td data-label="Status"><span class="badge badge-status-<?php echo esc($ordem['status']); ?>"><?php echo esc(os_status_label((string) $ordem['status'])); ?></span></td>
                             </tr>
                         <?php endforeach; ?>
                         <?php if (!$ordens): ?>

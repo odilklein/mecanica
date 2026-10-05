@@ -1,6 +1,7 @@
 <?php
 require_once __DIR__ . '/../../includes/sessao.php';
 require_once __DIR__ . '/../../config/conexao.php';
+require_once __DIR__ . '/../../config/status_os.php';
 exigir_papel(['admin', 'secretaria', 'mecanico_chefe']);
 
 $titulo_pagina = 'Relatórios';
@@ -91,14 +92,10 @@ foreach ($conn->query("SELECT status, COUNT(*) AS total FROM orcamentos GROUP BY
 // ============ ORDENS DE SERVIÇO POR STATUS ============
 $os_status_map = [
     'recebida' => ['label' => 'Recebida', 'token' => 'gray'],
-    'triagem' => ['label' => 'Triagem', 'token' => 'gray'],
-    'aguardando_diagnostico' => ['label' => 'Aguard. diagnóstico', 'token' => 'amber'],
-    'aguardando_orcamento' => ['label' => 'Aguard. orçamento', 'token' => 'warning'],
+    'em_analise' => ['label' => 'Em análise', 'token' => 'amber'],
     'aguardando_aprovacao' => ['label' => 'Aguard. aprovação', 'token' => 'orange'],
     'aguardando_peca' => ['label' => 'Aguard. peça', 'token' => 'violet'],
-    'pronta_para_execucao' => ['label' => 'Pronta p/ execução', 'token' => 'blue'],
     'em_execucao' => ['label' => 'Em execução', 'token' => 'info'],
-    'aguardando_retorno' => ['label' => 'Aguard. retorno', 'token' => 'teal'],
     'pronta_para_entrega' => ['label' => 'Pronta p/ entrega', 'token' => 'success'],
     'entregue' => ['label' => 'Entregue', 'token' => 'green'],
     'cancelada' => ['label' => 'Cancelada', 'token' => 'danger'],

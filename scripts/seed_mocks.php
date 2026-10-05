@@ -26,6 +26,7 @@ if (PHP_SAPI !== 'cli') {
 }
 
 require_once __DIR__ . '/../config/conexao.php';
+require_once __DIR__ . '/../config/status_os.php';
 
 $opcoes = getopt('', ['yes', 'clientes::', 'os::', 'seed::']);
 $confirmado = array_key_exists('yes', $opcoes);
@@ -297,19 +298,12 @@ $fornecedores = [
 ];
 
 $pipeline = [
-    'recebida', 'triagem', 'aguardando_diagnostico', 'aguardando_orcamento', 'aguardando_aprovacao',
-    'aguardando_peca', 'pronta_para_execucao', 'em_execucao', 'aguardando_retorno',
-    'pronta_para_entrega', 'entregue',
+    'recebida', 'em_analise', 'aguardando_aprovacao', 'aguardando_peca',
+    'em_execucao', 'pronta_para_entrega', 'entregue',
 ];
 $indice_pipeline = array_flip($pipeline);
 
-$rotulos_status = [
-    'recebida' => 'Recebida', 'triagem' => 'Triagem', 'aguardando_diagnostico' => 'Aguardando diagnóstico',
-    'aguardando_orcamento' => 'Aguardando orçamento', 'aguardando_aprovacao' => 'Aguardando aprovação',
-    'aguardando_peca' => 'Aguardando peça', 'pronta_para_execucao' => 'Pronta para execução',
-    'em_execucao' => 'Em execução', 'aguardando_retorno' => 'Aguardando retorno',
-    'pronta_para_entrega' => 'Pronta para entrega', 'entregue' => 'Entregue', 'cancelada' => 'Cancelada',
-];
+$rotulos_status = os_status_labels();
 
 // =============================================================
 // USUÁRIOS EXISTENTES (preservados)
@@ -439,13 +433,13 @@ for ($i = 0; $i < $qtdOs; $i++) {
     $idadeDias = (int) floor(($agora - $entradaTs) / 86400);
 
     if ($idadeDias > 60) {
-        $status = ponderado(['entregue' => 80, 'cancelada' => 10, 'pronta_para_entrega' => 3, 'em_execucao' => 3, 'aguardando_peca' => 2, 'pronta_para_execucao' => 2]);
+        $status = ponderado(['entregue' => 80, 'cancelada' => 10, 'pronta_para_entrega' => 3, 'em_execucao' => 5, 'aguardando_peca' => 2]);
     } elseif ($idadeDias > 30) {
-        $status = ponderado(['entregue' => 55, 'cancelada' => 8, 'em_execucao' => 10, 'aguardando_peca' => 7, 'pronta_para_entrega' => 8, 'aguardando_aprovacao' => 5, 'pronta_para_execucao' => 4, 'aguardando_retorno' => 3]);
+        $status = ponderado(['entregue' => 55, 'cancelada' => 8, 'em_execucao' => 17, 'aguardando_peca' => 7, 'pronta_para_entrega' => 8, 'aguardando_aprovacao' => 5]);
     } elseif ($idadeDias > 15) {
-        $status = ponderado(['entregue' => 35, 'cancelada' => 5, 'em_execucao' => 15, 'aguardando_peca' => 10, 'pronta_para_entrega' => 10, 'aguardando_aprovacao' => 8, 'pronta_para_execucao' => 7, 'aguardando_diagnostico' => 5, 'aguardando_orcamento' => 5]);
+        $status = ponderado(['entregue' => 35, 'cancelada' => 5, 'em_execucao' => 22, 'aguardando_peca' => 10, 'pronta_para_entrega' => 10, 'aguardando_aprovacao' => 8, 'em_analise' => 10]);
     } else {
-        $status = ponderado(['recebida' => 12, 'triagem' => 10, 'aguardando_diagnostico' => 14, 'aguardando_orcamento' => 12, 'aguardando_aprovacao' => 12, 'aguardando_peca' => 10, 'pronta_para_execucao' => 10, 'em_execucao' => 10, 'aguardando_retorno' => 4, 'pronta_para_entrega' => 4, 'entregue' => 2]);
+        $status = ponderado(['recebida' => 22, 'em_analise' => 26, 'aguardando_aprovacao' => 12, 'aguardando_peca' => 10, 'em_execucao' => 24, 'pronta_para_entrega' => 4, 'entregue' => 2]);
     }
 
     $prioridade = ponderado(['baixa' => 15, 'normal' => 55, 'alta' => 22, 'urgente' => 8]);
@@ -455,7 +449,7 @@ for ($i = 0; $i < $qtdOs; $i++) {
         $conclusaoTs = min($agora, $entradaTs + entre(1, 12) * 86400);
     }
 
-    $temDiagnostico = isset($indice_pipeline[$status]) && $indice_pipeline[$status] >= $indice_pipeline['aguardando_orcamento'];
+    $temDiagnostico = isset($indice_pipeline[$status]) && $indice_pipeline[$status] >= $indice_pipeline['em_analise'];
     $diagnostico = $temDiagnostico ? pick($diagnosticos) : null;
 
     $osId = inserir(
@@ -540,7 +534,7 @@ for ($i = 0; $i < $qtdOs; $i++) {
         $eventoTs = min($agora, $eventoTs + entre(2, 72) * 3600);
         $novo = $pipeline[$p];
         $tipo = match ($novo) {
-            'aguardando_orcamento' => 'diagnostico',
+            'em_analise' => 'diagnostico',
             'aguardando_peca' => 'peca_solicitada',
             default => 'status',
         };
@@ -569,7 +563,7 @@ for ($i = 0; $i < $qtdOs; $i++) {
     }
 
     // ---- Pedidos de peças ----
-    $geraPedido = in_array($status, ['aguardando_peca', 'pronta_para_execucao', 'em_execucao', 'aguardando_retorno', 'pronta_para_entrega', 'entregue'], true)
+    $geraPedido = in_array($status, ['aguardando_peca', 'em_execucao', 'pronta_para_entrega', 'entregue'], true)
         ? chance(55)
         : chance(18);
     if ($geraPedido) {
@@ -676,7 +670,7 @@ for ($i = 0; $i < $qtdOs; $i++) {
             $statusOrc = ponderado(['aprovado' => 88, 'reprovado' => 7, 'cancelado' => 5]);
         } elseif ($status === 'cancelada') {
             $statusOrc = ponderado(['cancelado' => 60, 'reprovado' => 25, 'aberto' => 15]);
-        } elseif (in_array($status, ['aguardando_aprovacao', 'aguardando_orcamento'], true)) {
+        } elseif (in_array($status, ['aguardando_aprovacao', 'em_analise'], true)) {
             $statusOrc = 'aberto';
         } else {
             $statusOrc = ponderado(['aprovado' => 55, 'aberto' => 35, 'reprovado' => 10]);

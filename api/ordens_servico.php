@@ -14,6 +14,7 @@ require_once dirname(__DIR__) . '/config/conexao.php';
 require_once dirname(__DIR__) . '/includes/notificacoes.php';
 require_once dirname(__DIR__) . '/includes/auditoria.php';
 require_once dirname(__DIR__) . '/includes/clientes.php';
+require_once dirname(__DIR__) . '/config/status_os.php';
 
 header('Content-Type: application/json; charset=utf-8');
 
@@ -25,14 +26,6 @@ if (!function_exists('os_api_saida')) {
         exit();
     }
 }
-
-$status_nomes = [
-    'recebida' => 'Recebida', 'triagem' => 'Triagem', 'aguardando_diagnostico' => 'Aguardando diagnóstico',
-    'aguardando_orcamento' => 'Aguardando orçamento', 'aguardando_aprovacao' => 'Aguardando aprovação',
-    'aguardando_peca' => 'Aguardando peça', 'pronta_para_execucao' => 'Pronta para execução',
-    'em_execucao' => 'Em execução', 'aguardando_retorno' => 'Aguardando retorno',
-    'pronta_para_entrega' => 'Pronta para entrega', 'entregue' => 'Entregue', 'cancelada' => 'Cancelada',
-];
 
 if (!isset($_SESSION['usuario_id'])) {
     os_api_saida(['ok' => false, 'erro' => 'Não autenticado.'], 401);
@@ -92,7 +85,7 @@ try {
             $condicoes[] = 'v.prioridade = :prioridade';
             $params[':prioridade'] = $prioridade;
         }
-        if (array_key_exists($status, $status_nomes)) {
+        if (os_status_valido($status)) {
             $condicoes[] = 'v.status = :status';
             $params[':status'] = $status;
         }
@@ -428,9 +421,9 @@ try {
         if ($diagnostico === '') {
             os_api_saida(['ok' => false, 'erro' => 'Informe o diagnóstico técnico.'], 422);
         }
-        $st = $conn->prepare("UPDATE ordens_servico SET diagnostico = :diagnostico, observacoes_internas = :observacoes, status = IF(status IN ('recebida', 'triagem', 'aguardando_diagnostico'), 'aguardando_orcamento', status) WHERE id = :id");
-        $st->execute([':diagnostico' => $diagnostico, ':observacoes' => $observacoes ?: null, ':id' => $os_id]);
-        os_api_evento($conn, $os_id, 'diagnostico', 'Diagnóstico técnico atualizado', $os_atual['status'], 'aguardando_orcamento');
+        $st = $conn->prepare("UPDATE ordens_servico SET diagnostico = :diagnostico, observacoes_internas = :observacoes, status = IF(status IN ('recebida', 'em_analise'), 'em_analise', status) WHERE id = :id");
+        $st->execute([':diagnostico' => $diagnostico, ':observacoes' => $observacoes, ':id' => $os_id]);
+        os_api_evento($conn, $os_id, 'diagnostico', 'Diagnóstico técnico atualizado', $os_atual['status'], 'em_analise');
         notificar_tipos($conn, ['admin', 'secretaria', 'mecanico_chefe'], $os_id, 'diagnostico', 'Diagnóstico da OS #' . $os_atual['numero'] . ' atualizado — aguardando orçamento.', (int) $_SESSION['usuario_id']);
         os_api_saida(['ok' => true, 'mensagem' => 'Diagnóstico atualizado.']);
     }
@@ -464,25 +457,10 @@ try {
             os_api_saida(['ok' => false, 'erro' => 'Acesso não autorizado.'], 403);
         }
         $novo_status = $_POST['status'] ?? '';
-        $status_validos = array_keys($status_nomes);
-        if (!in_array($novo_status, $status_validos, true)) {
+        if (!os_status_valido($novo_status)) {
             os_api_saida(['ok' => false, 'erro' => 'Status inválido.'], 422);
         }
-        $transicoes = [
-            'recebida' => ['triagem', 'aguardando_diagnostico', 'cancelada'],
-            'triagem' => ['aguardando_diagnostico', 'aguardando_orcamento', 'cancelada'],
-            'aguardando_diagnostico' => ['aguardando_orcamento', 'aguardando_peca', 'cancelada'],
-            'aguardando_orcamento' => ['aguardando_aprovacao', 'aguardando_peca', 'cancelada'],
-            'aguardando_aprovacao' => ['aguardando_peca', 'pronta_para_execucao', 'cancelada'],
-            'aguardando_peca' => ['pronta_para_execucao', 'cancelada'],
-            'pronta_para_execucao' => ['em_execucao', 'cancelada'],
-            'em_execucao' => ['aguardando_retorno', 'pronta_para_entrega', 'aguardando_peca', 'cancelada'],
-            'aguardando_retorno' => ['em_execucao', 'pronta_para_entrega', 'cancelada'],
-            'pronta_para_entrega' => ['entregue', 'aguardando_retorno'],
-            'entregue' => [],
-            'cancelada' => [],
-        ];
-        if ($novo_status !== $os_atual['status'] && !in_array($novo_status, $transicoes[$os_atual['status']] ?? [], true)) {
+        if ($novo_status !== $os_atual['status'] && !in_array($novo_status, os_status_proximos((string) $os_atual['status']), true)) {
             os_api_saida(['ok' => false, 'erro' => 'Essa mudança de status não é permitida para a etapa atual.'], 422);
         }
         if ($novo_status === 'entregue') {

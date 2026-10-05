@@ -37,13 +37,13 @@ if (!function_exists('or_api_atualizar_status_os')) {
             return;
         }
         if ($status_orc === 'aprovado' && $os['status'] === 'aguardando_aprovacao') {
-            $novo = 'pronta_para_execucao';
+            $novo = 'em_execucao';
             $conn->prepare("UPDATE ordens_servico SET status = :status WHERE id = :id")->execute([':status' => $novo, ':id' => $os_id]);
             $conn->prepare("INSERT INTO os_eventos (os_id, tipo, status_anterior, status_novo, descricao, criado_por) VALUES (:os_id, 'orcamento', :ant, :novo, 'Orçamento aprovado automaticamente', :u)")
                 ->execute([':os_id' => $os_id, ':ant' => $os['status'], ':novo' => $novo, ':u' => $usuario_id]);
             notificar_responsaveis_os($conn, $os_id, 'os_status', 'O orçamento foi aprovado. Status da OS alterado para "' . str_replace('_', ' ', $novo) . '".', $usuario_id);
         } elseif (in_array($status_orc, ['reprovado', 'cancelado'], true) && $os['status'] === 'aguardando_aprovacao') {
-            $novo = 'aguardando_orcamento';
+            $novo = 'em_analise';
             $conn->prepare("UPDATE ordens_servico SET status = :status WHERE id = :id")->execute([':status' => $novo, ':id' => $os_id]);
             $conn->prepare("INSERT INTO os_eventos (os_id, tipo, status_anterior, status_novo, descricao, criado_por) VALUES (:os_id, 'orcamento', :ant, :novo, 'Orçamento rejeitado automaticamente', :u)")
                 ->execute([':os_id' => $os_id, ':ant' => $os['status'], ':novo' => $novo, ':u' => $usuario_id]);
@@ -270,11 +270,11 @@ try {
             $st = $conn->prepare('SELECT status FROM ordens_servico WHERE id = :id');
             $st->execute([':id' => $os_id]);
             $os = $st->fetch();
-            if ($os && $os['status'] === 'aguardando_orcamento') {
+            if ($os && in_array($os['status'], ['recebida', 'em_analise'], true)) {
                 $conn->prepare("UPDATE ordens_servico SET status = 'aguardando_aprovacao' WHERE id = :id")->execute([':id' => $os_id]);
                 $desc = 'Orçamento #' . str_pad((string) $numero, 4, '0', STR_PAD_LEFT) . ' vinculado a OS';
-                $conn->prepare("INSERT INTO os_eventos (os_id, tipo, status_anterior, status_novo, descricao, criado_por) VALUES (:os_id, 'orcamento', 'aguardando_orcamento', 'aguardando_aprovacao', :desc, :u)")
-                    ->execute([':os_id' => $os_id, ':desc' => $desc, ':u' => $_SESSION['usuario_id']]);
+                $conn->prepare("INSERT INTO os_eventos (os_id, tipo, status_anterior, status_novo, descricao, criado_por) VALUES (:os_id, 'orcamento', :ant, 'aguardando_aprovacao', :desc, :u)")
+                    ->execute([':os_id' => $os_id, ':ant' => $os['status'], ':desc' => $desc, ':u' => $_SESSION['usuario_id']]);
                 notificar_responsaveis_os($conn, $os_id, 'orcamento', 'Um novo orçamento foi criado para sua ordem de serviço. Aguardando aprovação.', (int) $_SESSION['usuario_id']);
             }
         }
@@ -337,8 +337,8 @@ try {
                 $st->execute([':id' => $orc['os_id']]);
                 $os = $st->fetch();
                 if ($os && $os['status'] === 'aguardando_aprovacao') {
-                    $conn->prepare("UPDATE ordens_servico SET status = 'aguardando_orcamento' WHERE id = :id")->execute([':id' => $orc['os_id']]);
-                    $conn->prepare("INSERT INTO os_eventos (os_id, tipo, status_anterior, status_novo, descricao, criado_por) VALUES (:os_id, 'orcamento', 'aguardando_aprovacao', 'aguardando_orcamento', 'Orçamento excluído', :u)")
+                    $conn->prepare("UPDATE ordens_servico SET status = 'em_analise' WHERE id = :id")->execute([':id' => $orc['os_id']]);
+                    $conn->prepare("INSERT INTO os_eventos (os_id, tipo, status_anterior, status_novo, descricao, criado_por) VALUES (:os_id, 'orcamento', 'aguardando_aprovacao', 'em_analise', 'Orçamento excluído', :u)")
                         ->execute([':os_id' => $orc['os_id'], ':u' => $_SESSION['usuario_id']]);
                 }
             }

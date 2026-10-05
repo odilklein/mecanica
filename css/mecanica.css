@@ -420,14 +420,10 @@
 .badge-secondary { background-color: var(--bs-secondary-bg); color: var(--text-secondary); }
 
 .badge-status-recebida, .badge-status-cancelada, .badge-status-cancelado { background-color: color-mix(in srgb, var(--c-gray) 12%, transparent); color: var(--c-gray); }
-.badge-status-triagem, .badge-status-pedido { background-color: color-mix(in srgb, var(--c-violet) 12%, transparent); color: var(--c-violet); }
-.badge-status-aguardando_diagnostico, .badge-status-solicitado { background-color: color-mix(in srgb, var(--c-orange) 12%, transparent); color: var(--c-orange); }
-.badge-status-aguardando_orcamento, .badge-status-a_caminho { background-color: color-mix(in srgb, var(--c-amber) 14%, transparent); color: var(--c-amber); }
-.badge-status-aguardando_aprovacao { background-color: color-mix(in srgb, var(--c-orange) 14%, transparent); color: var(--c-orange); }
-.badge-status-aguardando_peca { background-color: color-mix(in srgb, var(--c-red) 12%, transparent); color: var(--c-red); }
-.badge-status-pronta_para_execucao { background-color: color-mix(in srgb, var(--c-teal) 12%, transparent); color: var(--c-teal); }
+.badge-status-em_analise, .badge-status-a_caminho { background-color: color-mix(in srgb, var(--c-amber) 14%, transparent); color: var(--c-amber); }
+.badge-status-aguardando_aprovacao, .badge-status-solicitado { background-color: color-mix(in srgb, var(--c-orange) 14%, transparent); color: var(--c-orange); }
+.badge-status-aguardando_peca, .badge-status-pedido { background-color: color-mix(in srgb, var(--c-violet) 12%, transparent); color: var(--c-violet); }
 .badge-status-em_execucao, .badge-status-validado { background-color: color-mix(in srgb, var(--c-blue) 12%, transparent); color: var(--c-blue); }
-.badge-status-aguardando_retorno { background-color: color-mix(in srgb, var(--c-purple) 12%, transparent); color: var(--c-purple); }
 .badge-status-pronta_para_entrega, .badge-status-recebido { background-color: color-mix(in srgb, var(--c-green) 12%, transparent); color: var(--c-green); }
 .badge-status-entregue { background-color: color-mix(in srgb, var(--c-green) 15%, transparent); color: var(--c-green); }
 
