@@ -15,17 +15,30 @@
     // ---------- Tema (data-bs-theme) ----------
     var STORAGE_KEY = 'mecanica-theme';
 
-    function currentTheme() {
+    function temaPreferido() {
+        // O padrão do sistema é SEMPRE claro. Escuro/sistema só após
+        // escolha explícita do usuário.
         var saved = localStorage.getItem(STORAGE_KEY);
-        if (saved === 'light' || saved === 'dark') {
-            return saved;
-        }
-        // O tema claro é o padrão do sistema; a preferência do
-        // sistema operacional só é respeitada após escolha explícita.
-        return 'light';
+        return (saved === 'dark' || saved === 'system') ? saved : 'light';
     }
 
-    function aplicarTema(theme) {
+    function resolverTema(pref) {
+        if (pref === 'system') {
+            return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+        }
+        return pref === 'dark' ? 'dark' : 'light';
+    }
+
+    function sincronizarMenuTema(pref) {
+        document.querySelectorAll('[data-bs-theme-value]').forEach(function (btn) {
+            var ativo = btn.getAttribute('data-bs-theme-value') === pref;
+            btn.classList.toggle('active', ativo);
+            btn.setAttribute('aria-pressed', ativo ? 'true' : 'false');
+        });
+    }
+
+    function aplicarTema(pref) {
+        var theme = resolverTema(pref);
         document.documentElement.setAttribute('data-bs-theme', theme);
         document.documentElement.style.colorScheme = theme;
         var icon = document.getElementById('themeIcon');
@@ -33,19 +46,16 @@
             icon.setAttribute('data-icon', theme === 'dark' ? 'moon-stars' : 'sun');
             icon.className = 'icon-base ti ' + (theme === 'dark' ? 'tabler-moon-stars' : 'tabler-sun') + ' icon-22px theme-icon-active';
         }
+        sincronizarMenuTema(pref);
     }
 
     function initTema() {
-        aplicarTema(currentTheme());
+        aplicarTema(temaPreferido());
         document.querySelectorAll('[data-bs-theme-value]').forEach(function (btn) {
             btn.addEventListener('click', function () {
-                var value = btn.getAttribute('data-bs-theme-value');
-                var theme = value;
-                if (value === 'system') {
-                    theme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-                }
-                localStorage.setItem(STORAGE_KEY, theme);
-                aplicarTema(theme);
+                var pref = btn.getAttribute('data-bs-theme-value');
+                localStorage.setItem(STORAGE_KEY, pref);
+                aplicarTema(pref);
             });
         });
     }

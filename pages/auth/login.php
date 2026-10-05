@@ -21,6 +21,21 @@ $erro = isset($_GET['erro']) ? $_GET['erro'] : '';
 
     <link rel="icon" href="data:,">
 
+    <!-- Tema aplicado antes da renderização (evita flash). Padrão: claro. -->
+    <script>
+        (function () {
+            try {
+                var p = localStorage.getItem('mecanica-theme');
+                if (p !== 'dark' && p !== 'system') { p = 'light'; }
+                var t = (p === 'system')
+                    ? (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light')
+                    : p;
+                document.documentElement.setAttribute('data-bs-theme', t);
+                document.documentElement.style.colorScheme = t;
+            } catch (e) {}
+        })();
+    </script>
+
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Public+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300;1,400;1,500;1,600;1,700&display=swap" rel="stylesheet">
@@ -29,23 +44,12 @@ $erro = isset($_GET['erro']) ? $_GET['erro'] : '';
     <link rel="stylesheet" href="../../assets/vendor/css/core.css">
     <link rel="stylesheet" href="../../assets/css/demo.css">
     <link rel="stylesheet" href="../../assets/vendor/css/pages/page-auth.css">
-    <link rel="stylesheet" href="../../css/mecanica.css">
+    <link rel="stylesheet" href="../../css/mecanica.css?v=<?php echo @filemtime(__DIR__ . '/../../css/mecanica.css') ?: time(); ?>">
 
     <script src="../../assets/vendor/js/helpers.js"></script>
     <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
 </head>
 <body>
-    <script>
-        try {
-            var t = localStorage.getItem('mecanica-theme');
-            if (t !== 'light' && t !== 'dark') {
-                t = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-            }
-            document.documentElement.setAttribute('data-bs-theme', t);
-            document.documentElement.style.colorScheme = t;
-        } catch (e) {}
-    </script>
-
     <div class="container-xxl">
         <div class="authentication-wrapper authentication-basic container-p-y">
             <div class="authentication-inner py-6">

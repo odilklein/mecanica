@@ -31,6 +31,22 @@ $url_index = $caminho_base . '/index.php';
     <meta name="theme-color" content="#b8270f">
     <title><?php echo EMPRESA_NOME; ?> | <?php echo $titulo_pagina ?? 'Sistema de Gestão'; ?></title>
 
+    <!-- Tema aplicado antes da renderização (evita flash entre claro/escuro).
+         O padrão do sistema é SEMPRE claro. -->
+    <script>
+        (function () {
+            try {
+                var p = localStorage.getItem('mecanica-theme');
+                if (p !== 'dark' && p !== 'system') { p = 'light'; }
+                var t = (p === 'system')
+                    ? (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light')
+                    : p;
+                document.documentElement.setAttribute('data-bs-theme', t);
+                document.documentElement.style.colorScheme = t;
+            } catch (e) {}
+        })();
+    </script>
+
     <link rel="icon" href="data:,">
 
     <!-- Fonts -->
