@@ -3,6 +3,20 @@
 Projeto Integrador (PI) de um sistema web para gestão de oficina mecânica.
 Stack simples e funcional: **PHP (puro) + MySQL + JavaScript + HTML/CSS + Bootstrap 5**.
 
+## Preview
+
+| Login | Dashboard |
+| --- | --- |
+| ![Login](screenshots/01-login.png) | ![Dashboard](screenshots/02-dashboard.png) |
+
+| Ordens de serviço | Detalhe da OS (tema escuro) |
+| --- | --- |
+| ![Ordens de serviço](screenshots/03-ordens-servico.png) | ![Detalhe da OS](screenshots/04-os-detalhe-escuro.png) |
+
+| Orçamentos | Clientes |
+| --- | --- |
+| ![Orçamentos](screenshots/05-orcamentos.png) | ![Clientes](screenshots/06-clientes.png) |
+
 ## Funcionalidades
 
 - **Autenticação** com perfis: administrador, secretaria, mecânico-chefe e mecânico.
