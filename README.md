@@ -38,7 +38,7 @@ Stack simples e funcional: **PHP (puro) + MySQL + JavaScript + HTML/CSS + Bootst
    | phpMyAdmin  | http://localhost:8081   |
 
 3. O banco `mecanica` é criado e populado automaticamente a partir de
-   `sql/mecanica_teste.sql` no primeiro start (volume `db_data`).
+   `sql/mecanica.sql` no primeiro start (volume `db_data`).
 
 Credenciais padrão (altere em produção, no `.env`):
 
@@ -53,7 +53,7 @@ Para recriar o banco do zero: `docker compose down -v` e suba de novo.
 ## Instalação (XAMPP) — alternativa
 
 1. Copie o projeto para `htdocs/mecanica`.
-2. Crie um banco vazio e importe `sql/mecanica_teste.sql` pelo phpMyAdmin.
+2. Crie um banco vazio e importe `sql/mecanica.sql` pelo phpMyAdmin.
 3. Copie `.env.example` para `.env` e ajuste as credenciais
    (`DB_HOST=localhost`, `DB_USER=root`, `DB_PASS=`).
 4. Acesse `http://localhost/mecanica/`.
@@ -113,4 +113,4 @@ Em produção, use `TURNSTILE_HOSTNAMES` apenas com o domínio real.
 2. Crie o `.env` no servidor com as credenciais **do host** e os valores do Turnstile.
 3. No painel da Cloudflare → Turnstile → widget, aceite o **domínio de produção**.
 4. Confirme que `https://SEU-DOMINIO/.env` retorna 403/404.
-5. Importe `sql/mecanica_teste.sql` em um banco vazio e troque as senhas de teste.
+5. Importe `sql/mecanica.sql` em um banco vazio e troque as senhas de teste.
