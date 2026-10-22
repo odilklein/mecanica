@@ -227,6 +227,17 @@ if (!function_exists('fipe_garantir_schema')) {
             FOREIGN KEY (modelo_id) REFERENCES fipe_modelos(id) ON DELETE CASCADE
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
 
+        $conn->exec("CREATE TABLE IF NOT EXISTS fipe_anos (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            modelo_id INT NOT NULL,
+            ano_codigo VARCHAR(20) NOT NULL,
+            ano INT NOT NULL,
+            nome VARCHAR(60) NOT NULL,
+            atualizado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+            UNIQUE KEY uq_fipe_ano (modelo_id, ano_codigo),
+            FOREIGN KEY (modelo_id) REFERENCES fipe_modelos(id) ON DELETE CASCADE
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+
         // Colunas opcionais em veiculos (FK + denormalização)
         $colunas = [
             'marca_id' => "ALTER TABLE veiculos ADD COLUMN marca_id INT NULL AFTER cor",
@@ -267,6 +278,81 @@ if (!function_exists('fipe_dados_modelo')) {
         $st->execute([':id' => $modeloId]);
         $linha = $st->fetch();
         return $linha ?: null;
+    }
+}
+
+if (!function_exists('fipe_agrupar_anos')) {
+    // Deduplica a lista de anos de um modelo (a FIPE repete o ano por combustível).
+    // Prefere a variante Flex e devolve em ordem decrescente.
+    function fipe_agrupar_anos(array $linhas): array
+    {
+        $porAno = [];
+        foreach ($linhas as $linha) {
+            $ano = (int) ($linha['ano'] ?? 0);
+            if ($ano <= 0) {
+                continue;
+            }
+            $nome = (string) ($linha['nome'] ?? '');
+            if (!isset($porAno[$ano])) {
+                $porAno[$ano] = ['ano' => $ano, 'nome' => $nome];
+            } elseif (stripos($nome, 'Flex') !== false && stripos($porAno[$ano]['nome'], 'Flex') === false) {
+                $porAno[$ano] = ['ano' => $ano, 'nome' => $nome];
+            }
+        }
+        krsort($porAno);
+        return array_values($porAno);
+    }
+}
+
+if (!function_exists('fipe_anos_por_modelo')) {
+    // Anos disponíveis para um modelo local (versão). Usa cache na tabela fipe_anos.
+    // Retorna [['ano' => int, 'nome' => string], ...] em ordem decrescente.
+    function fipe_anos_por_modelo(PDO $conn, int $modeloId): array
+    {
+        if ($modeloId <= 0) {
+            return [];
+        }
+
+        $st = $conn->prepare("SELECT ano, nome FROM fipe_anos WHERE modelo_id = :m ORDER BY ano DESC");
+        $st->execute([':m' => $modeloId]);
+        $cache = $st->fetchAll();
+        if ($cache) {
+            return fipe_agrupar_anos($cache);
+        }
+
+        $dados = fipe_dados_modelo($conn, $modeloId);
+        if (!$dados) {
+            return [];
+        }
+
+        $urlAnos = fipe_base_url() . '/carros/marcas/' . rawurlencode($dados['marca_codigo'])
+            . '/modelos/' . rawurlencode($dados['modelo_codigo']) . '/anos';
+        $anos = fipe_http_json($urlAnos);
+        if (!$anos) {
+            return [];
+        }
+
+        $st = $conn->prepare("INSERT INTO fipe_anos (modelo_id, ano_codigo, ano, nome)
+            VALUES (:m, :c, :a, :n)
+            ON DUPLICATE KEY UPDATE ano = VALUES(ano), nome = VALUES(nome)");
+        $lista = [];
+        foreach ($anos as $opcao) {
+            $codigo = (string) ($opcao['codigo'] ?? '');
+            $nome = (string) ($opcao['nome'] ?? '');
+            if ($codigo === '' || !preg_match('/^(\d{4})/', $nome, $m)) {
+                continue;
+            }
+            $ano = (int) $m[1];
+            $st->execute([
+                ':m' => $modeloId,
+                ':c' => mb_substr($codigo, 0, 20),
+                ':a' => $ano,
+                ':n' => mb_substr($nome, 0, 60),
+            ]);
+            $lista[] = ['ano' => $ano, 'nome' => $nome];
+        }
+
+        return fipe_agrupar_anos($lista);
     }
 }
 
@@ -399,7 +485,7 @@ if (!function_exists('fipe_sincronizar')) {
 
         if ($limpar) {
             $conn->exec('SET FOREIGN_KEY_CHECKS = 0');
-            foreach (['fipe_precos', 'fipe_modelos', 'fipe_modelos_base', 'fipe_marcas'] as $tabela) {
+            foreach (['fipe_precos', 'fipe_anos', 'fipe_modelos', 'fipe_modelos_base', 'fipe_marcas'] as $tabela) {
                 $conn->exec("TRUNCATE TABLE $tabela");
             }
             $conn->exec('SET FOREIGN_KEY_CHECKS = 1');
