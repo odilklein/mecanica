@@ -91,17 +91,19 @@ config/
   conexao.php                   Conexao PDO e helpers de escaping/moeda
   env.php                       Carrega o .env da raiz e expoe env()
   empresa.php                   Dados visuais da empresa
-css/style.css                   Design system e estilos globais
+assets/vendor/                 Tema Vuexy (core.css, Tabler, helpers/menu/bootstrap.js)
+css/mecanica.css               Camada do sistema sobre o Vuexy (tokens + componentes)
 includes/
   base_url.php                  Calcula caminho base da aplicacao
-  header.php                    Cabecalho, CSS, Bootstrap e Lucide
+  header.php                    Cabecalho, CSS (Vuexy) e shell do layout
   footer.php                    Scripts finais
   mensagens.php                 Mensagens flash
   notificacoes.php              Helpers: notificar_usuarios/tipos/responsaveis_os
   auditoria.php                 Registro de acoes sensiveis na tabela auditoria
   sessao.php                    Sessao, login obrigatorio, CSRF e roles
   sidebar.php                   Navegacao por papel
-js/main.js                      Mascara, wizard, listas dinamicas, tema, notificacoes
+js/shell.js                     Init do layout Vuexy (menu, tema, notificacoes)
+js/main.js                      Mascara, wizard, listas dinamicas, filtros
 pages/
   auth/                         Login, logout e perfil (Meus dados)
   clientes/                     CRUD e detalhe do cliente
@@ -112,7 +114,7 @@ pages/
   notificacoes/                 Tela dedicada com filtros, busca e paginacao
   orcamentos/                   Documento comercial manual, restrito a secretaria/chefia/admin
 sql/
-  mecanica_teste.sql            Banco completo recriado com dados de demonstracao e logins
+  mecanica.sql            Banco completo recriado com dados de demonstracao e logins
 docker-compose.yml              Stack local (app + MySQL + phpMyAdmin)
 Dockerfile                      Imagem Apache+PHP com pdo_mysql/mbstring
 ```
@@ -327,20 +329,23 @@ Estados existentes:
 
 ```text
 recebida
-triagem
-aguardando_diagnostico
-aguardando_orcamento
+em_analise
 aguardando_aprovacao
 aguardando_peca
-pronta_para_execucao
 em_execucao
-aguardando_retorno
 pronta_para_entrega
 entregue
 cancelada
 ```
 
-Transicoes permitidas ficam em `pages/ordens_servico/processar.php`. Nao permitir saltos arbitrarios.
+Fluxo condensado (8 estados): `triagem` foi absorvida por `recebida`;
+`aguardando_diagnostico` e `aguardando_orcamento` foram fundidas em
+`em_analise`; `pronta_para_execucao` e `aguardando_retorno` foram
+absorvidas por `em_execucao`.
+
+As definicoes (rotulos e transicoes) ficam em `config/status_os.php`,
+fonte unica consumida pelo PHP e exposta ao JS em `window.OS_STATUS`.
+Nao permitir saltos arbitrarios.
 
 A OS nao pode ser marcada como `entregue` manualmente. Deve haver entrega/retirada confirmada em `os_entregas`.
 
@@ -407,7 +412,7 @@ Ao receber:
 - Quando todos os itens estao recebidos, o pedido vai para `recebido`.
 - Registrar usuario/data de recebimento.
 - Notificar responsaveis da OS.
-- Liberar a OS para `pronta_para_execucao` quando aplicavel.
+- Liberar a OS para `em_execucao` quando aplicavel.
 
 ---
 
@@ -445,7 +450,7 @@ As telas de editar/detalhes/imprimir usam apenas `orcamento_itens.descricao_item
 
 ### Schema de teste recomendado
 
-Use `sql/mecanica_teste.sql` em um banco de testes vazio. O script:
+Use `sql/mecanica.sql` em um banco de testes vazio. O script:
 
 - Cria o banco `mecanica`.
 - Remove tabelas existentes do mesmo banco.
@@ -456,7 +461,7 @@ Logins do seed sao documentados dentro do proprio arquivo SQL. Eles sao somente 
 
 ### Migracoes e banco de testes
 
-O arquivo unico de referencia e `sql/mecanica_teste.sql`. Ele:
+O arquivo unico de referencia e `sql/mecanica.sql`. Ele:
 
 - Cria o banco `mecanica`.
 - Remove tabelas existentes do mesmo banco.
@@ -464,9 +469,9 @@ O arquivo unico de referencia e `sql/mecanica_teste.sql`. Ele:
 - Insere clientes, veiculos, funcionarios, OS, tarefas, pedidos, eventos, orcamentos, entregas e notificacoes de demonstracao.
 - Documenta os logins de teste no proprio arquivo.
 
-Para ambiente de teste, basta importar `mecanica_teste.sql` em um banco vazio no phpMyAdmin.
+Para ambiente de teste, basta importar `mecanica.sql` em um banco vazio no phpMyAdmin.
 
-As migracoes incrementais antigas (`sql/mecanica.sql`, `002_operacao_oficina.sql`, `003_simplificacao_operacional.sql`) foram consolidadas no `mecanica_teste.sql` e nao sao mais entregues separadamente.
+As migracoes incrementais antigas (`002_operacao_oficina.sql` e `003_simplificacao_operacional.sql`) foram consolidadas em `sql/mecanica.sql` e nao sao mais entregues separadamente. A migracao em `sql/migrations/004_condensar_status_os.sql` fica mantida apenas como referencia historica, para atualizar bancos criados antes da condensacao dos status de 12 para 8.
 
 ### Tabelas relevantes
 
@@ -489,7 +494,7 @@ As migracoes incrementais antigas (`sql/mecanica.sql`, `002_operacao_oficina.sql
 
 ### Objetos de banco: View e Trigger
 
-Criados em `sql/mecanica_teste.sql` (no fim do seed), nao ficam no PHP.
+Criados em `sql/mecanica.sql` (no fim do seed), nao ficam no PHP.
 
 **View `vw_ordens_servico_detalhada`**
 - Reune `ordens_servico` + `clientes` + `veiculos` + `usuarios` (chefia) + `os_responsaveis`,
@@ -519,7 +524,7 @@ Criados em `sql/mecanica_teste.sql` (no fim do seed), nao ficam no PHP.
 
 - `docker-compose.yml` sobe tres servicos: `app` (Apache+PHP), `db` (MySQL 8.4) e `phpmyadmin`.
 - Aplicacao em `http://localhost:8080`; phpMyAdmin em `http://localhost:8081`.
-- O banco `mecanica` e criado e populado com `sql/mecanica_teste.sql` no primeiro start.
+- O banco `mecanica` e criado e populado com `sql/mecanica.sql` no primeiro start.
 - Credenciais padrao: usuario `mecanica`, senha `root123` (ajustaveis no `.env`).
 - `docker compose up -d --build` (ou `podman-compose up -d`) sobe a stack.
 - Para recriar o banco: `docker compose down -v` e subir novamente.
@@ -528,7 +533,7 @@ Criados em `sql/mecanica_teste.sql` (no fim do seed), nao ficam no PHP.
 
 1. Inicie Apache e MySQL no XAMPP.
 2. Abra o phpMyAdmin.
-3. Em ambiente de teste, importe `sql/mecanica_teste.sql`.
+3. Em ambiente de teste, importe `sql/mecanica.sql`.
 4. Acesse `http://localhost/mecanica/`.
 5. Use um login de teste criado pelo seed.
 
@@ -562,9 +567,9 @@ segredos de producao.
 
 ### Interface
 
-- Usar Lucide Icons em botoes e labels importantes.
-- Usar `btn-icon` e `action-button` para manter botoes compactos.
-- Respeitar o visual existente em `css/style.css`.
+- Usar ícones Tabler (`<i class="icon-base ti tabler-*"></i>`) em botões e labels.
+- Usar componentes Vuexy (cards, tables, badges, avatars, modals) como base de layout.
+- Respeitar o visual existente em `css/mecanica.css`.
 - Modulos de estoque, servicos e agendamentos foram removidos; nao reintroduzir sem decisao de produto.
 - Telas de mecanico devem ser operacionais e sem dados pessoais desnecessarios.
 
