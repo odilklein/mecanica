@@ -2,7 +2,7 @@ services:
   db:
     image: docker.io/library/mysql:8.4
     container_name: mecanica-db
-    restart: unless-stopped
+    restart: "no"
     environment:
       MYSQL_ROOT_PASSWORD: ${DB_PASS:-root123}
       MYSQL_DATABASE: ${DB_NAME:-mecanica}
@@ -22,7 +22,7 @@ services:
   app:
     build: .
     container_name: mecanica-app
-    restart: unless-stopped
+    restart: "no"
     depends_on:
       db:
         condition: service_healthy
@@ -41,7 +41,7 @@ services:
   phpmyadmin:
     image: docker.io/phpmyadmin:latest
     container_name: mecanica-phpmyadmin
-    restart: unless-stopped
+    restart: "no"
     depends_on:
       db:
         condition: service_healthy
