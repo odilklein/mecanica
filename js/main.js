@@ -1,190 +1,18 @@
 // =============================================
-// AUTO MECÂNICA - SCRIPTS PRINCIPAIS
+// AUTO MECÂNICA - UTILITÁRIOS DE DOMÍNIO
+// (formatadores, wizard, listas dinâmicas, filtros)
+// A navegação/tema/notificações vivem em js/shell.js.
 // =============================================
 
 document.addEventListener('DOMContentLoaded', function() {
-    if (typeof lucide !== 'undefined') {
-        lucide.createIcons();
-    }
-    document.body.classList.remove('loading');
-    document.body.style.opacity = '1';
-    initTooltips();
-    initSidebar();
-    initTheme();
-    initMobileSidebar();
-    initAutoCollapse();
-    initWizard();
-    initDynamicLists();
-    initSuggestionToggles();
-    initSelectCards();
-    initNotifications();
-    initSidebarUserMenu();
-    initSidebarTooltips();
     initResponsiveFilters();
     initTableFilters();
+    initDynamicLists();
+    initArrastarOrdenar();
+    initSuggestionToggles();
+    initSelectCards();
     initColorPicker();
 });
-
-// =============================================
-// TOOLTIPS DO BOOTSTRAP
-// =============================================
-function initTooltips() {
-    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
-    tooltipTriggerList.forEach(function(tooltipTriggerEl) {
-        new bootstrap.Tooltip(tooltipTriggerEl);
-    });
-}
-
-// =============================================
-// SIDEBAR - EXPANDIR / COLAPSAR (persiste em localStorage)
-// =============================================
-function initSidebar() {
-    const sidebar = document.getElementById('sidebar');
-    const btn = document.getElementById('sidebarCollapseBtn');
-    if (!sidebar || !btn) return;
-
-    function aplicar(collapsed) {
-        sidebar.classList.toggle('collapsed', collapsed);
-        btn.setAttribute('aria-expanded', collapsed ? 'false' : 'true');
-        btn.setAttribute('title', collapsed ? 'Expandir menu' : 'Minimizar menu');
-    }
-
-    const saved = localStorage.getItem('sidebar');
-    if (saved === 'collapsed' && window.innerWidth > 768) {
-        aplicar(true);
-    }
-
-    btn.addEventListener('click', function() {
-        if (window.innerWidth <= 768) return;
-        const collapsed = !sidebar.classList.contains('collapsed');
-        aplicar(collapsed);
-        localStorage.setItem('sidebar', collapsed ? 'collapsed' : 'expanded');
-    });
-}
-
-// =============================================
-// THEME SWITCH - DARK / LIGHT (persiste em localStorage)
-// =============================================
-function initTheme() {
-    const toggle = document.getElementById('themeToggle');
-    const saved = localStorage.getItem('theme');
-    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-
-    if (saved === 'dark' || (!saved && prefersDark)) {
-        document.body.classList.add('dark');
-    }
-
-    if (toggle) {
-        toggle.addEventListener('click', function() {
-            document.body.classList.toggle('dark');
-            const isDark = document.body.classList.contains('dark');
-            localStorage.setItem('theme', isDark ? 'dark' : 'light');
-            updateThemeIcon(toggle, isDark);
-        });
-    }
-
-    updateThemeIcon(toggle, document.body.classList.contains('dark'));
-}
-
-function updateThemeIcon(toggle, isDark) {
-    if (!toggle) return;
-    const icon = toggle.querySelector('[data-lucide]');
-    if (!icon) return;
-    icon.setAttribute('data-lucide', isDark ? 'sun' : 'moon');
-    if (typeof lucide !== 'undefined') {
-        lucide.createIcons();
-    }
-}
-
-// =============================================
-// MOBILE - SIDEBAR DRAWER + OVERLAY + BURGER
-// =============================================
-function initMobileSidebar() {
-    const sidebar = document.getElementById('sidebar');
-    const overlay = document.getElementById('sidebarOverlay');
-    const burger = document.getElementById('mobileMenuBtn');
-    const collapseBtn = document.getElementById('sidebarCollapseBtn');
-
-    if (!sidebar || !overlay || !burger) return;
-
-    function closeMobileSidebar() {
-        sidebar.classList.remove('mobile-open');
-        overlay.classList.remove('active');
-        document.body.classList.remove('sidebar-open');
-    }
-
-    function openMobileSidebar() {
-        sidebar.classList.add('mobile-open');
-        overlay.classList.add('active');
-        document.body.classList.add('sidebar-open');
-    }
-
-    burger.addEventListener('click', function() {
-        if (sidebar.classList.contains('mobile-open')) {
-            closeMobileSidebar();
-        } else {
-            openMobileSidebar();
-        }
-    });
-
-    // Fecha ao clicar em qualquer link de navegação do menu
-    sidebar.querySelectorAll('.sidebar-nav-item').forEach(function(item) {
-        item.addEventListener('click', function() {
-            if (window.innerWidth <= 768) closeMobileSidebar();
-        });
-    });
-
-    // No mobile, o botão de minimizar fecha o menu lateral
-    if (collapseBtn) {
-        collapseBtn.addEventListener('click', function() {
-            if (window.innerWidth <= 768) closeMobileSidebar();
-        });
-    }
-
-    overlay.addEventListener('click', closeMobileSidebar);
-
-    document.addEventListener('keydown', function(e) {
-        if (e.key === 'Escape') closeMobileSidebar();
-    });
-
-    window.addEventListener('resize', function() {
-        if (window.innerWidth > 768) closeMobileSidebar();
-    });
-}
-
-// =============================================
-// AUTO-COLLAPSE EM TELAS MENORES QUE 1280px
-// =============================================
-function initAutoCollapse() {
-    const sidebar = document.getElementById('sidebar');
-    const btn = document.getElementById('sidebarCollapseBtn');
-    if (!sidebar) return;
-
-    function sincronizar() {
-        if (!btn) return;
-        const collapsed = sidebar.classList.contains('collapsed');
-        btn.setAttribute('aria-expanded', collapsed ? 'false' : 'true');
-        btn.setAttribute('title', collapsed ? 'Expandir menu' : 'Minimizar menu');
-    }
-
-    function checkViewport() {
-        if (window.innerWidth <= 768) return;
-
-        if (window.innerWidth < 1280) {
-            if (localStorage.getItem('sidebar') !== 'expanded') {
-                sidebar.classList.add('collapsed');
-            }
-        } else if (sidebar.classList.contains('collapsed')) {
-            if (localStorage.getItem('sidebar') !== 'collapsed') {
-                sidebar.classList.remove('collapsed');
-            }
-        }
-        sincronizar();
-    }
-
-    checkViewport();
-    window.addEventListener('resize', checkViewport);
-}
 
 // =============================================
 // FORMATAR CPF: 123.456.789-00
@@ -216,6 +44,18 @@ function formatarTelefone(campo) {
         valor = valor.replace(/(\d{2})(\d{4})(\d{1,4})/, '($1) $2-$3');
     } else if (valor.length > 2) {
         valor = valor.replace(/(\d{2})(\d{1,4})/, '($1) $2');
+    }
+    campo.value = valor;
+}
+
+// =============================================
+// FORMATAR CEP: 00000-000
+// =============================================
+function formatarCep(campo) {
+    var valor = campo.value.replace(/\D/g, '');
+    if (valor.length > 8) valor = valor.substring(0, 8);
+    if (valor.length > 5) {
+        valor = valor.replace(/(\d{5})(\d{1,3})/, '$1-$2');
     }
     campo.value = valor;
 }
@@ -265,8 +105,6 @@ function confirmarExclusao(formId, mensagem) {
 
 // =============================================
 // FILTROS RESPONSIVOS (colapsáveis no mobile)
-// Envolve o conteúdo de .filter-bar num painel e adiciona um botão
-// que só aparece no mobile. Mostra um contador de filtros ativos.
 // =============================================
 function initResponsiveFilters() {
     document.querySelectorAll('.filter-bar').forEach(function (bar) {
@@ -288,10 +126,10 @@ function initResponsiveFilters() {
         btn.setAttribute('aria-expanded', 'false');
         btn.setAttribute('aria-controls', id);
         btn.innerHTML =
-            '<i data-lucide="sliders-horizontal"></i>' +
+            '<i class="icon-base ti tabler-adjustments-horizontal"></i>' +
             '<span>Filtros</span>' +
             '<span class="filter-toggle-badge" hidden>0</span>' +
-            '<span class="filter-toggle-chevron"><i data-lucide="chevron-down"></i></span>';
+            '<span class="filter-toggle-chevron"><i class="icon-base ti tabler-chevron-down"></i></span>';
 
         bar.appendChild(btn);
         bar.appendChild(body);
@@ -326,12 +164,7 @@ function initResponsiveFilters() {
         body.addEventListener('change', atualizarBadge);
         atualizarBadge();
     });
-
-    if (typeof lucide !== 'undefined') {
-        lucide.createIcons();
-    }
 }
-
 
 function buscarTabela(buscaId, tabelaId) {
     const input = document.getElementById(buscaId);
@@ -382,108 +215,19 @@ function escaparHtml(texto) {
 // =============================================
 // WIZARD STEP-BY-STEP
 // =============================================
-function initWizard() {
-    const wizard = document.querySelector('.wizard-progress');
-    if (!wizard) return;
-
-    const steps = wizard.querySelectorAll('.wizard-step');
-    const panels = document.querySelectorAll('.wizard-panel');
-    const prevBtn = document.getElementById('wizardPrev');
-    const nextBtn = document.getElementById('wizardNext');
-    const form = document.getElementById('formOS');
-    let current = 0;
-
-    function stepValido(index, quiet) {
-        var panel = panels[index];
-        if (!panel) return true;
-        var invalidos = panel.querySelectorAll('[required]');
-        for (var i = 0; i < invalidos.length; i++) {
-            if (typeof invalidos[i].value !== 'string' || invalidos[i].value.trim() === '') {
-                if (!quiet) {
-                    invalidos[i].focus();
-                    showWizardMsg('Preencha o campo obrigatório "' + (invalidos[i].name || 'requerido') + '" antes de continuar.');
-                }
-                return false;
-            }
-        }
-        return true;
-    }
-
-    function showStep(index) {
-        steps.forEach(function(step, i) {
-            step.classList.remove('active', 'completed');
-            if (i < index) step.classList.add('completed');
-            if (i === index) step.classList.add('active');
-        });
-        panels.forEach(function(panel, i) {
-            panel.classList.toggle('active', i === index);
-        });
-        current = index;
-        if (prevBtn) prevBtn.style.visibility = index === 0 ? 'hidden' : 'visible';
-        if (nextBtn) {
-            if (index === steps.length - 1) {
-                nextBtn.innerHTML = '<i data-lucide="check"></i> Criar OS';
-                nextBtn.type = 'submit';
-            } else {
-                nextBtn.innerHTML = 'Próximo <i data-lucide="arrow-right"></i>';
-                nextBtn.type = 'button';
-            }
-        }
-        if (index === steps.length - 1) renderReview();
-        if (typeof lucide !== 'undefined') lucide.createIcons();
-    }
-
-    if (prevBtn) prevBtn.addEventListener('click', function() {
-        if (current > 0) showStep(current - 1);
-    });
-
-    if (nextBtn) nextBtn.addEventListener('click', function(e) {
-        if (current < steps.length - 1) {
-            e.preventDefault();
-            if (stepValido(current, false)) showStep(current + 1);
-        }
-    });
-
-    steps.forEach(function(step, i) {
-        step.addEventListener('click', function() {
-            if (i <= current || i === current + 1) showStep(i);
-        });
-    });
-
-    document.querySelectorAll('.review-section').forEach(function(sec) {
-        sec.addEventListener('click', function() {
-            var s = parseInt(sec.dataset.editStep, 10);
-            if (!isNaN(s) && s >= 0 && s < steps.length) showStep(s);
-        });
-    });
-
-    if (form) form.addEventListener('submit', function(e) {
-        if (current !== steps.length - 1) {
-            e.preventDefault();
-            showWizardMsg('Continue até a etapa de revisão para criar a OS.');
-            return;
-        }
-        for (var i = 0; i < panels.length; i++) {
-            if (!stepValido(i, true)) {
-                e.preventDefault();
-                showStep(i);
-                showWizardMsg('Corrija os campos obrigatórios antes de criar a OS.');
-                return;
-            }
-        }
-        showWizardMsg('');
-    });
-
-    showStep(0);
-}
-
 // =============================================
 // REVISÃO (RESUMO ANTES DE CRIAR)
 // =============================================
 function renderReview() {
     function cap(id) {
         var el = document.getElementById(id);
-        return el ? (el.value || '').trim() : '';
+        if (!el) { return ''; }
+        var valor = (el.value || '').trim();
+        if (el.tagName === 'SELECT' && valor !== '') {
+            var opt = el.options[el.selectedIndex];
+            return opt ? opt.textContent.trim() : valor;
+        }
+        return valor;
     }
     var prefixo = 'Não informado';
 
@@ -494,7 +238,7 @@ function renderReview() {
         cCliente.innerHTML = (nome ? escapeHtml(nome) : prefixo) + (telefone ? ' · ' + escapeHtml(telefone) : '');
     }
 
-    var marcaModelo = [cap('marca'), cap('modelo')].filter(Boolean).join(' ');
+    var marcaModelo = [cap('marca_id'), cap('modelo_base_id'), cap('modelo_id')].filter(Boolean).join(' ');
     var placa = cap('placa');
     var cVeiculo = document.getElementById('reviewVeiculo');
     if (cVeiculo) {
@@ -522,12 +266,16 @@ function renderReview() {
     });
 
     var tarefas = [];
-    document.querySelectorAll('[data-dynamic-list-tarefas] .dynamic-list-item .item-text').forEach(function(t) {
-        tarefas.push(t.textContent.trim());
+    document.querySelectorAll('[data-dynamic-list-tarefas] .dynamic-list-item .item-texto').forEach(function (t) {
+        var v = (t.value || '').trim();
+        if (v) { tarefas.push(v); }
     });
     var pecas = [];
-    document.querySelectorAll('[data-dynamic-list-pecas] .dynamic-list-item .item-text').forEach(function(t) {
-        pecas.push(t.textContent.trim());
+    document.querySelectorAll('[data-dynamic-list-pecas] .dynamic-list-item').forEach(function (linha) {
+        var desc = linha.querySelector('.item-texto');
+        var qtd = linha.querySelector('.item-qtd');
+        var d = desc ? (desc.value || '').trim() : '';
+        if (d) { pecas.push(d + ' (' + ((qtd && qtd.value) || '1') + 'x)'); }
     });
 
     var cEquipe = document.getElementById('reviewEquipe');
@@ -539,15 +287,15 @@ function renderReview() {
         eh += '<br><b>Peças:</b> ' + (pecas.length ? escapeHtml(pecas.slice(0, 4).join(' | ')) + (pecas.length > 4 ? ' …' : '') : '—');
         cEquipe.innerHTML = eh;
     }
-
-    if (typeof lucide !== 'undefined') lucide.createIcons();
 }
+window.renderReview = renderReview;
+
 
 // =============================================
-// LISTAS DINÂMICAS (TAREFAS, PEÇAS) + SUGESTÕES + ÁUDIO
+// LISTAS DINÂMICAS (TAREFAS, PEÇAS) + SUGESTÕES
 // =============================================
 function initDynamicLists() {
-    document.querySelectorAll('[data-dynamic-list]').forEach(function(list) {
+    document.querySelectorAll('[data-dynamic-list]').forEach(function (list) {
         var input = list.querySelector('.dynamic-list-input .form-control');
         var addBtn = list.querySelector('.btn-add');
         var container = list.querySelector('.dynamic-list-items');
@@ -555,57 +303,153 @@ function initDynamicLists() {
 
         if (!addBtn || !container) return;
 
-        var items = [];
+        // Listas simples (tarefas) aceitam só texto; as de peças usam
+        // "descrição | quantidade" com campos editáveis.
+        var comQuantidade = !list.hasAttribute('data-lista-simples');
 
-        function addItem(text) {
-            text = String(text || '').trim();
-            if (!text) return;
-            items.push(text);
+        function itemNode(item) {
+            var linha = document.createElement('div');
+            linha.className = 'dynamic-list-item';
 
-            var item = document.createElement('div');
-            item.className = 'dynamic-list-item';
-            item.innerHTML = '<i data-lucide="grip-vertical" class="item-grip"></i>' +
-                '<span class="item-text">' + escapeHtml(text) + '</span>' +
-                '<button type="button" class="item-remove" title="Remover"><i data-lucide="x"></i></button>';
-            item.querySelector('.item-remove').addEventListener('click', function() {
-                var idx = Array.prototype.indexOf.call(container.children, item);
-                if (idx > -1) items.splice(idx, 1);
-                item.style.opacity = '0';
-                item.style.transform = 'translateX(-10px)';
-                setTimeout(function() { item.remove(); syncList(); }, 200);
+            if (comQuantidade) {
+                linha.innerHTML = '<i class="icon-base ti tabler-grip-vertical item-grip"></i>'
+                    + '<input type="text" class="form-control form-control-sm item-texto" maxlength="200" placeholder="Descrição da peça">'
+                    + '<input type="number" class="form-control form-control-sm item-qtd" min="1" value="1" style="max-width:88px" aria-label="Quantidade">'
+                    + '<button type="button" class="item-remove" title="Remover"><i class="icon-base ti tabler-x"></i></button>';
+                linha.querySelector('.item-texto').value = item.descricao || '';
+                if (item.quantidade) {
+                    linha.querySelector('.item-qtd').value = item.quantidade;
+                }
+            } else {
+                linha.innerHTML = '<i class="icon-base ti tabler-grip-vertical item-grip"></i>'
+                    + '<input type="text" class="form-control form-control-sm item-texto" maxlength="255" placeholder="Descrição da tarefa">'
+                    + '<button type="button" class="item-remove" title="Remover"><i class="icon-base ti tabler-x"></i></button>';
+                linha.querySelector('.item-texto').value = item.descricao || '';
+            }
+            return linha;
+        }
+
+        function lerItens() {
+            var itens = [];
+            container.querySelectorAll('.dynamic-list-item').forEach(function (linha) {
+                var campo = linha.querySelector('.item-texto');
+                var descricao = ((campo && campo.value) || '').trim();
+                if (!descricao) return;
+                if (comQuantidade) {
+                    var qtd = parseInt(linha.querySelector('.item-qtd').value, 10) || 1;
+                    itens.push({ descricao: descricao, quantidade: qtd });
+                } else {
+                    itens.push({ descricao: descricao });
+                }
             });
-            container.appendChild(item);
-            if (typeof lucide !== 'undefined') lucide.createIcons();
-            syncList();
-            if (input) { input.value = ''; input.focus(); }
+            return itens;
         }
 
         function syncList() {
             if (!hiddenInput) return;
-            hiddenInput.value = items.join('\n');
+            var itens = lerItens();
+            hiddenInput.value = comQuantidade
+                ? itens.map(function (i) { return i.descricao + ' | ' + i.quantidade; }).join('\n')
+                : itens.map(function (i) { return i.descricao; }).join('\n');
+            sincronizarSugestoes(itens);
         }
 
-        if (addBtn) addBtn.addEventListener('click', function() {
+        // Sugestões usadas somem; ao remover o item correspondente, voltam.
+        function marcaDe(chip) {
+            // O chip pode vir como "Descrição | quantidade" (peças).
+            var bruto = (chip.getAttribute('data-sugestao') || chip.textContent || '').trim();
+            return bruto.split('|')[0].trim().toLowerCase();
+        }
+
+        function marcaDeItem(item) {
+            return String(item.descricao || '').trim().toLowerCase();
+        }
+
+        function marcarSugestao(chip, usada) {
+            if (usada) {
+                chip.classList.add('suggestion-chip-used');
+                chip.hidden = true;
+            } else {
+                chip.classList.remove('suggestion-chip-used');
+                chip.hidden = false;
+            }
+            var bloco = chip.closest('.suggestions');
+            if (bloco) {
+                var visiveis = bloco.querySelectorAll('.suggestion-chip:not([hidden])').length;
+                bloco.classList.toggle('sem-sugestoes', visiveis === 0);
+            }
+        }
+
+        function sincronizarSugestoes(itens) {
+            var existentes = itens.map(marcaDeItem);
+            list.querySelectorAll('.suggestion-chip').forEach(function (chip) {
+                var usada = existentes.indexOf(marcaDe(chip)) !== -1;
+                marcarSugestao(chip, usada);
+            });
+        }
+
+        function addItem(descricao, quantidade) {
+            descricao = String(descricao || '').trim();
+            if (!descricao) return;
+
+            // Impede duplicidade (ignorando caixa).
+            var jaExiste = lerItens().some(function (i) {
+                return i.descricao.toLowerCase() === descricao.toLowerCase();
+            });
+            if (jaExiste) {
+                mostrarToast('Item já adicionado: ' + descricao, 'warning');
+                return;
+            }
+
+            var linha = itemNode({ descricao: descricao, quantidade: quantidade });
+            if (container.hasAttribute('data-ordenavel')) {
+                linha.setAttribute('draggable', 'true');
+            }
+            container.appendChild(linha);
+
+            linha.querySelectorAll('input').forEach(function (campo) {
+                campo.addEventListener('input', syncList);
+            });
+            linha.querySelector('.item-remove').addEventListener('click', function () {
+                linha.remove();
+                syncList();
+            });
+            syncList();
+            if (input) { input.value = ''; input.focus(); }
+        }
+
+        if (addBtn) addBtn.addEventListener('click', function () {
             addItem(input ? input.value : '');
         });
 
-        if (input) input.addEventListener('keydown', function(e) {
+        if (input) input.addEventListener('keydown', function (e) {
             if (e.key === 'Enter') {
                 e.preventDefault();
                 addItem(input.value);
             }
         });
 
-        list.querySelectorAll('.suggestion-chip').forEach(function(chip) {
-            chip.addEventListener('click', function() {
-                addItem(chip.textContent.trim());
+        // Sugestões: some após o uso para não permitir duplicatas.
+        list.querySelectorAll('.suggestion-chip').forEach(function (chip) {
+            chip.addEventListener('click', function () {
+                var bruto = chip.textContent.trim();
+                var partes = bruto.split('|');
+                var descricao = (partes[0] || '').trim();
+                var quantidade = partes.length > 1 ? (parseInt(partes[1].trim(), 10) || 1) : 1;
+
+                addItem(descricao, quantidade);
+
+                // A sugestão sai da lista, mas volta se o item for removido.
+                marcarSugestao(chip, true);
             });
         });
 
-        // Load existing values
         if (hiddenInput && hiddenInput.value.trim()) {
-            hiddenInput.value.trim().split('\n').forEach(function(line) {
-                if (line.trim()) addItem(line.trim());
+            hiddenInput.value.trim().split('\n').forEach(function (line) {
+                var partes = line.split('|');
+                var descricao = (partes[0] || '').trim();
+                var quantidade = partes.length > 1 ? (parseInt(partes[1].trim(), 10) || 1) : 1;
+                if (descricao) { addItem(descricao, quantidade); }
             });
         }
     });
@@ -617,24 +461,91 @@ function escapeHtml(str) {
     return div.innerHTML;
 }
 
-function showWizardMsg(msg) {
-    var el = document.getElementById('wizardMsg');
-    if (!el) return;
-    el.textContent = msg || '';
+// =============================================
+// ARRASTAR PARA REORDENAR (listas dinâmicas)
+// Usa a API nativa de drag-and-drop do navegador,
+// sem dependências externas.
+// =============================================
+function initArrastarOrdenar() {
+    document.querySelectorAll('.dynamic-list-items[data-ordenavel]').forEach(function (container) {
+        if (container.dataset.arrastarPronto === '1') { return; }
+        container.dataset.arrastarPronto = '1';
+
+        var itemArrastando = null;
+
+        container.addEventListener('dragstart', function (e) {
+            var item = e.target.closest('.dynamic-list-item');
+            if (!item) { return; }
+            itemArrastando = item;
+            item.classList.add('item-arrastando');
+            e.dataTransfer.effectAllowed = 'move';
+            // Firefox exige dataTransfer para iniciar o arraste.
+            try { e.dataTransfer.setData('text/plain', ''); } catch (err) { /* noop */ }
+        });
+
+        container.addEventListener('dragover', function (e) {
+            if (!itemArrastando) { return; }
+            e.preventDefault();
+            e.dataTransfer.dropEffect = 'move';
+
+            var alvo = e.target.closest('.dynamic-list-item');
+            if (!alvo || alvo === itemArrastando) { return; }
+
+            container.querySelectorAll('.item-alvo').forEach(function (n) { n.classList.remove('item-alvo'); });
+            alvo.classList.add('item-alvo');
+
+            var caixa = alvo.getBoundingClientRect();
+            var depois = (e.clientY - caixa.top) > (caixa.height / 2);
+            container.insertBefore(itemArrastando, depois ? alvo.nextSibling : alvo);
+        });
+
+        container.addEventListener('drop', function (e) {
+            e.preventDefault();
+            container.querySelectorAll('.item-alvo').forEach(function (n) { n.classList.remove('item-alvo'); });
+            // A ordem mudou: sincroniza o campo oculto.
+            var lista = container.closest('[data-dynamic-list]');
+            if (lista && typeof sincronizarLista === 'function') {
+                sincronizarLista(lista);
+            }
+        });
+
+        container.addEventListener('dragend', function () {
+            if (itemArrastando) { itemArrastando.classList.remove('item-arrastando'); }
+            container.querySelectorAll('.item-alvo').forEach(function (n) { n.classList.remove('item-alvo'); });
+            itemArrastando = null;
+        });
+    });
 }
 
-// =============================================
-// SUGESTÕES RÁPIDAS (EXPANDIR/RECOLHER)
-// =============================================
+// Sincroniza o campo oculto de uma lista (usado após reordenar).
+function sincronizarLista(lista) {
+    var container = lista.querySelector('.dynamic-list-items');
+    var hiddenInput = lista.querySelector('input[type="hidden"]');
+    if (!container || !hiddenInput) { return; }
+
+    var comQuantidade = !lista.hasAttribute('data-lista-simples');
+    var itens = [];
+    container.querySelectorAll('.dynamic-list-item').forEach(function (linha) {
+        var campo = linha.querySelector('.item-texto');
+        var descricao = ((campo && campo.value) || '').trim();
+        if (!descricao) { return; }
+        if (comQuantidade) {
+            var qtd = parseInt(linha.querySelector('.item-qtd').value, 10) || 1;
+            itens.push(descricao + ' | ' + qtd);
+        } else {
+            itens.push(descricao);
+        }
+    });
+    hiddenInput.value = itens.join('\n');
+}
 function initSuggestionToggles() {
     document.querySelectorAll('.suggestions-toggle').forEach(function(btn) {
         var chips = btn.closest('.suggestions').querySelector('.suggestion-chips');
         if (!chips) return;
-        var icon = btn.querySelector('[data-lucide]');
+        var icon = btn.querySelector('.icon-base');
 
         function setIcons(open) {
-            if (icon) icon.setAttribute('data-lucide', open ? 'chevron-up' : 'more-horizontal');
-            if (typeof lucide !== 'undefined') lucide.createIcons();
+            if (icon) icon.className = 'icon-base ti ' + (open ? 'tabler-chevron-up' : 'tabler-dots');
         }
 
         btn.addEventListener('click', function() {
@@ -668,203 +579,19 @@ function initSelectCards() {
         }
 
         card.addEventListener('click', toggle);
-
         checkbox.addEventListener('change', sync);
-
         card.addEventListener('keydown', function(e) {
             if (e.key === 'Enter' || e.key === ' ') {
                 e.preventDefault();
                 toggle();
             }
         });
-
         sync();
     });
 }
 
 // =============================================
-// SISTEMA DE NOTIFICAÇÕES (SINO NO TOPBAR)
-// =============================================
-function initNotifications() {
-    const bell = document.getElementById('notifBell');
-    const panel = document.getElementById('notifPanel');
-    const list = document.getElementById('notifList');
-    const countEl = document.getElementById('notifCount');
-    const dotEl = document.getElementById('notifDot');
-    const markAll = document.getElementById('notifMarkAll');
-    if (!bell || !panel || !list) return;
-
-    const base = window.CAMINHO_BASE || '';
-    const url = base + '/api/notificacoes.php';
-    const icones = { os_criada: 'clipboard-plus', os_atribuida: 'user-plus', os_status: 'arrow-right-left', diagnostico: 'stethoscope', tarefa: 'list-checks', peca_pedido: 'package-search', peca_disponivel: 'package-check', orcamento: 'file-text', entrega: 'truck' };
-
-    function iconeTipo(tipo) { return icones[tipo] || 'bell'; }
-
-    function render(data) {
-        const naoLidas = data.nao_lidas || 0;
-        window.__notifCount = naoLidas;
-        countEl.textContent = naoLidas > 99 ? '99+' : String(naoLidas);
-        countEl.hidden = naoLidas === 0;
-        dotEl.hidden = naoLidas === 0;
-
-        list.innerHTML = '';
-        if (!data.itens.length) {
-            list.innerHTML = '<div class="notifications-empty"><i data-lucide="bell-off"></i><span>Nenhuma notificação</span></div>';
-        } else {
-            data.itens.forEach(function(n) {
-                const item = document.createElement('a');
-                item.className = 'notification-item' + (n.lida ? ' is-read' : '');
-                item.setAttribute('data-id', n.id);
-                const destino = n.os_id ? base + '/pages/ordens_servico/detalhes.php?id=' + n.os_id : '';
-                if (destino) item.href = destino;
-                else item.setAttribute('data-sem-link', '1');
-                item.innerHTML =
-                    '<span class="notification-icon"><i data-lucide="' + iconeTipo(n.tipo) + '"></i></span>' +
-                    '<span class="notification-body">' +
-                        '<span class="notification-msg">' + escapeHtml(n.mensagem) + '</span>' +
-                        '<span class="notification-time">' + escapeHtml(n.tempo) + '</span>' +
-                    '</span>' +
-                    (n.lida ? '' : '<span class="notification-dot-sm"></span>');
-                list.appendChild(item);
-            });
-        }
-        if (typeof lucide !== 'undefined') lucide.createIcons();
-    }
-
-    function carregar() {
-        fetch(url, { headers: { 'Accept': 'application/json' } })
-            .then(function(r) { return r.json(); })
-            .then(render)
-            .catch(function() {});
-    }
-
-    function marcarLida(id) {
-        var fd = new FormData();
-        fd.append('acao', 'marcar_lida');
-        fd.append('id', id);
-        return fetch(url, {
-            method: 'POST',
-            headers: { 'X-CSRF-Token': window.CSRF_TOKEN || '' },
-            body: fd
-        });
-    }
-
-    bell.addEventListener('click', function(e) {
-        e.stopPropagation();
-        const abrir = panel.hidden;
-        panel.hidden = !abrir;
-        bell.setAttribute('aria-expanded', abrir ? 'true' : 'false');
-        if (abrir) carregar();
-    });
-
-    if (markAll) markAll.addEventListener('click', function(e) {
-        e.stopPropagation();
-        const fd = new FormData();
-        fd.append('acao', 'marcar_todas_lidas');
-        fetch(url, { method: 'POST', headers: { 'X-CSRF-Token': window.CSRF_TOKEN || '' }, body: fd })
-            .then(function() { carregar(); });
-    });
-
-    list.addEventListener('click', function(e) {
-        const item = e.target.closest('.notification-item');
-        if (!item) return;
-        const id = item.getAttribute('data-id');
-        const destino = item.getAttribute('data-sem-link') ? '' : item.getAttribute('href');
-        if (id) {
-            marcarLida(id).then(function() {
-                carregar();
-                if (destino) window.location.href = destino;
-            }).catch(function() {
-                if (destino) window.location.href = destino;
-            });
-        }
-    });
-
-    document.addEventListener('click', function(e) {
-        if (!panel.hidden && !e.target.closest('.topbar-notifications')) {
-            panel.hidden = true;
-            bell.setAttribute('aria-expanded', 'false');
-        }
-    });
-
-    carregar();
-    setInterval(carregar, 30000);
-}
-
-// =============================================
-// MENU DO USUÁRIO (3 PONTINHOS NA SIDEBAR)
-// =============================================
-function initSidebarUserMenu() {
-    const usuario = document.getElementById('sidebarUser');
-    const menu = document.getElementById('sidebarUserMenu');
-    if (!usuario || !menu) return;
-
-    function alternar(abrir) {
-        menu.hidden = !abrir;
-        usuario.setAttribute('aria-expanded', abrir ? 'true' : 'false');
-    }
-
-    usuario.addEventListener('click', function(e) {
-        e.stopPropagation();
-        alternar(menu.hidden);
-    });
-
-    document.addEventListener('click', function(e) {
-        if (!menu.hidden && !e.target.closest('.sidebar-user-menu') && !e.target.closest('#sidebarUser')) {
-            alternar(false);
-        }
-    });
-
-    document.addEventListener('keydown', function(e) {
-        if (e.key === 'Escape' && !menu.hidden) alternar(false);
-    });
-}
-
-// =============================================
-// TOOLTIP FLUTUANTE DOS ÍCONES (SIDEBAR RECOLHIDA)
-// =============================================
-function initSidebarTooltips() {
-    const sidebar = document.getElementById('sidebar');
-    const tooltip = document.getElementById('sidebarTooltip');
-    if (!sidebar || !tooltip) return;
-
-    function mostrar(el) {
-        if (window.innerWidth <= 768 || !sidebar.classList.contains('collapsed')) return;
-        const texto = el.getAttribute('data-tooltip');
-        if (!texto) return;
-
-        const rect = el.getBoundingClientRect();
-        tooltip.textContent = texto;
-        tooltip.hidden = false;
-        tooltip.style.top = (rect.top + rect.height / 2) + 'px';
-        tooltip.style.left = (rect.right + 10) + 'px';
-    }
-
-    function esconder() {
-        tooltip.hidden = true;
-    }
-
-    sidebar.querySelectorAll('[data-tooltip]').forEach(function(el) {
-        el.addEventListener('mouseenter', function() { mostrar(el); });
-        el.addEventListener('focus', function() { mostrar(el); });
-        el.addEventListener('mouseleave', esconder);
-        el.addEventListener('blur', esconder);
-    });
-
-    sidebar.addEventListener('mouseleave', esconder);
-    window.addEventListener('scroll', esconder, true);
-}
-
-// =============================================
 // FILTROS E BUSCA AVANÇADA EM LISTAGENS (tabelas)
-//
-// Uso: numa página de listagem inclua:
-//   .filtros-bar  (barra com inputs de busca/select)
-//   input[data-filtro-busca="tabelaId"]      -> busca por texto em todas as células
-//   select[data-filtro-coluna="Cidade"][data-filtro-tabela="tabelaId"] -> filtra coluna exata
-//   select[data-filtro-substring="nome"][data-filtro-tabela="tabelaId"] -> filtra coluna por trecho
-//   .filtros-info contém [data-filtro-total="tabelaId"]
-//   .filtros-vazio é exibido quando a busca não retorna nada
 // =============================================
 function initTableFilters() {
     document.querySelectorAll('input[data-filtro-busca]').forEach(input => {
@@ -1002,7 +729,6 @@ function initColorPicker() {
         });
     }
 
-    // Pré-seleciona a cor atual ao abrir o formulário (edição)
     const atual = (corInput.value || '').trim();
     if (atual) {
         const normalizado = atual.toLowerCase();
@@ -1020,7 +746,6 @@ function initColorPicker() {
     }
 }
 
-// Converte um valor arbitrário para o formato aceito pelo <input type="color">
 function cor_hex_para_picker(campo) {
     const valor = (campo.value || '').trim();
     const m = valor.match(/^#([0-9a-fA-F]{6})$/);

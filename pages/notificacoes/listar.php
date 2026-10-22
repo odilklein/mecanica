@@ -2,14 +2,14 @@
 require_once __DIR__ . '/../../includes/sessao.php';
 require_once __DIR__ . '/../../config/conexao.php';
 require_once __DIR__ . '/../../includes/paginacao.php';
+require_once __DIR__ . '/../../includes/crud.php';
 
 $usuario_id = (int) $_SESSION['usuario_id'];
 $filtro = $_GET['filtro'] ?? 'todas';
 $tipo = limpar($_GET['tipo'] ?? '');
 $busca = limpar($_GET['busca'] ?? '');
-$pagina = max(1, (int) ($_GET['pagina'] ?? 1));
-$por_pagina = 25;
-$offset = ($pagina - 1) * $por_pagina;
+$pagina = pagina_atual();
+$por_pagina = 15;
 
 $condicoes = ['n.usuario_id = :uid'];
 $params = [':uid' => $usuario_id];
@@ -21,8 +21,7 @@ $where = implode(' AND ', $condicoes);
 $st = $conn->prepare("SELECT COUNT(*) FROM notificacoes n WHERE $where");
 $st->execute($params);
 $total = (int) $st->fetchColumn();
-$total_paginas = max(1, (int) ceil($total / $por_pagina));
-if ($pagina > $total_paginas) $pagina = $total_paginas;
+[$pagina, $offset, $total_paginas] = paginacao_calcular($total, $por_pagina, $pagina);
 
 $st = $conn->prepare("SELECT n.id, n.os_id, n.tipo, n.mensagem, n.lida_em, n.criada_em, os.numero AS os_numero FROM notificacoes n LEFT JOIN ordens_servico os ON os.id = n.os_id WHERE $where ORDER BY n.criada_em DESC LIMIT :limite OFFSET :offset");
 $st->bindValue(':limite', $por_pagina, PDO::PARAM_INT);
@@ -41,53 +40,64 @@ $titulo_pagina = 'Notificações';
 require_once __DIR__ . '/../../includes/header.php';
 require_once __DIR__ . '/../../includes/mensagens.php';
 ?>
-<div class="page-header"><div><h1><i data-lucide="bell" class="text-primary me-2"></i>Notificações</h1><span class="page-subtitle">Avisos internos do sistema</span></div></div>
-<div class="card"><div class="card-body p-0">
-<div class="filter-bar mb-0 rounded-bottom-0">
-    <div class="filter-search">
-        <i data-lucide="search" class="search-icon"></i>
-        <input type="text" class="form-control" id="buscaNotificacoes" placeholder="Buscar por mensagem..." value="<?php echo esc($busca); ?>">
+<div class="page-header">
+    <div>
+        <h1>Notificações</h1>
+        <span class="page-subtitle">Avisos das ordens de serviço</span>
     </div>
-    <div class="filter-group">
-        <label for="filtroEstado">Estado</label>
-        <select class="form-select" id="filtroEstado">
-            <option value="todas" <?php echo $filtro === 'todas' ? 'selected' : ''; ?>>Todas</option>
-            <option value="nao_lidas" <?php echo $filtro === 'nao_lidas' ? 'selected' : ''; ?>>Não lidas</option>
-        </select>
+    <div class="d-flex align-items-center gap-2">
+        <form method="POST" action="marcar_todas.php" class="d-inline">
+            <input type="hidden" name="csrf_token" value="<?php echo esc(csrf_token()); ?>">
+            <button class="btn btn-outline-primary" type="submit"><i class="icon-base ti tabler-checks me-1"></i>Marcar todas como lidas</button>
+        </form>
     </div>
-    <div class="filter-group">
-        <label for="filtroTipo">Tipo</label>
-        <select class="form-select" id="filtroTipo">
-            <option value="">Todos os tipos</option>
-            <?php foreach ($tipos as $t): ?>
-            <option value="<?php echo esc($t['tipo']); ?>" <?php echo $tipo === $t['tipo'] ? 'selected' : ''; ?>><?php echo esc($rotulos_tipo[$t['tipo']] ?? $t['tipo']); ?> (<?php echo (int) $t['total']; ?>)</option>
-            <?php endforeach; ?>
-        </select>
-    </div>
-    <button class="btn btn-outline-secondary btn-reset-filters" type="button" onclick="window.location.href='listar.php'"><i data-lucide="filter-x"></i> Limpar</button>
-    <form method="POST" action="marcar_todas.php" class="d-inline"><input type="hidden" name="csrf_token" value="<?php echo esc(csrf_token()); ?>"><button class="btn btn-outline-primary" type="submit"><i data-lucide="check-check"></i> Marcar todas como lidas</button></form>
 </div>
-<div class="px-3 pt-3 filter-results-info"><span>Exibindo <strong><?php echo count($notificacoes); ?></strong> de <?php echo $total; ?> notificações</span></div>
-<div class="table-responsive"><table class="table table-hover align-middle mb-0 responsive-card"><thead><tr><th>Mensagem</th><th>OS</th><th>Data</th><th></th></tr></thead><tbody>
-<?php foreach ($notificacoes as $notif): ?><tr class="<?php echo $notif['lida_em'] === null ? 'notificacao-nao-lida' : ''; ?>"><td data-label="Mensagem"><div class="d-flex align-items-start gap-2"><span class="mt-1" style="width:16px;"><?php if ($notif['lida_em'] === null): ?><span class="notification-dot d-inline-block"></span><?php endif; ?></span><div><strong><?php echo esc($rotulos_tipo[$notif['tipo']] ?? $notif['tipo']); ?></strong><br><span class="small"><?php echo esc($notif['mensagem']); ?></span></div></div></td><td data-label="OS"><?php if ($notif['os_id']): ?><a href="../ordens_servico/detalhes.php?id=<?php echo (int) $notif['os_id']; ?>">OS #<?php echo str_pad((int) $notif['os_numero'], 4, '0', STR_PAD_LEFT); ?></a><?php else: ?>-<?php endif; ?></td><td data-label="Data"><?php echo date('d/m/Y H:i', strtotime($notif['criada_em'])); ?></td><td class="text-end"><?php if ($notif['os_id'] && $notif['lida_em'] === null): ?><a class="btn btn-sm btn-outline-primary" href="../ordens_servico/detalhes.php?id=<?php echo (int) $notif['os_id']; ?>&marcar_notificacao=<?php echo (int) $notif['id']; ?>">Abrir</a><?php endif; ?></td></tr><?php endforeach; ?>
-<?php if (!$notificacoes): ?><tr class="row-empty"><td colspan="4"><div class="empty-state"><div class="empty-state-icon"><i data-lucide="bell-off"></i></div><h4>Nenhuma notificação</h4><p>Não há notificações para exibir com os filtros atuais.</p></div></td></tr><?php endif; ?>
-</tbody></table></div>
-<?php echo paginacao_links($pagina, $total_paginas, $filtros_pag); ?>
-</div></div>
-<script>
-(function () {
-    function recarregar() {
-        var busca = document.getElementById('buscaNotificacoes').value;
-        var estado = document.getElementById('filtroEstado').value;
-        var tipo = document.getElementById('filtroTipo').value;
-        window.location.href = 'listar.php?filtro=' + encodeURIComponent(estado) + '&tipo=' + encodeURIComponent(tipo) + '&busca=' + encodeURIComponent(busca);
+
+<div class="card">
+    <form id="filtrosForm" method="get" action="listar.php"><button type="submit" hidden>Filtrar</button></form>
+    <?php
+    $filtros = '<select class="form-select" name="filtro" form="filtrosForm" onchange="document.getElementById(\'filtrosForm\').submit()">'
+        . '<option value="todas"' . ($filtro === 'todas' ? ' selected' : '') . '>Todas</option>'
+        . '<option value="nao_lidas"' . ($filtro === 'nao_lidas' ? ' selected' : '') . '>Não lidas</option>'
+        . '</select>';
+    $filtros .= '<select class="form-select" name="tipo" form="filtrosForm" onchange="document.getElementById(\'filtrosForm\').submit()">'
+        . '<option value="">Tipo: todos</option>';
+    foreach ($tipos as $t) {
+        $filtros .= '<option value="' . esc($t['tipo']) . '"' . ($tipo === $t['tipo'] ? ' selected' : '') . '>' . esc($rotulos_tipo[$t['tipo']] ?? $t['tipo']) . ' (' . (int) $t['total'] . ')</option>';
     }
-    var busca = document.getElementById('buscaNotificacoes');
-    var debounce = null;
-    busca.addEventListener('keydown', function (e) { if (e.key === 'Enter') recarregar(); });
-    busca.addEventListener('input', function () { clearTimeout(debounce); debounce = setTimeout(recarregar, 600); });
-    document.getElementById('filtroEstado').addEventListener('change', recarregar);
-    document.getElementById('filtroTipo').addEventListener('change', recarregar);
-})();
-</script>
+    $filtros .= '</select>';
+    echo '<div class="table-panel"><div class="crud-toolbar">'
+        . '<div class="crud-search"><i class="icon-base ti tabler-search"></i>'
+        . '<input type="search" name="busca" form="filtrosForm" class="form-control" placeholder="Buscar por mensagem..." value="' . esc($busca) . '" autocomplete="off"></div>'
+        . $filtros
+        . '</div></div>';
+    ?>
+    <div class="table-responsive">
+        <table class="table table-hover align-middle responsive-card">
+            <thead>
+                <tr><th>Mensagem</th><th>OS</th><th>Data</th><th class="actions-cell"></th></tr>
+            </thead>
+            <tbody>
+            <?php foreach ($notificacoes as $notif): ?>
+                <tr class="<?php echo $notif['lida_em'] === null ? 'notificacao-nao-lida' : ''; ?>">
+                    <td data-label="Mensagem">
+                        <div class="d-flex align-items-start gap-2">
+                            <span class="mt-1" style="width:16px;"><?php if ($notif['lida_em'] === null): ?><span class="notification-dot d-inline-block"></span><?php endif; ?></span>
+                            <div>
+                                <span class="fw-medium"><?php echo esc($rotulos_tipo[$notif['tipo']] ?? $notif['tipo']); ?></span><br>
+                                <span class="small"><?php echo esc($notif['mensagem']); ?></span>
+                            </div>
+                        </div>
+                    </td>
+                    <td data-label="OS"><?php if ($notif['os_id']): ?><a href="../ordens_servico/detalhes.php?id=<?php echo (int) $notif['os_id']; ?>">OS #<?php echo str_pad((int) $notif['os_numero'], 4, '0', STR_PAD_LEFT); ?></a><?php else: ?>—<?php endif; ?></td>
+                    <td data-label="Data"><?php echo date('d/m/Y H:i', strtotime($notif['criada_em'])); ?></td>
+                    <td class="actions-cell"><?php if ($notif['os_id'] && $notif['lida_em'] === null): ?><a class="btn btn-sm btn-outline-primary" href="../ordens_servico/detalhes.php?id=<?php echo (int) $notif['os_id']; ?>&marcar_notificacao=<?php echo (int) $notif['id']; ?>">Abrir</a><?php endif; ?></td>
+                </tr>
+            <?php endforeach; ?>
+            <?php if (!$notificacoes): ?><tr class="row-empty"><td colspan="4"><?php echo crud_empty_state('bell-off', 'Nenhuma notificação', 'Não há notificações para exibir com os filtros atuais.'); ?></td></tr><?php endif; ?>
+            </tbody>
+        </table>
+    </div>
+    <?php echo dt_rodape($pagina, $total, $por_pagina, $total_paginas, $filtros_pag, 'listar.php', 'notificações'); ?>
+</div>
 <?php require_once __DIR__ . '/../../includes/footer.php'; ?>
