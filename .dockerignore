@@ -4,3 +4,7 @@
 sql/*.sql
 README.md
 DOCUMENTACAO_SISTEMA.md
+
+# Tema Metronic: dependencias npm nao entram na imagem
+# (o dist compilado ja esta versionado)
+theme/node_modules

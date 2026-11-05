@@ -3,6 +3,12 @@ config.local.php
 config/config.local.php
 *.log
 
+# Artefatos do Windows (downloads com Zone.Identifier)
+*.Zone.Identifier
+
+# Tema Metronic: node_modules não entra no repo (dist/src sim)
+theme/node_modules/
+
 # Só o vendor da raiz (composer) é ignorado.
 # assets/vendor/ faz parte do tema e precisa ser versionado.
 /vendor/
