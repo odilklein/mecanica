@@ -13,6 +13,7 @@ use Kernel\Http\Router;
 use Kernel\Menu\Menu;
 use Kernel\Modules\ProviderInterface;
 use Modules\Mechanic\Controllers\FipeController;
+use Modules\Mechanic\Controllers\BudgetController;
 use Modules\Mechanic\Controllers\PartOrderController;
 use Modules\Mechanic\Controllers\ServiceOrderController;
 use Modules\Mechanic\Controllers\TaskController;
@@ -45,6 +46,17 @@ class MechanicProvider implements ProviderInterface
         // Pedidos de peças (CRUD genérico).
         crud_routes($router, '/part-orders', PartOrderController::class);
 
+        // Orçamentos (específicas antes da genérica).
+        $router->get('/budgets', [BudgetController::class, 'index']);
+        $router->get('/budgets/create', [BudgetController::class, 'create']);
+        $router->post('/budgets', [BudgetController::class, 'store']);
+        $router->get('/budgets/{id}/edit', [BudgetController::class, 'edit']);
+        $router->post('/budgets/{id}/items', [BudgetController::class, 'addItem']);
+        $router->post('/budgets/{id}/delete', [BudgetController::class, 'destroy']);
+        $router->get('/budgets/{id}', [BudgetController::class, 'show']);
+        $router->post('/budgets/{id}', [BudgetController::class, 'update']);
+        $router->post('/budget-items/{id}/delete', [BudgetController::class, 'removeItem']);
+
         $this->menu($container);
     }
 
@@ -70,6 +82,12 @@ class MechanicProvider implements ProviderInterface
             'icon' => 'truck',
             'url' => '/part-orders',
             'roles' => null,
+        ]);
+        $menu->add('Documentos', [
+            'label' => 'Orçamentos',
+            'icon' => 'file-text',
+            'url' => '/budgets',
+            'roles' => ['admin', 'secretary', 'lead_mechanic'],
         ]);
     }
 }

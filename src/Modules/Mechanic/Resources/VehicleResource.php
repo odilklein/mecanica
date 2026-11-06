@@ -53,7 +53,7 @@ class VehicleResource extends Resource
     public function fillable(): array
     {
         return [
-            'client_id', 'plate', 'brand', 'model', 'year', 'color', 'current_km', 'chassis', 'notes', 'is_active',
+            'client_id', 'plate', 'brand', 'model', 'year', 'color',
             'fipe_brand_code', 'fipe_model_code', 'fipe_year_code', 'fipe_year', 'fipe_value', 'fipe_reference',
         ];
     }
@@ -129,9 +129,6 @@ class VehicleResource extends Resource
             ['name' => 'fipe_year_code', 'label' => 'Ano (FIPE)', 'type' => 'select', 'col' => 'col-md-3'],
             ['name' => 'fipe_value', 'label' => 'Valor FIPE', 'type' => 'text', 'col' => 'col-md-3'],
             ['name' => 'color', 'label' => 'Cor', 'type' => 'text', 'max' => 30, 'col' => 'col-md-4'],
-            ['name' => 'current_km', 'label' => 'KM atual', 'type' => 'number', 'min' => 0, 'col' => 'col-md-4'],
-            ['name' => 'chassis', 'label' => 'Chassi', 'type' => 'text', 'max' => 30, 'col' => 'col-md-4'],
-            ['name' => 'notes', 'label' => 'Observações', 'type' => 'textarea'],
         ];
     }
 }
