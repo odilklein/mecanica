@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace Modules\Mechanic\Resources;
 
 use Kernel\Crud\Resource;
+use Modules\Mechanic\Services\FipeService;
 
 class VehicleResource extends Resource
 {
@@ -32,6 +33,11 @@ class VehicleResource extends Resource
         return ['admin', 'secretary', 'lead_mechanic'];
     }
 
+    public function formView(): string
+    {
+        return 'mechanic::vehicles/form';
+    }
+
     public function columns(): array
     {
         return [
@@ -44,28 +50,89 @@ class VehicleResource extends Resource
         ];
     }
 
-    public function selectOptions(\PDO $pdo): array
+    public function fillable(): array
     {
-        $options = [];
+        return [
+            'client_id', 'plate', 'brand', 'model', 'year', 'color', 'current_km', 'chassis', 'notes', 'is_active',
+            'fipe_brand_code', 'fipe_model_code', 'fipe_year_code', 'fipe_year', 'fipe_value', 'fipe_reference',
+        ];
+    }
+
+    public function selectOptions(\PDO $pdo, array $data = []): array
+    {
+        $fipe = new FipeService($pdo);
+        $options = ['fipe_brand_code' => $fipe->brandOptions()];
+
+        $clients = [];
         foreach ($pdo->query('SELECT id, name FROM clients ORDER BY name')->fetchAll() as $row) {
-            $options[(int) $row['id']] = $row['name'];
+            $clients[(int) $row['id']] = $row['name'];
         }
-        return ['client_id' => $options];
+        $options['client_id'] = $clients;
+
+        $brand = (string) ($data['fipe_brand_code'] ?? '');
+        if ($brand !== '') {
+            $options['fipe_model_code'] = array_column($fipe->modelsForBrand($brand), 'name', 'code');
+        }
+
+        $modelCode = (string) ($data['fipe_model_code'] ?? '');
+        if ($brand !== '' && $modelCode !== '') {
+            $modelId = $fipe->findModelId($brand, $modelCode);
+            if ($modelId) {
+                $options['fipe_year_code'] = array_column($fipe->yearsForModel($modelId), 'name', 'code');
+            }
+        }
+
+        return $options;
+    }
+
+    public function prepareData(array $data, ?int $ignoreId, \PDO $pdo): array
+    {
+        $brandCode = (string) ($data['fipe_brand_code'] ?? '');
+        if ($brandCode !== '') {
+            $stmt = $pdo->prepare('SELECT name FROM fipe_brands WHERE code = :c');
+            $stmt->execute([':c' => $brandCode]);
+            $data['brand'] = (string) ($stmt->fetchColumn() ?: '');
+        }
+
+        $modelCode = (string) ($data['fipe_model_code'] ?? '');
+        if ($brandCode !== '' && $modelCode !== '') {
+            $stmt = $pdo->prepare(
+                'SELECT m.name FROM fipe_models m JOIN fipe_brands b ON b.id = m.brand_id WHERE b.code = :b AND m.code = :m'
+            );
+            $stmt->execute([':b' => $brandCode, ':m' => $modelCode]);
+            $data['model'] = (string) ($stmt->fetchColumn() ?: '');
+        }
+
+        $yearCode = (string) ($data['fipe_year_code'] ?? '');
+        if ($yearCode !== '' && preg_match('/(\d{4})/', $yearCode, $m)) {
+            $data['fipe_year'] = (int) $m[1];
+            if (empty($data['year'])) {
+                $data['year'] = (int) $m[1];
+            }
+        }
+
+        if (array_key_exists('fipe_value', $data) && ($data['fipe_value'] === '' || $data['fipe_value'] === null)) {
+            $data['fipe_value'] = null;
+        }
+
+        return $data;
     }
 
     public function fields(): array
     {
         return [
-            ['name' => 'client_id', 'label' => 'Cliente', 'type' => 'select', 'icon' => 'user', 'required' => true, 'col' => 'col-md-6'],
-            ['name' => 'plate', 'label' => 'Placa', 'type' => 'text', 'icon' => 'license', 'mask' => 'plate', 'validate' => 'plate', 'unique' => true, 'required' => true, 'max' => 10, 'col' => 'col-md-3'],
-            ['name' => 'year', 'label' => 'Ano', 'type' => 'number', 'icon' => 'calendar', 'min' => 1950, 'max' => 2030, 'col' => 'col-md-3'],
-            ['name' => 'brand', 'label' => 'Marca', 'type' => 'text', 'icon' => 'building-factory-2', 'max' => 80, 'col' => 'col-md-6'],
-            ['name' => 'model', 'label' => 'Modelo', 'type' => 'text', 'icon' => 'car', 'max' => 120, 'col' => 'col-md-6'],
-            ['name' => 'color', 'label' => 'Cor', 'type' => 'text', 'icon' => 'palette', 'max' => 30, 'col' => 'col-md-4'],
-            ['name' => 'current_km', 'label' => 'KM atual', 'type' => 'number', 'icon' => 'gauge', 'min' => 0, 'col' => 'col-md-4'],
-            ['name' => 'chassis', 'label' => 'Chassi', 'type' => 'text', 'icon' => 'fingerprint', 'max' => 30, 'col' => 'col-md-4'],
-            ['name' => 'notes', 'label' => 'Observações', 'type' => 'textarea', 'icon' => 'notes'],
-            ['name' => 'is_active', 'label' => 'Ativo', 'type' => 'boolean', 'icon' => 'toggle-left', 'default' => 1],
+            ['name' => 'client_id', 'label' => 'Cliente', 'type' => 'select', 'required' => true, 'col' => 'col-md-6'],
+            ['name' => 'plate', 'label' => 'Placa', 'type' => 'text', 'mask' => 'plate', 'validate' => 'plate', 'unique' => true, 'required' => true, 'max' => 10, 'col' => 'col-md-3'],
+            ['name' => 'year', 'label' => 'Ano', 'type' => 'number', 'min' => 1950, 'max' => 2030, 'col' => 'col-md-3'],
+            ['name' => 'fipe_brand_code', 'label' => 'Marca (FIPE)', 'type' => 'select', 'col' => 'col-md-6'],
+            ['name' => 'fipe_model_code', 'label' => 'Modelo (FIPE)', 'type' => 'select', 'col' => 'col-md-6'],
+            ['name' => 'fipe_year_code', 'label' => 'Ano (FIPE)', 'type' => 'select', 'col' => 'col-md-3'],
+            ['name' => 'fipe_value', 'label' => 'Valor FIPE', 'type' => 'text', 'col' => 'col-md-3'],
+            ['name' => 'color', 'label' => 'Cor', 'type' => 'text', 'max' => 30, 'col' => 'col-md-4'],
+            ['name' => 'current_km', 'label' => 'KM atual', 'type' => 'number', 'min' => 0, 'col' => 'col-md-4'],
+            ['name' => 'chassis', 'label' => 'Chassi', 'type' => 'text', 'max' => 30, 'col' => 'col-md-4'],
+            ['name' => 'notes', 'label' => 'Observações', 'type' => 'textarea'],
+            ['name' => 'is_active', 'label' => 'Ativo', 'type' => 'boolean', 'default' => 1],
         ];
     }
 }

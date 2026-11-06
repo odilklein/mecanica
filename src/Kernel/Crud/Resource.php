@@ -56,16 +56,28 @@ abstract class Resource
      *
      * @return array<string, array<int|string, string>>
      */
-    public function selectOptions(\PDO $pdo): array
+    public function selectOptions(\PDO $pdo, array $data = []): array
     {
         return [];
+    }
+
+    /** Template da listagem (permite customização por módulo). */
+    public function indexView(): string
+    {
+        return 'kernel::crud/index';
+    }
+
+    /** Template do formulário (permite customização por módulo). */
+    public function formView(): string
+    {
+        return 'kernel::crud/form';
     }
 
     /**
      * Transforma os dados antes de gravar (ex.: hash de senha).
      * $ignoreId é null em criação e o id em edição.
      */
-    public function prepareData(array $data, ?int $ignoreId): array
+    public function prepareData(array $data, ?int $ignoreId, \PDO $pdo): array
     {
         return $data;
     }

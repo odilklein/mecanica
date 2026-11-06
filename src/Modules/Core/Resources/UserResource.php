@@ -55,7 +55,7 @@ class UserResource extends Resource
         ];
     }
 
-    public function prepareData(array $data, ?int $ignoreId): array
+    public function prepareData(array $data, ?int $ignoreId, \PDO $pdo): array
     {
         if (array_key_exists('password', $data)) {
             if ($data['password'] === '' || $data['password'] === null) {

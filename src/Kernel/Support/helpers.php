@@ -45,6 +45,18 @@ if (!function_exists('redirect')) {
     }
 }
 
+if (!function_exists('json_response')) {
+    /** Cria uma resposta JSON (PSR-7). */
+    function json_response(mixed $data, int $status = 200): \Nyholm\Psr7\Response
+    {
+        return new \Nyholm\Psr7\Response(
+            $status,
+            ['Content-Type' => 'application/json; charset=utf-8'],
+            (string) json_encode($data, JSON_UNESCAPED_UNICODE)
+        );
+    }
+}
+
 if (!function_exists('roleLabel')) {
     /** Rótulo legível (pt-BR) de um papel de usuário. */
     function roleLabel(?string $role): string

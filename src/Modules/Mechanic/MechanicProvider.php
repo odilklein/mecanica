@@ -12,6 +12,7 @@ use Kernel\Container\Container;
 use Kernel\Http\Router;
 use Kernel\Menu\Menu;
 use Kernel\Modules\ProviderInterface;
+use Modules\Mechanic\Controllers\FipeController;
 use Modules\Mechanic\Controllers\VehicleController;
 
 class MechanicProvider implements ProviderInterface
@@ -20,6 +21,11 @@ class MechanicProvider implements ProviderInterface
     {
         // Veículos (CRUD genérico).
         crud_routes($router, '/vehicles', VehicleController::class);
+
+        // API do catálogo FIPE (selects em cascata).
+        $router->get('/api/fipe/models', [FipeController::class, 'models']);
+        $router->get('/api/fipe/years', [FipeController::class, 'years']);
+        $router->get('/api/fipe/price', [FipeController::class, 'price']);
 
         $this->menu($container);
     }

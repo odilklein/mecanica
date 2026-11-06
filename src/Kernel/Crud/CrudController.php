@@ -44,7 +44,7 @@ abstract class CrudController extends Controller
 
         $data = $this->repository($resource)->paginate($page, 15, $search);
 
-        return $this->render('kernel::crud/index', array_merge($data, [
+        return $this->render($resource->indexView(), array_merge($data, [
             'title' => $resource->labels()['plural'],
             'resource' => $resource,
             'search' => $search,
@@ -58,7 +58,7 @@ abstract class CrudController extends Controller
             return $response;
         }
 
-        return $this->render('kernel::crud/form', $this->formData($resource, null, [], []));
+        return $this->render($resource->formView(), $this->formData($resource, null, [], []));
     }
 
     public function store(ServerRequestInterface $request)
@@ -74,15 +74,15 @@ abstract class CrudController extends Controller
         [$data, $errors] = $this->validate($resource, $request);
 
         if ($errors) {
-            return $this->render('kernel::crud/form', $this->formData($resource, null, $data, $errors));
+            return $this->render($resource->formView(), $this->formData($resource, null, $data, $errors));
         }
 
-        $data = $resource->prepareData($data, null);
+        $data = $resource->prepareData($data, null, $this->pdo);
 
         try {
             $this->repository($resource)->create($data);
         } catch (\PDOException $e) {
-            return $this->render('kernel::crud/form', $this->formData($resource, null, $data, ['_form' => $this->dbErrorMessage($e)]));
+            return $this->render($resource->formView(), $this->formData($resource, null, $data, ['_form' => $this->dbErrorMessage($e)]));
         }
 
         $this->session->flash('success', $resource->labels()['singular'] . ' cadastrado(a) com sucesso.');
@@ -102,7 +102,7 @@ abstract class CrudController extends Controller
             return redirect($resource->path());
         }
 
-        return $this->render('kernel::crud/form', $this->formData($resource, $record, $record, []));
+        return $this->render($resource->formView(), $this->formData($resource, $record, $record, []));
     }
 
     public function update(ServerRequestInterface $request, $id)
@@ -124,15 +124,15 @@ abstract class CrudController extends Controller
         [$data, $errors] = $this->validate($resource, $request, (int) $id);
 
         if ($errors) {
-            return $this->render('kernel::crud/form', $this->formData($resource, array_merge($record, $data), $data, $errors));
+            return $this->render($resource->formView(), $this->formData($resource, array_merge($record, $data), $data, $errors));
         }
 
-        $data = $resource->prepareData($data, (int) $id);
+        $data = $resource->prepareData($data, (int) $id, $this->pdo);
 
         try {
             $this->repository($resource)->update((int) $id, $data);
         } catch (\PDOException $e) {
-            return $this->render('kernel::crud/form', $this->formData($resource, array_merge($record, $data), $data, ['_form' => $this->dbErrorMessage($e)]));
+            return $this->render($resource->formView(), $this->formData($resource, array_merge($record, $data), $data, ['_form' => $this->dbErrorMessage($e)]));
         }
 
         $this->session->flash('success', $resource->labels()['singular'] . ' atualizado(a) com sucesso.');
@@ -173,7 +173,7 @@ abstract class CrudController extends Controller
             'record' => $record,
             'old' => $old,
             'errors' => $errors,
-            'selectOptions' => $resource->selectOptions($this->pdo),
+            'selectOptions' => $resource->selectOptions($this->pdo, $record ?? []),
         ];
     }
 
