@@ -5,11 +5,15 @@ require_once __DIR__ . '/../../includes/paginacao.php';
 require_once __DIR__ . '/../../includes/crud.php';
 require_once __DIR__ . '/../../includes/campos.php';
 require_once __DIR__ . '/../../includes/fipe.php';
+require_once __DIR__ . '/../../includes/configuracoes.php';
 exigir_papel(['admin', 'secretaria', 'mecanico_chefe']);
+
+// O módulo FIPE pode ser desligado pelo admin em Configurações.
+$modulo_fipe = config_flag($conn, 'modulo_fipe');
 
 fipe_garantir_schema($conn);
 $fipe_marcas = $conn->query("SELECT id, nome_exibicao FROM fipe_marcas ORDER BY nome_exibicao")->fetchAll();
-$catalogo_ok = count($fipe_marcas) > 0;
+$catalogo_ok = $modulo_fipe && count($fipe_marcas) > 0;
 
 $clientes_opcoes = $conn->query("SELECT id, nome FROM clientes ORDER BY nome")->fetchAll();
 
@@ -44,7 +48,7 @@ foreach ($clientes_opcoes as $c) {
         <span class="page-subtitle">Frota cadastrada e valores FIPE</span>
     </div>
     <div class="d-flex align-items-center gap-2">
-        <?php if (tem_papel(['admin'])): ?>
+        <?php if (tem_papel(['admin']) && $modulo_fipe): ?>
         <form method="POST" action="sincronizar_fipe.php" class="d-inline" onsubmit="this.querySelector('button').disabled=true; return confirm('Sincronizar o catálogo FIPE? Isso leva cerca de 1 minuto.');">
             <input type="hidden" name="csrf_token" value="<?php echo esc(csrf_token()); ?>">
             <button type="submit" class="btn btn-outline-secondary"><i class="icon-base ti tabler-refresh me-1"></i>Sincronizar FIPE</button>

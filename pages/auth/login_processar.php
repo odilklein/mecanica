@@ -3,6 +3,7 @@ require_once __DIR__ . '/../../includes/sessao.php';
 require_once __DIR__ . '/../../config/conexao.php';
 require_once __DIR__ . '/../../includes/auditoria.php';
 require_once __DIR__ . '/../../includes/turnstile.php';
+require_once __DIR__ . '/../../includes/login_rate_limit.php';
 
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     validar_csrf();
@@ -28,6 +29,14 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         exit();
     }
 
+    // Rate limit: bloqueia força-bruta por email + IP (além do Turnstile).
+    $ip = login_rate_limit_ip();
+    $limite = login_rate_limit_verificar($conn, $email, $ip);
+    if ($limite['bloqueado']) {
+        header("Location: login.php?erro=Muitas tentativas de login. Tente novamente em " . $limite['minutos_restantes'] . " min.");
+        exit();
+    }
+
     try {
         $stmt = $conn->prepare("SELECT * FROM usuarios WHERE email = :email AND ativo = 1");
         $stmt->bindParam(':email', $email);
@@ -35,6 +44,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         $usuario = $stmt->fetch();
 
         if ($usuario && password_verify($senha, $usuario['senha'])) {
+            login_rate_limit_limpar($conn, $email, $ip);
             session_regenerate_id(true);
             $_SESSION['usuario_id'] = $usuario['id'];
             $_SESSION['usuario_nome'] = $usuario['nome'];
@@ -45,6 +55,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             header("Location: ../../index.php");
             exit();
         } else {
+            login_rate_limit_registrar_falha($conn, $email, $ip);
             header("Location: login.php?erro=Email ou senha incorretos ou usuário desativado");
             exit();
         }

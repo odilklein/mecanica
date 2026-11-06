@@ -2,8 +2,15 @@
 require_once __DIR__ . '/../../includes/sessao.php';
 require_once __DIR__ . '/../../config/conexao.php';
 require_once __DIR__ . '/../../includes/fipe.php';
+require_once __DIR__ . '/../../includes/configuracoes.php';
 
 exigir_papel(['admin']);
+if (!config_flag($conn, 'modulo_fipe')) {
+    $_SESSION['mensagem'] = 'O módulo Tabela FIPE está desativado nas Configurações.';
+    $_SESSION['mensagem_tipo'] = 'warning';
+    header('Location: listar.php');
+    exit();
+}
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     header('Location: listar.php');
     exit();

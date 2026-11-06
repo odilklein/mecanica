@@ -2,6 +2,7 @@
 require_once __DIR__ . '/base_url.php';
 require_once __DIR__ . '/../config/empresa.php';
 require_once __DIR__ . '/../config/status_os.php';
+require_once __DIR__ . '/configuracoes.php';
 
 // `base_url.php` grava em $GLOBALS; expõe como variável local.
 $caminho_base = $GLOBALS['caminho_base'] ?? '';
@@ -15,6 +16,15 @@ $url_demo = $caminho_base . '/assets/css/demo.css';
 $url_mecanica = $caminho_base . '/css/mecanica.css?v=' . $v_mecanica;
 $url_icons = $caminho_base . '/assets/vendor/fonts/iconify-icons.css';
 $url_index = $caminho_base . '/index.php';
+
+// Configurações editáveis pelo admin (tema/SEO/módulos). Se a tabela ainda
+// não foi migrada, os valores padrão são usados (config_carregar tolera falha).
+$cor_tema = config_valor($conn, 'tema_cor_primaria', '#b8270f');
+$cor_tema_dark = config_valor($conn, 'tema_cor_primaria_dark', '#b8270f');
+$seo_titulo = config_valor($conn, 'seo_titulo', EMPRESA_NOME);
+$seo_descricao = config_valor($conn, 'seo_descricao', '');
+$seo_palavras_chave = config_valor($conn, 'seo_palavras_chave', '');
+$mod_notificacoes = config_flag($conn, 'modulo_notificacoes');
 ?>
 <!DOCTYPE html>
 <html
@@ -28,8 +38,18 @@ $url_index = $caminho_base . '/index.php';
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
-    <meta name="theme-color" content="#b8270f">
-    <title><?php echo EMPRESA_NOME; ?> | <?php echo $titulo_pagina ?? 'Sistema de Gestão'; ?></title>
+    <meta name="theme-color" content="<?php echo esc($cor_tema); ?>">
+    <title><?php echo esc($seo_titulo); ?> | <?php echo $titulo_pagina ?? 'Sistema de Gestão'; ?></title>
+<?php if ($seo_descricao !== ''): ?>
+    <meta name="description" content="<?php echo esc($seo_descricao); ?>">
+<?php endif; ?>
+<?php if ($seo_palavras_chave !== ''): ?>
+    <meta name="keywords" content="<?php echo esc($seo_palavras_chave); ?>">
+<?php endif; ?>
+    <meta property="og:title" content="<?php echo esc($seo_titulo); ?>">
+    <meta property="og:description" content="<?php echo esc($seo_descricao); ?>">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="<?php echo esc($caminho_base . '/index.php'); ?>">
 
     <!-- Tema aplicado antes da renderização (evita flash entre claro/escuro).
          O padrão do sistema é SEMPRE claro. -->
@@ -64,6 +84,9 @@ $url_index = $caminho_base . '/index.php';
     <!-- Camada do sistema (tokens vermelhos + componentes) -->
     <link rel="stylesheet" href="<?php echo $url_mecanica; ?>">
 
+    <?php // Sobrescreve a cor da marca (tema editável) — após mecanica.css ?>
+    <?php echo tema_css_inline($cor_tema, $cor_tema_dark); ?>
+
     <?php if (!empty($head_extra)) echo $head_extra; ?>
 
     <!-- Helpers do layout (necessário antes do menu.js) -->
@@ -74,6 +97,7 @@ $url_index = $caminho_base . '/index.php';
         window.CAMINHO_BASE = <?php echo json_encode($caminho_base); ?>;
         window.CSRF_TOKEN = <?php echo json_encode(csrf_token() ?? ''); ?>;
         window.OS_STATUS = <?php echo json_encode(os_status_payload(), JSON_UNESCAPED_UNICODE); ?>;
+        window.MODULOS = { notificacoes: <?php echo $mod_notificacoes ? 'true' : 'false'; ?> };
     </script>
 
     <!-- Layout wrapper -->
@@ -117,6 +141,7 @@ $url_index = $caminho_base . '/index.php';
                                 </ul>
                             </li>
 
+                            <?php if ($mod_notificacoes): ?>
                             <!-- Notificações -->
                             <li class="nav-item navbar-dropdown dropdown-notifications dropdown me-3 me-xl-2">
                                 <a class="nav-link dropdown-toggle hide-arrow btn btn-icon btn-text-secondary rounded-pill" href="javascript:void(0);" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false">
@@ -149,6 +174,7 @@ $url_index = $caminho_base . '/index.php';
                                     </li>
                                 </ul>
                             </li>
+                            <?php endif; ?>
 
                             <!-- Usuário -->
                             <li class="nav-item navbar-dropdown dropdown-user dropdown">

@@ -198,6 +198,9 @@
         initTema();
         initMenu();
         initTooltips();
-        initNotificacoes();
+        // Notificações só quando o módulo está habilitado (config do admin).
+        if (!window.MODULOS || window.MODULOS.notificacoes) {
+            initNotificacoes();
+        }
     });
 })();

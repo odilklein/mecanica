@@ -25,6 +25,7 @@ if (!isset($caminho_base)) {
     $caminho_base = $GLOBALS['caminho_base'] ?? '';
 }
 require_once __DIR__ . '/../config/empresa.php';
+require_once __DIR__ . '/configuracoes.php';
 
 $url_perfil = $caminho_base . '/pages/auth/perfil.php';
 
@@ -35,7 +36,7 @@ $navegacao = [
         'secao' => 'Principal',
         'itens' => [
             ['modulo' => 'dashboard', 'url' => $caminho_base . '/index.php', 'icone' => 'layout-grid', 'texto' => 'Dashboard', 'papeis' => null],
-            ['modulo' => 'notificacoes', 'url' => $caminho_base . '/pages/notificacoes/listar.php', 'icone' => 'bell', 'texto' => 'Notificações', 'papeis' => null],
+            ['modulo' => 'notificacoes', 'url' => $caminho_base . '/pages/notificacoes/listar.php', 'icone' => 'bell', 'texto' => 'Notificações', 'papeis' => null, 'habilitado' => 'modulo_notificacoes'],
             ['modulo' => 'clientes', 'url' => $caminho_base . '/pages/clientes/listar.php', 'icone' => 'users', 'texto' => 'Clientes', 'papeis' => ['admin', 'secretaria', 'mecanico_chefe']],
             ['modulo' => 'veiculos', 'url' => $caminho_base . '/pages/veiculos/listar.php', 'icone' => 'car', 'texto' => 'Veículos', 'papeis' => ['admin', 'secretaria', 'mecanico_chefe']],
             ['modulo' => 'funcionarios', 'url' => $caminho_base . '/pages/funcionarios/listar.php', 'icone' => 'users-group', 'texto' => 'Funcionários', 'papeis' => ['admin', 'secretaria', 'mecanico_chefe']],
@@ -58,6 +59,7 @@ $navegacao = [
     [
         'secao' => 'Sistema',
         'itens' => [
+            ['modulo' => 'configuracoes', 'url' => $caminho_base . '/pages/configuracoes/listar.php', 'icone' => 'settings', 'texto' => 'Configurações', 'papeis' => ['admin']],
             ['modulo' => 'auditoria', 'url' => $caminho_base . '/pages/auditoria/listar.php', 'icone' => 'history', 'texto' => 'Auditoria', 'papeis' => ['admin']],
         ],
     ],
@@ -89,8 +91,14 @@ $nome_usuario = $_SESSION['usuario_nome'] ?? 'Usuário';
     <ul class="menu-inner py-1">
         <?php foreach ($navegacao as $grupo): ?>
             <?php
-            $visiveis = array_filter($grupo['itens'], function ($item) {
-                return $item['papeis'] === null || tem_papel($item['papeis']);
+            $visiveis = array_filter($grupo['itens'], function ($item) use ($conn) {
+                if ($item['papeis'] !== null && !tem_papel($item['papeis'])) {
+                    return false;
+                }
+                if (isset($item['habilitado']) && !config_flag($conn, $item['habilitado'])) {
+                    return false;
+                }
+                return true;
             });
             if (!$visiveis) {
                 continue;

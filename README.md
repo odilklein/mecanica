@@ -281,6 +281,8 @@ valor de referência.
   `scripts/`.
 - Trilha de auditoria para ações sensíveis.
 - **Cloudflare Turnstile** opcional no login.
+- **Rate limit de login** por email + IP (bloqueio após 5 falhas em 15 min,
+  configurável via `LOGIN_MAX_TENTATIVAS` e `LOGIN_JANELA_MINUTOS`).
 - Nenhum segredo real versionado; use `.env` ou `config.local.php`.
 
 ### Cloudflare Turnstile
@@ -296,6 +298,18 @@ TURNSTILE_HOSTNAMES=localhost,127.0.0.1
 ```
 
 Em produção, informe em `TURNSTILE_HOSTNAMES` apenas o domínio real.
+
+### Configurações do sistema (admin)
+
+O menu **Configurações** (visível apenas para o perfil `admin`) permite editar, sem
+tocar no código:
+
+- **Aparência** — cor primária da marca (tema claro e escuro).
+- **SEO** — título do site, meta description e palavras-chave (aplicados no `<head>`).
+- **Módulos** — liga/desliga recursos como Notificações e Tabela FIPE.
+
+Os valores ficam na tabela `configuracoes` (chave/valor) e são lidos com
+`config_valor()`/`config_flag()` em `includes/configuracoes.php`.
 
 ---
 
@@ -315,7 +329,7 @@ Em produção, informe em `TURNSTILE_HOSTNAMES` apenas o domínio real.
 - Não há controle de estoque: as peças são descritas livremente nos pedidos.
 - Não há portal do cliente, integração com WhatsApp, e-mail transacional ou pagamento.
 - O seed de demonstração usa senha única (`admin123`) e deve ser substituído.
-- Rate limit de login e política formal de senha ainda não estão implementados.
+- Política formal de senha (histórico, expiração, complexidade) ainda não implementada.
 
 ---
 

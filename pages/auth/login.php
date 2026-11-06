@@ -2,6 +2,7 @@
 require_once __DIR__ . '/../../includes/sessao.php';
 require_once __DIR__ . '/../../config/empresa.php';
 require_once __DIR__ . '/../../config/turnstile.php';
+require_once __DIR__ . '/../../includes/configuracoes.php';
 
 // Se já estiver logado, redireciona para o dashboard
 if (isset($_SESSION['usuario_id'])) {
@@ -10,14 +11,19 @@ if (isset($_SESSION['usuario_id'])) {
 }
 
 $erro = isset($_GET['erro']) ? $_GET['erro'] : '';
+
+// Tema/SEO editáveis pelo admin (leitura segura; mantém padrão se o banco cair).
+$cor_tema = config_valor_seguro('tema_cor_primaria', '#b8270f');
+$cor_tema_dark = config_valor_seguro('tema_cor_primaria_dark', '#b8270f');
+$seo_titulo = config_valor_seguro('seo_titulo', EMPRESA_NOME);
 ?>
 <!DOCTYPE html>
 <html lang="pt-BR" dir="ltr" data-skin="default" data-bs-theme="light">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
-    <meta name="theme-color" content="#b8270f">
-    <title>Login | <?php echo EMPRESA_NOME; ?></title>
+    <meta name="theme-color" content="<?php echo htmlspecialchars($cor_tema, ENT_QUOTES, 'UTF-8'); ?>">
+    <title>Login | <?php echo htmlspecialchars($seo_titulo, ENT_QUOTES, 'UTF-8'); ?></title>
 
     <link rel="icon" href="data:,">
 
@@ -45,6 +51,7 @@ $erro = isset($_GET['erro']) ? $_GET['erro'] : '';
     <link rel="stylesheet" href="../../assets/css/demo.css">
     <link rel="stylesheet" href="../../assets/vendor/css/pages/page-auth.css">
     <link rel="stylesheet" href="../../css/mecanica.css?v=<?php echo @filemtime(__DIR__ . '/../../css/mecanica.css') ?: time(); ?>">
+    <?php echo tema_css_inline($cor_tema, $cor_tema_dark); ?>
 
     <script src="../../assets/vendor/js/helpers.js"></script>
     <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
