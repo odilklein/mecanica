@@ -15,6 +15,7 @@ use Kernel\Modules\ProviderInterface;
 use Modules\Core\Controllers\AuthController;
 use Modules\Core\Controllers\ClientController;
 use Modules\Core\Controllers\DashboardController;
+use Modules\Core\Controllers\UserController;
 
 class CoreProvider implements ProviderInterface
 {
@@ -31,6 +32,9 @@ class CoreProvider implements ProviderInterface
         // Clientes (CRUD genérico).
         crud_routes($router, '/clients', ClientController::class);
 
+        // Funcionários (usuários).
+        crud_routes($router, '/users', UserController::class);
+
         $this->menu($container);
     }
 
@@ -41,6 +45,7 @@ class CoreProvider implements ProviderInterface
 
         $menu->add('Principal', ['label' => 'Dashboard', 'icon' => 'smart-home', 'url' => '/']);
         $menu->add('Cadastros', ['label' => 'Clientes', 'icon' => 'users', 'url' => '/clients', 'roles' => ['admin', 'secretary', 'lead_mechanic']]);
+        $menu->add('Cadastros', ['label' => 'Funcionários', 'icon' => 'users-group', 'url' => '/users', 'roles' => ['admin', 'secretary', 'lead_mechanic']]);
         $menu->add('Operações', ['label' => 'Ordens de serviço', 'icon' => 'clipboard-list', 'url' => '#', 'roles' => null]);
         $menu->add('Sistema', ['label' => 'Configurações', 'icon' => 'settings', 'url' => '#', 'roles' => ['admin']]);
         $menu->add('Sistema', ['label' => 'Auditoria', 'icon' => 'history', 'url' => '#', 'roles' => ['admin']]);

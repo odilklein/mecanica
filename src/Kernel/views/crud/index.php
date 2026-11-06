@@ -52,7 +52,13 @@ $end = min($page * $perPage, $total);
                 <?php foreach ($items as $row): ?>
                 <tr>
                     <?php foreach ($columns as $col): ?>
-                    <?php $value = (string) ($row[$col['field']] ?? ''); ?>
+                    <?php
+                        $raw = $row[$col['field']] ?? null;
+                        $value = (string) $raw;
+                        if (isset($col['format']) && is_callable($col['format'])) {
+                            $value = (string) $col['format']($raw);
+                        }
+                    ?>
                     <td data-label="<?= e($col['label']) ?>"><?= e($value !== '' ? $value : '—') ?></td>
                     <?php endforeach; ?>
                     <td class="actions-cell" data-label="Ações">

@@ -39,6 +39,9 @@ $action = $isEdit ? $path . '/' . (int) $record['id'] : $path;
                             $name = $field['name'];
                             $type = $field['type'] ?? 'text';
                             $value = $old[$name] ?? ($field['default'] ?? '');
+                            if ($type === 'password') {
+                                $value = '';
+                            }
                             $error = $errors[$name] ?? null;
                             $colClass = $field['col'] ?? ($type === 'textarea' ? 'col-12' : 'col-md-6');
                             $icon = $field['icon'] ?? 'point';

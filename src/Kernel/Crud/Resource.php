@@ -61,6 +61,15 @@ abstract class Resource
         return [];
     }
 
+    /**
+     * Transforma os dados antes de gravar (ex.: hash de senha).
+     * $ignoreId é null em criação e o id em edição.
+     */
+    public function prepareData(array $data, ?int $ignoreId): array
+    {
+        return $data;
+    }
+
     /** Colunas aceitas em insert/update. */
     public function fillable(): array
     {

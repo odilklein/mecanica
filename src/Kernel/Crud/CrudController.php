@@ -77,6 +77,8 @@ abstract class CrudController extends Controller
             return $this->render('kernel::crud/form', $this->formData($resource, null, $data, $errors));
         }
 
+        $data = $resource->prepareData($data, null);
+
         try {
             $this->repository($resource)->create($data);
         } catch (\PDOException $e) {
@@ -124,6 +126,8 @@ abstract class CrudController extends Controller
         if ($errors) {
             return $this->render('kernel::crud/form', $this->formData($resource, array_merge($record, $data), $data, $errors));
         }
+
+        $data = $resource->prepareData($data, (int) $id);
 
         try {
             $this->repository($resource)->update((int) $id, $data);
@@ -196,7 +200,10 @@ abstract class CrudController extends Controller
 
             $value = clean($body[$name] ?? '');
 
-            if (!empty($field['required']) && $value === '') {
+            $isRequired = !empty($field['required'])
+                || (!empty($field['required_on_create']) && $ignoreId === null);
+
+            if ($isRequired && $value === '') {
                 $errors[$name] = 'Campo obrigatório.';
             }
 
@@ -227,8 +234,8 @@ abstract class CrudController extends Controller
                 $value = strtolower($value);
             }
 
-            // Campos numéricos/select vazios viram NULL (evita erro em coluna INT).
-            if (($type === 'number' || $type === 'select') && $value === '') {
+            // Campos numéricos/select/data vazios viram NULL (evita erro em colunas tipadas).
+            if (in_array($type, ['number', 'select', 'date'], true) && $value === '') {
                 $data[$name] = null;
                 continue;
             }
