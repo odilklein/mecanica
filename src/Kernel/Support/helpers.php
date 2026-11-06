@@ -83,15 +83,15 @@ if (!function_exists('flash')) {
 }
 
 if (!function_exists('crud_routes')) {
-    /** Registra as 6 rotas padrão de um CRUD para um controller. */
+    /** Registra as 6 rotas padrão de um CRUD (específicas antes da genérica). */
     function crud_routes(\Kernel\Http\Router $router, string $path, string $controller): void
     {
         $router->get($path, [$controller, 'index']);
         $router->get($path . '/create', [$controller, 'create']);
         $router->post($path, [$controller, 'store']);
         $router->get($path . '/{id}/edit', [$controller, 'edit']);
-        $router->post($path . '/{id}', [$controller, 'update']);
         $router->post($path . '/{id}/delete', [$controller, 'destroy']);
+        $router->post($path . '/{id}', [$controller, 'update']);
     }
 }
 

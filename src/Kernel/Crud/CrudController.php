@@ -42,7 +42,7 @@ abstract class CrudController extends Controller
         $page = (int) ($query['page'] ?? 1);
         $search = clean($query['search'] ?? '');
 
-        $data = $this->repository($resource)->paginate($page, 15, $search);
+        $data = $resource->paginate($this->pdo, $page, 15, $search);
 
         return $this->render($resource->indexView(), array_merge($data, [
             'title' => $resource->labels()['plural'],

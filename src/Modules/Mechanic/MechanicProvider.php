@@ -13,19 +13,33 @@ use Kernel\Http\Router;
 use Kernel\Menu\Menu;
 use Kernel\Modules\ProviderInterface;
 use Modules\Mechanic\Controllers\FipeController;
+use Modules\Mechanic\Controllers\ServiceOrderController;
+use Modules\Mechanic\Controllers\TaskController;
 use Modules\Mechanic\Controllers\VehicleController;
 
 class MechanicProvider implements ProviderInterface
 {
     public function register(Router $router, Container $container): void
     {
-        // Veículos (CRUD genérico).
+        // Veículos (CRUD genérico + FIPE).
         crud_routes($router, '/vehicles', VehicleController::class);
 
         // API do catálogo FIPE (selects em cascata).
         $router->get('/api/fipe/models', [FipeController::class, 'models']);
         $router->get('/api/fipe/years', [FipeController::class, 'years']);
         $router->get('/api/fipe/price', [FipeController::class, 'price']);
+
+        // Ordens de serviço (rotas específicas antes da genérica; bramus casa {id} com "/").
+        $router->get('/service-orders', [ServiceOrderController::class, 'index']);
+        $router->get('/service-orders/create', [ServiceOrderController::class, 'create']);
+        $router->post('/service-orders', [ServiceOrderController::class, 'store']);
+        $router->get('/service-orders/{id}/edit', [ServiceOrderController::class, 'edit']);
+        $router->post('/service-orders/{id}/status', [ServiceOrderController::class, 'updateStatus']);
+        $router->post('/service-orders/{id}/tasks', [TaskController::class, 'store']);
+        $router->post('/service-orders/{id}/delete', [ServiceOrderController::class, 'destroy']);
+        $router->get('/service-orders/{id}', [ServiceOrderController::class, 'show']);
+        $router->post('/service-orders/{id}', [ServiceOrderController::class, 'update']);
+        $router->post('/tasks/{id}/toggle', [TaskController::class, 'toggle']);
 
         $this->menu($container);
     }
@@ -40,6 +54,12 @@ class MechanicProvider implements ProviderInterface
             'icon' => 'car',
             'url' => '/vehicles',
             'roles' => ['admin', 'secretary', 'lead_mechanic'],
+        ]);
+        $menu->add('Operações', [
+            'label' => 'Ordens de serviço',
+            'icon' => 'clipboard-list',
+            'url' => '/service-orders',
+            'roles' => null,
         ]);
     }
 }

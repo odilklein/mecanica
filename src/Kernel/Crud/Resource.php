@@ -67,6 +67,13 @@ abstract class Resource
         return 'kernel::crud/index';
     }
 
+    /** Dados paginados da listagem (recursos com JOIN sobrescrevem). */
+    public function paginate(\PDO $pdo, int $page, int $perPage, string $search): array
+    {
+        return (new \Kernel\Database\Repository($pdo, $this->table(), $this->fillable(), $this->searchable()))
+            ->paginate($page, $perPage, $search);
+    }
+
     /** Template do formulário (permite customização por módulo). */
     public function formView(): string
     {
