@@ -36,3 +36,25 @@ if (!function_exists('env')) {
         return $default;
     }
 }
+
+if (!function_exists('redirect')) {
+    /** Cria uma resposta de redirecionamento (302 por padrão). */
+    function redirect(string $url, int $status = 302): \Nyholm\Psr7\Response
+    {
+        return new \Nyholm\Psr7\Response($status, ['Location' => $url]);
+    }
+}
+
+if (!function_exists('roleLabel')) {
+    /** Rótulo legível (pt-BR) de um papel de usuário. */
+    function roleLabel(?string $role): string
+    {
+        $map = [
+            'admin' => 'Administrador',
+            'secretary' => 'Secretaria',
+            'lead_mechanic' => 'Mecânico-chefe',
+            'mechanic' => 'Mecânico',
+        ];
+        return $map[$role] ?? 'Usuário';
+    }
+}

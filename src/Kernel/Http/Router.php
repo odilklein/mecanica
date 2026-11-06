@@ -1,8 +1,10 @@
 <?php
 // =============================================
 // ROUTER — wrapper fino sobre bramus/router.
-// Handlers retornam uma ResponseInterface (PSR-7)
-// ou string; o Router cuida da emissão.
+// Suporta handlers como closure ou [Classe, 'metodo']
+// (a classe é resolvida pelo container). O handler
+// recebe o ServerRequest PSR-7 como primeiro argumento
+// e retorna ResponseInterface|string.
 // =============================================
 
 declare(strict_types=1);
@@ -11,13 +13,16 @@ namespace Kernel\Http;
 
 use Bramus\Router\Router as BramusRouter;
 use Kernel\Container\Container;
+use Nyholm\Psr7\Factory\Psr17Factory;
 use Nyholm\Psr7\Response;
 use Psr\Http\Message\ResponseInterface;
+use Psr\Http\Message\ServerRequestInterface;
 
 class Router
 {
     private BramusRouter $router;
     private Container $container;
+    private ?ServerRequestInterface $request = null;
 
     public function __construct(Container $container)
     {
@@ -25,19 +30,19 @@ class Router
         $this->router = new BramusRouter();
     }
 
-    public function get(string $pattern, callable $handler): void
+    public function get(string $pattern, callable|array $handler): void
     {
-        $this->router->get($pattern, fn (...$args) => $this->emit($handler(...$args)));
+        $this->router->get($pattern, fn (...$args) => $this->emit($this->call($handler, $args)));
     }
 
-    public function post(string $pattern, callable $handler): void
+    public function post(string $pattern, callable|array $handler): void
     {
-        $this->router->post($pattern, fn (...$args) => $this->emit($handler(...$args)));
+        $this->router->post($pattern, fn (...$args) => $this->emit($this->call($handler, $args)));
     }
 
     public function set404(callable $handler): void
     {
-        $this->router->set404(fn () => $this->emit($handler()));
+        $this->router->set404(fn () => $this->emit($this->call($handler, [])));
     }
 
     /**
@@ -46,6 +51,48 @@ class Router
     public function run(): void
     {
         $this->router->run();
+    }
+
+    /**
+     * Resolve o handler (closure ou [classe, método]) e o executa.
+     */
+    private function call(callable|array $handler, array $args): mixed
+    {
+        if (is_array($handler)) {
+            [$class, $method] = $handler;
+            $controller = $this->container->get($class);
+            return $controller->{$method}($this->request(), ...$args);
+        }
+        return $handler($this->request(), ...$args);
+    }
+
+    /**
+     * Monta o ServerRequest PSR-7 a partir dos superglobals do PHP
+     * (sem a dependência nyholm/psr7-server).
+     */
+    private function request(): ServerRequestInterface
+    {
+        if ($this->request !== null) {
+            return $this->request;
+        }
+
+        $factory = new Psr17Factory();
+
+        $method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
+        $https = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off');
+        $scheme = $https ? 'https' : 'http';
+        $host = $_SERVER['HTTP_HOST'] ?? 'localhost';
+        $target = $_SERVER['REQUEST_URI'] ?? '/';
+
+        $request = $factory->createServerRequest($method, $scheme . '://' . $host . $target, $_SERVER);
+        $request = $request->withQueryParams($_GET);
+        $request = $request->withCookieParams($_COOKIE);
+
+        if (in_array($method, ['POST', 'PUT', 'PATCH'], true)) {
+            $request = $request->withParsedBody($_POST);
+        }
+
+        return $this->request = $request;
     }
 
     /**

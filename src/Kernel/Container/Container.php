@@ -8,6 +8,7 @@ declare(strict_types=1);
 namespace Kernel\Container;
 
 use League\Container\Container as LeagueContainer;
+use League\Container\ReflectionContainer;
 use Psr\Container\ContainerInterface;
 
 class Container implements ContainerInterface
@@ -17,6 +18,8 @@ class Container implements ContainerInterface
     public function __construct()
     {
         $this->container = new LeagueContainer();
+        // Autowiring de classes não registradas (controllers etc.).
+        $this->container->delegate(new ReflectionContainer());
     }
 
     public function get(string $id): mixed
