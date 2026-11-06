@@ -29,7 +29,12 @@
         return v;
     }
 
-    var masks = { cpf: maskCpf, phone: maskPhone, plate: maskPlate };
+    function maskCep(v) {
+        v = v.replace(/\D/g, '').slice(0, 8);
+        return v.replace(/(\d{5})(\d)/, '$1-$2');
+    }
+
+    var masks = { cpf: maskCpf, phone: maskPhone, plate: maskPlate, cep: maskCep };
 
     function apply(input) {
         var fn = masks[input.getAttribute('data-mask')];

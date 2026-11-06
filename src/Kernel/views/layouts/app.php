@@ -168,6 +168,7 @@
     <script src="/assets/vendor/js/menu.js"></script>
     <script src="/assets/js/main.js"></script>
     <script src="/js/masks.js"></script>
+    <script src="/js/viacep.js"></script>
 
     <script>
         document.querySelectorAll('[data-bs-theme-value]').forEach(function (btn) {

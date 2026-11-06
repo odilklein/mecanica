@@ -24,6 +24,8 @@ $select = static function (string $name, string $label, string $icon, array $opt
     return $html;
 };
 ?>
+<link href="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/css/tom-select.bootstrap5.min.css" rel="stylesheet">
+
 <div class="page-header">
     <div>
         <h1><i class="icon-base ti tabler-car"></i><?= e($title) ?></h1>
@@ -35,7 +37,7 @@ $select = static function (string $name, string $label, string $icon, array $opt
 </div>
 
 <div class="row justify-content-center">
-    <div class="col-lg-9">
+    <div class="col-lg-10">
         <div class="card">
             <div class="card-body p-4">
                 <form method="POST" action="<?= e($action) ?>">
@@ -49,35 +51,16 @@ $select = static function (string $name, string $label, string $icon, array $opt
                         <i class="icon-base ti tabler-car"></i>
                         <div>
                             <h3 class="panel-title"><?= e($isEdit ? 'Editar Veículo' : 'Novo Veículo') ?></h3>
-                            <p class="panel-subtitle">Os campos com * são obrigatórios</p>
+                            <p class="panel-subtitle">Escolha marca → modelo → ano para carregar o valor FIPE</p>
                         </div>
                     </div>
 
                     <div class="row g-3">
-                        <?= $select('client_id', 'Cliente *', 'user', $opts['client_id'] ?? [], $old['client_id'] ?? '', 'col-md-6') ?>
+                        <?= $select('fipe_brand_code', 'Marca *', 'building-factory-2', $opts['fipe_brand_code'] ?? [], $old['fipe_brand_code'] ?? '', 'col-md-6', ['data-fipe-brand' => '1']) ?>
+                        <?= $select('fipe_model_code', 'Modelo *', 'car', $opts['fipe_model_code'] ?? [], $old['fipe_model_code'] ?? '', 'col-md-6', ['data-fipe-model' => '1']) ?>
+                        <?= $select('fipe_year_code', 'Ano *', 'calendar-event', $opts['fipe_year_code'] ?? [], $old['fipe_year_code'] ?? '', 'col-md-4', ['data-fipe-year' => '1']) ?>
 
-                        <div class="col-md-3">
-                            <label class="form-label" for="plate">Placa *</label>
-                            <div class="input-group input-group-merge">
-                                <span class="input-group-text"><i class="icon-base ti tabler-license"></i></span>
-                                <input type="text" class="form-control <?= isset($errors['plate']) ? 'is-invalid' : '' ?>" id="plate" name="plate" value="<?= e($old['plate'] ?? '') ?>" maxlength="10" data-mask="plate">
-                            </div>
-                            <?php if (isset($errors['plate'])): ?><div class="invalid-feedback d-block"><?= e($errors['plate']) ?></div><?php endif; ?>
-                        </div>
-
-                        <div class="col-md-3">
-                            <label class="form-label" for="year">Ano</label>
-                            <div class="input-group input-group-merge">
-                                <span class="input-group-text"><i class="icon-base ti tabler-calendar"></i></span>
-                                <input type="number" class="form-control" id="year" name="year" value="<?= e($old['year'] ?? '') ?>" min="1950" max="2030">
-                            </div>
-                        </div>
-
-                        <?= $select('fipe_brand_code', 'Marca (FIPE)', 'building-factory-2', $opts['fipe_brand_code'] ?? [], $old['fipe_brand_code'] ?? '', 'col-md-6', ['data-fipe-brand' => '1']) ?>
-                        <?= $select('fipe_model_code', 'Modelo (FIPE)', 'car', $opts['fipe_model_code'] ?? [], $old['fipe_model_code'] ?? '', 'col-md-6', ['data-fipe-model' => '1']) ?>
-                        <?= $select('fipe_year_code', 'Ano (FIPE)', 'calendar-event', $opts['fipe_year_code'] ?? [], $old['fipe_year_code'] ?? '', 'col-md-3', ['data-fipe-year' => '1']) ?>
-
-                        <div class="col-md-3">
+                        <div class="col-md-4">
                             <label class="form-label" for="fipe_value_display">Valor FIPE</label>
                             <div class="input-group input-group-merge">
                                 <span class="input-group-text"><i class="icon-base ti tabler-currency-real"></i></span>
@@ -87,32 +70,21 @@ $select = static function (string $name, string $label, string $icon, array $opt
                         </div>
 
                         <div class="col-md-4">
+                            <label class="form-label" for="plate">Placa *</label>
+                            <div class="input-group input-group-merge">
+                                <span class="input-group-text"><i class="icon-base ti tabler-license"></i></span>
+                                <input type="text" class="form-control <?= isset($errors['plate']) ? 'is-invalid' : '' ?>" id="plate" name="plate" value="<?= e($old['plate'] ?? '') ?>" maxlength="10" data-mask="plate" placeholder="ABC-1234">
+                            </div>
+                            <?php if (isset($errors['plate'])): ?><div class="invalid-feedback d-block"><?= e($errors['plate']) ?></div><?php endif; ?>
+                        </div>
+
+                        <?= $select('client_id', 'Cliente *', 'user', $opts['client_id'] ?? [], $old['client_id'] ?? '', 'col-md-6') ?>
+
+                        <div class="col-md-4">
                             <label class="form-label" for="color">Cor</label>
                             <div class="input-group input-group-merge">
                                 <span class="input-group-text"><i class="icon-base ti tabler-palette"></i></span>
-                                <input type="text" class="form-control" id="color" name="color" value="<?= e($old['color'] ?? '') ?>" maxlength="30">
-                            </div>
-                        </div>
-                        <div class="col-md-4">
-                            <label class="form-label" for="current_km">KM atual</label>
-                            <div class="input-group input-group-merge">
-                                <span class="input-group-text"><i class="icon-base ti tabler-gauge"></i></span>
-                                <input type="number" class="form-control" id="current_km" name="current_km" value="<?= e($old['current_km'] ?? '') ?>" min="0">
-                            </div>
-                        </div>
-                        <div class="col-md-4">
-                            <label class="form-label" for="chassis">Chassi</label>
-                            <div class="input-group input-group-merge">
-                                <span class="input-group-text"><i class="icon-base ti tabler-fingerprint"></i></span>
-                                <input type="text" class="form-control" id="chassis" name="chassis" value="<?= e($old['chassis'] ?? '') ?>" maxlength="30">
-                            </div>
-                        </div>
-
-                        <div class="col-12">
-                            <label class="form-label" for="notes">Observações</label>
-                            <div class="input-group input-group-merge input-group-merge-textarea">
-                                <span class="input-group-text"><i class="icon-base ti tabler-notes"></i></span>
-                                <textarea class="form-control" id="notes" name="notes" rows="2"><?= e($old['notes'] ?? '') ?></textarea>
+                                <input type="text" class="form-control" id="color" name="color" value="<?= e($old['color'] ?? '') ?>" maxlength="30" placeholder="Ex.: Prata">
                             </div>
                         </div>
 
@@ -134,4 +106,5 @@ $select = static function (string $name, string $label, string $icon, array $opt
     </div>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/js/tom-select.complete.min.js"></script>
 <script src="/js/fipe.js"></script>

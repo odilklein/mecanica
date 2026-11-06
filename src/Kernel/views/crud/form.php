@@ -15,7 +15,7 @@ $action = $isEdit ? $path . '/' . (int) $record['id'] : $path;
 </div>
 
 <div class="row justify-content-center">
-    <div class="col-lg-8">
+    <div class="col-lg-10">
         <div class="card">
             <div class="card-body p-4">
                 <form method="POST" action="<?= e($action) ?>">
@@ -77,7 +77,7 @@ $action = $isEdit ? $path . '/' . (int) $record['id'] : $path;
                             <label class="form-label" for="<?= e($name) ?>"><?= e($field['label']) ?><?= $required ? ' *' : '' ?></label>
                             <div class="input-group input-group-merge input-group-merge-textarea">
                                 <span class="input-group-text"><i class="icon-base ti tabler-<?= e($icon) ?>"></i></span>
-                                <textarea class="form-control <?= $error ? 'is-invalid' : '' ?>" id="<?= e($name) ?>" name="<?= e($name) ?>" rows="3"><?= e($value) ?></textarea>
+                                <textarea class="form-control <?= $error ? 'is-invalid' : '' ?>" id="<?= e($name) ?>" name="<?= e($name) ?>" rows="3"<?= !empty($field['placeholder']) ? ' placeholder="' . e($field['placeholder']) . '"' : '' ?>><?= e($value) ?></textarea>
                             </div>
                             <?php if ($error): ?><div class="invalid-feedback d-block"><?= e($error) ?></div><?php endif; ?>
                             <?php if (!empty($field['help'])): ?><div class="form-text"><?= e($field['help']) ?></div><?php endif; ?>
@@ -90,6 +90,7 @@ $action = $isEdit ? $path . '/' . (int) $record['id'] : $path;
                                 <span class="input-group-text"><i class="icon-base ti tabler-<?= e($icon) ?>"></i></span>
                                 <input type="<?= e($type) ?>" class="form-control <?= $error ? 'is-invalid' : '' ?>"
                                        id="<?= e($name) ?>" name="<?= e($name) ?>" value="<?= e($value) ?>"
+                                       <?= !empty($field['placeholder']) ? 'placeholder="' . e($field['placeholder']) . '"' : '' ?>
                                        <?= ($type !== 'number' && !empty($field['max'])) ? 'maxlength="' . (int) $field['max'] . '"' : '' ?>
                                        <?= ($type === 'number' && isset($field['min'])) ? 'min="' . (int) $field['min'] . '"' : '' ?>
                                        <?= ($type === 'number' && isset($field['max'])) ? 'max="' . (int) $field['max'] . '"' : '' ?>

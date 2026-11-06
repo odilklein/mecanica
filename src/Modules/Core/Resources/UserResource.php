@@ -43,7 +43,7 @@ class UserResource extends Resource
         ];
     }
 
-    public function selectOptions(\PDO $pdo): array
+    public function selectOptions(\PDO $pdo, array $data = []): array
     {
         return [
             'role' => [
