@@ -9,8 +9,10 @@ declare(strict_types=1);
 namespace Kernel;
 
 use Kernel\Container\Container;
+use Kernel\Database\Connection;
 use Kernel\Http\Router;
 use Kernel\Modules\Registry;
+use PDO;
 
 class Kernel
 {
@@ -36,6 +38,9 @@ class Kernel
         $this->container->set('basePath', $this->basePath);
         $this->container->set(Container::class, $this->container);
         $this->container->set(Router::class, $this->router);
+
+        // Conexão PDO sob demanda (lazy: só abre quando um módulo pedir).
+        $this->container->bind(PDO::class, static fn () => Connection::fromEnv());
 
         // Descobre e registra os módulos (Core, Mechanic, ...).
         $this->registry = new Registry($this->container, $this->basePath);
