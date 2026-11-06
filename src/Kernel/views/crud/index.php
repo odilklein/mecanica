@@ -2,32 +2,50 @@
 $labels = $resource->labels();
 $path = $resource->path();
 $columns = $resource->columns();
+$start = $total === 0 ? 0 : (($page - 1) * $perPage) + 1;
+$end = min($page * $perPage, $total);
 ?>
 <div class="page-header">
     <div>
-        <h1 class="mb-1"><?= e($labels['plural']) ?></h1>
-        <span class="page-subtitle"><?= e($total) ?> registro(s) encontrado(s)</span>
+        <h1><i class="icon-base ti tabler-<?= e($resource->icon()) ?>"></i><?= e($labels['plural']) ?></h1>
+        <span class="page-subtitle">Gerencie os <?= e(strtolower($labels['plural'])) ?> do sistema</span>
     </div>
-    <a href="<?= e($path) ?>/create" class="btn btn-primary"><i class="icon-base ti tabler-plus me-1"></i>Novo(a) <?= e($labels['singular']) ?></a>
+    <div class="page-header-actions">
+        <a href="<?= e($path) ?>/create" class="btn btn-primary"><i class="icon-base ti tabler-plus"></i> Novo(a) <?= e($labels['singular']) ?></a>
+    </div>
+</div>
+
+<div class="row g-3 mb-1">
+    <div class="col-6 col-lg-3">
+        <div class="card crud-kpi">
+            <div class="card-body">
+                <div class="crud-kpi-icon bg-label-primary"><i class="icon-base ti tabler-<?= e($resource->icon()) ?>"></i></div>
+                <div class="crud-kpi-info">
+                    <span class="crud-kpi-label"><?= e($labels['plural']) ?></span>
+                    <span class="crud-kpi-value"><?= (int) $total ?></span>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
 
 <div class="card">
-    <div class="card-header">
-        <form method="GET" action="<?= e($path) ?>" class="d-flex gap-2 w-100">
-            <div class="input-group">
-                <span class="input-group-text"><i class="icon-base ti tabler-search"></i></span>
-                <input type="search" name="search" class="form-control" placeholder="Buscar <?= e(strtolower($labels['plural'])) ?>..." value="<?= e($search) ?>">
+    <form method="GET" action="<?= e($path) ?>" class="table-panel">
+        <div class="crud-toolbar">
+            <div class="crud-search">
+                <i class="icon-base ti tabler-search"></i>
+                <input type="search" name="search" class="form-control" placeholder="Buscar <?= e(strtolower($labels['plural'])) ?>..." value="<?= e($search) ?>" autocomplete="off">
             </div>
-            <button class="btn btn-outline-secondary" type="submit">Buscar</button>
-        </form>
-    </div>
+            <button type="submit" class="btn btn-outline-secondary"><i class="icon-base ti tabler-search"></i> Buscar</button>
+        </div>
+    </form>
 
-    <div class="table-responsive text-nowrap">
-        <table class="table">
+    <div class="table-responsive">
+        <table class="table table-hover align-middle responsive-card">
             <thead>
                 <tr>
                     <?php foreach ($columns as $col): ?><th><?= e($col['label']) ?></th><?php endforeach; ?>
-                    <th>Ações</th>
+                    <th class="actions-cell">Ações</th>
                 </tr>
             </thead>
             <tbody>
@@ -35,9 +53,9 @@ $columns = $resource->columns();
                 <tr>
                     <?php foreach ($columns as $col): ?>
                     <?php $value = (string) ($row[$col['field']] ?? ''); ?>
-                    <td><?= e($value !== '' ? $value : '—') ?></td>
+                    <td data-label="<?= e($col['label']) ?>"><?= e($value !== '' ? $value : '—') ?></td>
                     <?php endforeach; ?>
-                    <td>
+                    <td class="actions-cell" data-label="Ações">
                         <div class="d-flex gap-1">
                             <a href="<?= e($path . '/' . (int) $row['id'] . '/edit') ?>" class="btn btn-sm btn-icon btn-text-primary" title="Editar"><i class="icon-base ti tabler-pencil"></i></a>
                             <form method="POST" action="<?= e($path . '/' . (int) $row['id'] . '/delete') ?>" class="d-inline" onsubmit="return confirm('Excluir este registro?')">
@@ -48,26 +66,27 @@ $columns = $resource->columns();
                     </td>
                 </tr>
                 <?php endforeach; ?>
+
                 <?php if (!$items): ?>
-                <tr>
-                    <td colspan="<?= count($columns) + 1 ?>" class="text-center py-5 text-body-secondary">Nenhum registro encontrado.</td>
+                <tr class="row-empty">
+                    <td colspan="<?= count($columns) + 1 ?>">
+                        <div class="empty-state">
+                            <div class="empty-state-icon"><i class="icon-base ti tabler-<?= e($resource->icon()) ?>"></i></div>
+                            <h4>Nenhum registro</h4>
+                            <p>Nenhum(a) <?= e(strtolower($labels['singular'])) ?> encontrado(a).</p>
+                            <a href="<?= e($path) ?>/create" class="btn btn-primary"><i class="icon-base ti tabler-plus"></i> Novo(a) <?= e($labels['singular']) ?></a>
+                        </div>
+                    </td>
                 </tr>
                 <?php endif; ?>
             </tbody>
         </table>
     </div>
 
-    <?php if ($lastPage > 1): ?>
-    <div class="card-footer">
-        <nav>
-            <ul class="pagination justify-content-end mb-0">
-                <li class="page-item <?= $page <= 1 ? 'disabled' : '' ?>"><a class="page-link" href="<?= e($path) ?>?page=<?= $page - 1 ?>&search=<?= urlencode($search) ?>">Anterior</a></li>
-                <?php for ($i = 1; $i <= $lastPage; $i++): ?>
-                <li class="page-item <?= $i === $page ? 'active' : '' ?>"><a class="page-link" href="<?= e($path) ?>?page=<?= $i ?>&search=<?= urlencode($search) ?>"><?= $i ?></a></li>
-                <?php endfor; ?>
-                <li class="page-item <?= $page >= $lastPage ? 'disabled' : '' ?>"><a class="page-link" href="<?= e($path) ?>?page=<?= $page + 1 ?>&search=<?= urlencode($search) ?>">Próxima</a></li>
-            </ul>
-        </nav>
+    <div class="table-panel">
+        <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
+            <span class="text-body-secondary">Mostrando <?= $start ?> a <?= $end ?> de <?= (int) $total ?> <?= e(strtolower($labels['plural'])) ?></span>
+            <?= pagination_links($page, $lastPage, $path, array_filter(['search' => $search])) ?>
+        </div>
     </div>
-    <?php endif; ?>
 </div>

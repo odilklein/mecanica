@@ -14,12 +14,14 @@
     <link rel="stylesheet" href="/assets/vendor/fonts/iconify-icons.css">
     <link rel="stylesheet" href="/assets/vendor/css/core.css">
     <link rel="stylesheet" href="/assets/css/demo.css">
+    <link rel="stylesheet" href="/css/mecanica.css">
 
     <script src="/assets/vendor/js/helpers.js"></script>
     <script src="/assets/js/config.js"></script>
 </head>
 <body>
     <?php $currentPath = parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH) ?: '/'; ?>
+    <a class="skip-link" href="#conteudo">Pular para o conteúdo</a>
     <div class="layout-wrapper layout-content-navbar">
         <div class="layout-container">
             <!-- Menu -->

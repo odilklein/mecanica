@@ -83,6 +83,86 @@ if (!function_exists('crud_routes')) {
     }
 }
 
+if (!function_exists('pagination_pages')) {
+    /** Janela de páginas com reticências: 1 … 4 5 [6] 7 8 … 20 */
+    function pagination_pages(int $current, int $total, int $max = 7): array
+    {
+        if ($total <= 1) {
+            return [1];
+        }
+        if ($total <= $max) {
+            return range(1, $total);
+        }
+
+        $middle = (int) floor(($max - 1) / 2);
+        $start = min(max(2, $current - $middle), $total - 1);
+        $end = max(min($total - 1, $current + $middle), $start);
+
+        while (true) {
+            $inner = range($start, $end);
+            $count = count($inner) + 2 + ($start > 2 ? 1 : 0) + ($end < $total - 1 ? 1 : 0);
+            if ($count <= $max || count($inner) <= 1) {
+                break;
+            }
+            if (abs($start - $current) >= abs($end - $current)) {
+                $start++;
+            } else {
+                $end--;
+            }
+        }
+
+        $list = [1];
+        if ($start > 2) {
+            $list[] = '…';
+        }
+        for ($p = $start; $p <= $end; $p++) {
+            $list[] = $p;
+        }
+        if ($end < $total - 1) {
+            $list[] = '…';
+        }
+        $list[] = $total;
+
+        return $list;
+    }
+}
+
+if (!function_exists('pagination_links')) {
+    /** Paginação no padrão Vuexy (chevrons + janela de páginas). */
+    function pagination_links(int $page, int $lastPage, string $path, array $params = []): string
+    {
+        if ($lastPage <= 1) {
+            return '';
+        }
+
+        $link = static function (int $p) use ($path, $params): string {
+            $params['page'] = $p;
+            return $path . '?' . http_build_query($params);
+        };
+
+        $html = '<ul class="pagination mb-0">';
+        $html .= $page <= 1
+            ? '<li class="page-item prev-item disabled"><span class="page-link"><i class="icon-base ti tabler-chevron-left"></i></span></li>'
+            : '<li class="page-item prev-item"><a class="page-link" href="' . e($link($page - 1)) . '"><i class="icon-base ti tabler-chevron-left"></i></a></li>';
+
+        foreach (pagination_pages($page, $lastPage) as $p) {
+            if ($p === '…') {
+                $html .= '<li class="page-item disabled"><span class="page-link">&hellip;</span></li>';
+            } elseif ($p === $page) {
+                $html .= '<li class="page-item active"><span class="page-link">' . $p . '</span></li>';
+            } else {
+                $html .= '<li class="page-item"><a class="page-link" href="' . e($link((int) $p)) . '">' . $p . '</a></li>';
+            }
+        }
+
+        $html .= $page >= $lastPage
+            ? '<li class="page-item next-item disabled"><span class="page-link"><i class="icon-base ti tabler-chevron-right"></i></span></li>'
+            : '<li class="page-item next-item"><a class="page-link" href="' . e($link($page + 1)) . '"><i class="icon-base ti tabler-chevron-right"></i></a></li>';
+
+        return $html . '</ul>';
+    }
+}
+
 if (!function_exists('isValidCpf')) {
     /** Valida CPF (aceita com ou sem máscara). */
     function isValidCpf(mixed $cpf): bool

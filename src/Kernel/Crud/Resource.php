@@ -44,6 +44,12 @@ abstract class Resource
         return ['admin'];
     }
 
+    /** Ícone Tabler do recurso (para cabeçalhos). */
+    public function icon(): string
+    {
+        return 'database';
+    }
+
     /** Colunas aceitas em insert/update. */
     public function fillable(): array
     {

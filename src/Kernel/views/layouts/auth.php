@@ -14,6 +14,7 @@
     <link rel="stylesheet" href="/assets/vendor/fonts/iconify-icons.css">
     <link rel="stylesheet" href="/assets/vendor/css/core.css">
     <link rel="stylesheet" href="/assets/css/demo.css">
+    <link rel="stylesheet" href="/css/mecanica.css">
     <link rel="stylesheet" href="/assets/vendor/css/pages/page-auth.css">
 
     <script src="/assets/vendor/js/helpers.js"></script>
