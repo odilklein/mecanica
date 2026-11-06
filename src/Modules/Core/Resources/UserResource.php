@@ -79,7 +79,6 @@ class UserResource extends Resource
             ['name' => 'phone', 'label' => 'Telefone', 'type' => 'text', 'icon' => 'phone', 'mask' => 'phone', 'max' => 20, 'col' => 'col-md-4'],
             ['name' => 'hire_date', 'label' => 'Admissão', 'type' => 'date', 'icon' => 'calendar', 'col' => 'col-md-4'],
             ['name' => 'job_title', 'label' => 'Cargo', 'type' => 'text', 'icon' => 'briefcase', 'max' => 100, 'col' => 'col-md-6'],
-            ['name' => 'is_active', 'label' => 'Ativo', 'type' => 'boolean', 'icon' => 'toggle-left', 'default' => 1],
         ];
     }
 }

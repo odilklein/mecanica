@@ -5,7 +5,7 @@ $isEdit = $record !== null;
 $action = $isEdit ? $path . '/' . (int) $record['id'] : $path;
 $opts = $selectOptions ?? [];
 
-$select = static function (string $name, string $label, string $icon, array $options, $value, string $col, array $attrs = []): string {
+$select = static function (string $name, string $label, string $icon, array $options, $value, string $col, array $attrs = [], bool $tomselect = false): string {
     $extra = '';
     foreach ($attrs as $k => $v) {
         $extra .= ' ' . $k . '="' . e($v) . '"';
@@ -15,7 +15,7 @@ $select = static function (string $name, string $label, string $icon, array $opt
     $html .= '<div class="input-group input-group-merge">';
     $html .= '<span class="input-group-text"><i class="icon-base ti tabler-' . e($icon) . '"></i></span>';
     $html .= '<select class="form-select" id="' . e($name) . '" name="' . e($name) . '"' . $extra . '>';
-    $html .= '<option value="">Selecione...</option>';
+    $html .= '<option value="">' . ($tomselect ? '' : 'Selecione...') . '</option>';
     foreach ($options as $ov => $ol) {
         $selected = ((string) $value === (string) $ov) ? ' selected' : '';
         $html .= '<option value="' . e((string) $ov) . '"' . $selected . '>' . e($ol) . '</option>';
@@ -51,14 +51,25 @@ $select = static function (string $name, string $label, string $icon, array $opt
                         <i class="icon-base ti tabler-car"></i>
                         <div>
                             <h3 class="panel-title"><?= e($isEdit ? 'Editar Veículo' : 'Novo Veículo') ?></h3>
-                            <p class="panel-subtitle">Escolha marca → modelo → ano para carregar o valor FIPE</p>
+                            <p class="panel-subtitle">Escolha a marca, o modelo e o ano para carregar o valor FIPE</p>
                         </div>
                     </div>
 
                     <div class="row g-3">
-                        <?= $select('fipe_brand_code', 'Marca *', 'building-factory-2', $opts['fipe_brand_code'] ?? [], $old['fipe_brand_code'] ?? '', 'col-md-6', ['data-fipe-brand' => '1']) ?>
-                        <?= $select('fipe_model_code', 'Modelo *', 'car', $opts['fipe_model_code'] ?? [], $old['fipe_model_code'] ?? '', 'col-md-6', ['data-fipe-model' => '1']) ?>
-                        <?= $select('fipe_year_code', 'Ano *', 'calendar-event', $opts['fipe_year_code'] ?? [], $old['fipe_year_code'] ?? '', 'col-md-4', ['data-fipe-year' => '1']) ?>
+                        <?= $select('client_id', 'Cliente *', 'user', $opts['client_id'] ?? [], $old['client_id'] ?? '', 'col-md-8') ?>
+                        <div class="col-md-4">
+                            <label class="form-label" for="plate">Placa *</label>
+                            <div class="input-group input-group-merge">
+                                <span class="input-group-text"><i class="icon-base ti tabler-license"></i></span>
+                                <input type="text" class="form-control <?= isset($errors['plate']) ? 'is-invalid' : '' ?>" id="plate" name="plate" value="<?= e($old['plate'] ?? '') ?>" maxlength="10" data-mask="plate" placeholder="ABC-1234">
+                            </div>
+                            <?php if (isset($errors['plate'])): ?><div class="invalid-feedback d-block"><?= e($errors['plate']) ?></div><?php endif; ?>
+                        </div>
+
+                        <?= $select('fipe_brand_code', 'Marca *', 'building-factory-2', $opts['fipe_brand_code'] ?? [], $old['fipe_brand_code'] ?? '', 'col-md-6', ['data-fipe-brand' => '1'], true) ?>
+                        <?= $select('fipe_model_code', 'Modelo *', 'car', $opts['fipe_model_code'] ?? [], $old['fipe_model_code'] ?? '', 'col-md-6', ['data-fipe-model' => '1'], true) ?>
+
+                        <?= $select('fipe_year_code', 'Ano *', 'calendar-event', $opts['fipe_year_code'] ?? [], $old['fipe_year_code'] ?? '', 'col-md-4', ['data-fipe-year' => '1'], true) ?>
 
                         <div class="col-md-4">
                             <label class="form-label" for="fipe_value_display">Valor FIPE</label>
@@ -70,28 +81,10 @@ $select = static function (string $name, string $label, string $icon, array $opt
                         </div>
 
                         <div class="col-md-4">
-                            <label class="form-label" for="plate">Placa *</label>
-                            <div class="input-group input-group-merge">
-                                <span class="input-group-text"><i class="icon-base ti tabler-license"></i></span>
-                                <input type="text" class="form-control <?= isset($errors['plate']) ? 'is-invalid' : '' ?>" id="plate" name="plate" value="<?= e($old['plate'] ?? '') ?>" maxlength="10" data-mask="plate" placeholder="ABC-1234">
-                            </div>
-                            <?php if (isset($errors['plate'])): ?><div class="invalid-feedback d-block"><?= e($errors['plate']) ?></div><?php endif; ?>
-                        </div>
-
-                        <?= $select('client_id', 'Cliente *', 'user', $opts['client_id'] ?? [], $old['client_id'] ?? '', 'col-md-6') ?>
-
-                        <div class="col-md-4">
                             <label class="form-label" for="color">Cor</label>
                             <div class="input-group input-group-merge">
                                 <span class="input-group-text"><i class="icon-base ti tabler-palette"></i></span>
                                 <input type="text" class="form-control" id="color" name="color" value="<?= e($old['color'] ?? '') ?>" maxlength="30" placeholder="Ex.: Prata">
-                            </div>
-                        </div>
-
-                        <div class="col-12">
-                            <div class="form-check form-switch">
-                                <input class="form-check-input" type="checkbox" role="switch" id="is_active" name="is_active" value="1" <?= ($old['is_active'] ?? 1) ? 'checked' : '' ?>>
-                                <label class="form-check-label" for="is_active"><i class="icon-base ti tabler-toggle-left me-1"></i>Ativo</label>
                             </div>
                         </div>
 

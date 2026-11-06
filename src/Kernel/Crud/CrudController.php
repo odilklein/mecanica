@@ -173,7 +173,9 @@ abstract class CrudController extends Controller
             'record' => $record,
             'old' => $old,
             'errors' => $errors,
-            'selectOptions' => $resource->selectOptions($this->pdo, $record ?? []),
+            // Usa os dados submetidos/atuais para carregar selects dependentes
+            // (ex.: modelos/anos FIPE), preservando a cascata em caso de erro.
+            'selectOptions' => $resource->selectOptions($this->pdo, $old ?: ($record ?? [])),
         ];
     }
 

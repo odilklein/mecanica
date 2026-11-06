@@ -132,7 +132,6 @@ class VehicleResource extends Resource
             ['name' => 'current_km', 'label' => 'KM atual', 'type' => 'number', 'min' => 0, 'col' => 'col-md-4'],
             ['name' => 'chassis', 'label' => 'Chassi', 'type' => 'text', 'max' => 30, 'col' => 'col-md-4'],
             ['name' => 'notes', 'label' => 'Observações', 'type' => 'textarea'],
-            ['name' => 'is_active', 'label' => 'Ativo', 'type' => 'boolean', 'default' => 1],
         ];
     }
 }

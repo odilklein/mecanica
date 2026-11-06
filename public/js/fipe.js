@@ -1,6 +1,6 @@
 // =============================================
 // FIPE — cascata marca → modelo → ano com busca
-// (TomSelect quando disponível) + valor automático.
+// (TomSelect) + valor automático.
 // =============================================
 (function () {
     'use strict';
@@ -21,17 +21,23 @@
         var tsYear = null;
 
         if (window.TomSelect) {
-            var base = { create: false, allowEmptyOption: true, maxOptions: 1000, sortField: { field: 'text', direction: 'asc' } };
+            var base = {
+                create: false,
+                allowEmptyOption: true,
+                placeholder: 'Digite para buscar...',
+                maxOptions: 1000,
+                sortField: { field: 'text', direction: 'asc' }
+            };
             tsBrand = new TomSelect(brandEl, base);
             tsModel = new TomSelect(modelEl, base);
             tsYear = new TomSelect(yearEl, base);
         }
 
-        function setOptions(el, ts, placeholder, items) {
+        // Substitui as opções de um select (TomSelect ou nativo).
+        function setOptions(el, ts, items) {
             if (ts) {
                 ts.clear(true);
                 ts.clearOptions();
-                ts.addOption({ value: '', text: placeholder });
                 items.forEach(function (item) {
                     ts.addOption({ value: item.value, text: item.text });
                 });
@@ -41,7 +47,7 @@
             el.innerHTML = '';
             var empty = document.createElement('option');
             empty.value = '';
-            empty.textContent = placeholder;
+            empty.textContent = 'Selecione...';
             el.appendChild(empty);
             items.forEach(function (item) {
                 var opt = document.createElement('option');
@@ -64,8 +70,8 @@
         }
 
         function onBrandChange() {
-            setOptions(modelEl, tsModel, 'Selecione...', []);
-            setOptions(yearEl, tsYear, 'Selecione...', []);
+            setOptions(modelEl, tsModel, []);
+            setOptions(yearEl, tsYear, []);
             setValue(null);
             if (!brandEl.value) {
                 return;
@@ -73,16 +79,15 @@
             fetch('/api/fipe/models?brand=' + encodeURIComponent(brandEl.value))
                 .then(function (r) { return r.json(); })
                 .then(function (data) {
-                    var items = (data || []).map(function (m) {
+                    setOptions(modelEl, tsModel, (data || []).map(function (m) {
                         return { value: m.code, text: m.name };
-                    });
-                    setOptions(modelEl, tsModel, 'Selecione...', items);
+                    }));
                 })
                 .catch(function () {});
         }
 
         function onModelChange() {
-            setOptions(yearEl, tsYear, 'Selecione...', []);
+            setOptions(yearEl, tsYear, []);
             setValue(null);
             if (!brandEl.value || !modelEl.value) {
                 return;
@@ -90,10 +95,9 @@
             fetch('/api/fipe/years?brand=' + encodeURIComponent(brandEl.value) + '&model=' + encodeURIComponent(modelEl.value))
                 .then(function (r) { return r.json(); })
                 .then(function (data) {
-                    var items = (data || []).map(function (y) {
+                    setOptions(yearEl, tsYear, (data || []).map(function (y) {
                         return { value: y.code, text: y.name };
-                    });
-                    setOptions(yearEl, tsYear, 'Selecione...', items);
+                    }));
                 })
                 .catch(function () {});
         }

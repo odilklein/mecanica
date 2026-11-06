@@ -49,10 +49,11 @@ class ClientResource extends Resource
             ['name' => 'phone', 'label' => 'Telefone', 'type' => 'text', 'icon' => 'phone', 'mask' => 'phone', 'max' => 20, 'col' => 'col-md-4', 'placeholder' => '(11) 98888-7777'],
             ['name' => 'email', 'label' => 'E-mail', 'type' => 'email', 'icon' => 'mail', 'validate' => 'email', 'max' => 120, 'col' => 'col-md-6', 'placeholder' => 'cliente@email.com'],
             ['name' => 'zip', 'label' => 'CEP', 'type' => 'text', 'icon' => 'map-pin', 'mask' => 'cep', 'max' => 10, 'col' => 'col-md-6', 'placeholder' => '00000-000', 'help' => 'Preenche o endereço automaticamente.'],
-            ['name' => 'address', 'label' => 'Endereço', 'type' => 'text', 'icon' => 'road', 'max' => 255, 'col' => 'col-md-8', 'placeholder' => 'Rua, número, complemento'],
+            ['name' => 'address', 'label' => 'Endereço', 'type' => 'text', 'icon' => 'road', 'max' => 255, 'col' => 'col-md-8', 'placeholder' => 'Rua'],
+            ['name' => 'address_number', 'label' => 'Número', 'type' => 'text', 'icon' => 'hash', 'max' => 20, 'col' => 'col-md-4', 'placeholder' => 'Ex.: 123'],
             ['name' => 'neighborhood', 'label' => 'Bairro', 'type' => 'text', 'icon' => 'building-community', 'max' => 80, 'col' => 'col-md-4', 'placeholder' => 'Centro'],
-            ['name' => 'city', 'label' => 'Cidade', 'type' => 'text', 'icon' => 'building', 'max' => 80, 'col' => 'col-md-8', 'placeholder' => 'São Paulo'],
-            ['name' => 'state', 'label' => 'UF', 'type' => 'text', 'icon' => 'map', 'max' => 2, 'col' => 'col-md-4', 'placeholder' => 'SP'],
+            ['name' => 'city', 'label' => 'Cidade', 'type' => 'text', 'icon' => 'building', 'max' => 80, 'col' => 'col-md-6', 'placeholder' => 'São Paulo'],
+            ['name' => 'state', 'label' => 'UF', 'type' => 'text', 'icon' => 'map', 'max' => 2, 'col' => 'col-md-2', 'placeholder' => 'SP'],
         ];
     }
 }
