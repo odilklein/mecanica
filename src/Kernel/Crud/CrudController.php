@@ -80,11 +80,12 @@ abstract class CrudController extends Controller
         $data = $resource->prepareData($data, null, $this->pdo);
 
         try {
-            $this->repository($resource)->create($data);
+            $newId = $this->repository($resource)->create($data);
         } catch (\PDOException $e) {
             return $this->render($resource->formView(), $this->formData($resource, null, $data, ['_form' => $this->dbErrorMessage($e)]));
         }
 
+        record_audit($this->pdo, $this->auth->id(), $resource->key(), $newId, 'create', $data);
         $this->session->flash('success', $resource->labels()['singular'] . ' cadastrado(a) com sucesso.');
         return redirect($resource->path());
     }
@@ -135,6 +136,7 @@ abstract class CrudController extends Controller
             return $this->render($resource->formView(), $this->formData($resource, array_merge($record, $data), $data, ['_form' => $this->dbErrorMessage($e)]));
         }
 
+        record_audit($this->pdo, $this->auth->id(), $resource->key(), (int) $id, 'update', $data);
         $this->session->flash('success', $resource->labels()['singular'] . ' atualizado(a) com sucesso.');
         return redirect($resource->path());
     }
@@ -150,6 +152,7 @@ abstract class CrudController extends Controller
         }
 
         $this->repository($resource)->delete((int) $id);
+        record_audit($this->pdo, $this->auth->id(), $resource->key(), (int) $id, 'delete');
         $this->session->flash('success', $resource->labels()['singular'] . ' excluído(a) com sucesso.');
         return redirect($resource->path());
     }

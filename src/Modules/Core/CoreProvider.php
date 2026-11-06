@@ -13,6 +13,7 @@ use Kernel\Http\Router;
 use Kernel\Menu\Menu;
 use Kernel\Modules\ProviderInterface;
 use Modules\Core\Controllers\AuthController;
+use Modules\Core\Controllers\AuditController;
 use Modules\Core\Controllers\ClientController;
 use Modules\Core\Controllers\DashboardController;
 use Modules\Core\Controllers\UserController;
@@ -35,6 +36,9 @@ class CoreProvider implements ProviderInterface
         // Funcionários (usuários).
         crud_routes($router, '/users', UserController::class);
 
+        // Auditoria (somente leitura).
+        $router->get('/audit', [AuditController::class, 'index']);
+
         $this->menu($container);
     }
 
@@ -47,6 +51,6 @@ class CoreProvider implements ProviderInterface
         $menu->add('Cadastros', ['label' => 'Clientes', 'icon' => 'users', 'url' => '/clients', 'roles' => ['admin', 'secretary', 'lead_mechanic']]);
         $menu->add('Cadastros', ['label' => 'Funcionários', 'icon' => 'users-group', 'url' => '/users', 'roles' => ['admin', 'secretary', 'lead_mechanic']]);
         $menu->add('Sistema', ['label' => 'Configurações', 'icon' => 'settings', 'url' => '#', 'roles' => ['admin']]);
-        $menu->add('Sistema', ['label' => 'Auditoria', 'icon' => 'history', 'url' => '#', 'roles' => ['admin']]);
+        $menu->add('Sistema', ['label' => 'Auditoria', 'icon' => 'history', 'url' => '/audit', 'roles' => ['admin']]);
     }
 }

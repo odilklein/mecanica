@@ -57,6 +57,28 @@ if (!function_exists('json_response')) {
     }
 }
 
+if (!function_exists('record_audit')) {
+    /** Grava uma ação na trilha de auditoria (nunca quebra a ação principal). */
+    function record_audit(\PDO $pdo, ?int $userId, string $entity, ?int $entityId, string $action, array $data = []): void
+    {
+        try {
+            $stmt = $pdo->prepare(
+                'INSERT INTO audit_logs (user_id, entity, entity_id, action, data)
+                 VALUES (:user_id, :entity, :entity_id, :action, :data)'
+            );
+            $stmt->execute([
+                ':user_id' => $userId,
+                ':entity' => mb_substr($entity, 0, 60),
+                ':entity_id' => $entityId,
+                ':action' => mb_substr($action, 0, 40),
+                ':data' => $data ? json_encode($data, JSON_UNESCAPED_UNICODE) : null,
+            ]);
+        } catch (\Throwable $e) {
+            error_log('Falha ao registrar auditoria: ' . $e->getMessage());
+        }
+    }
+}
+
 if (!function_exists('roleLabel')) {
     /** Rótulo legível (pt-BR) de um papel de usuário. */
     function roleLabel(?string $role): string
