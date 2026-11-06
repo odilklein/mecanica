@@ -15,6 +15,7 @@ use Kernel\Modules\ProviderInterface;
 use Modules\Mechanic\Controllers\FipeController;
 use Modules\Mechanic\Controllers\BudgetController;
 use Modules\Mechanic\Controllers\PartOrderController;
+use Modules\Mechanic\Controllers\ReportController;
 use Modules\Mechanic\Controllers\ServiceOrderController;
 use Modules\Mechanic\Controllers\TaskController;
 use Modules\Mechanic\Controllers\VehicleController;
@@ -57,6 +58,9 @@ class MechanicProvider implements ProviderInterface
         $router->post('/budgets/{id}', [BudgetController::class, 'update']);
         $router->post('/budget-items/{id}/delete', [BudgetController::class, 'removeItem']);
 
+        // Relatórios.
+        $router->get('/reports', [ReportController::class, 'index']);
+
         $this->menu($container);
     }
 
@@ -87,6 +91,12 @@ class MechanicProvider implements ProviderInterface
             'label' => 'Orçamentos',
             'icon' => 'file-text',
             'url' => '/budgets',
+            'roles' => ['admin', 'secretary', 'lead_mechanic'],
+        ]);
+        $menu->add('Documentos', [
+            'label' => 'Relatórios',
+            'icon' => 'chart-line',
+            'url' => '/reports',
             'roles' => ['admin', 'secretary', 'lead_mechanic'],
         ]);
     }
