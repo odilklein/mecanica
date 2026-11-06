@@ -1,5 +1,3 @@
-<?php $this->layout('core::layouts/app') ?>
-
 <div class="page-header">
     <div>
         <h1 class="mb-1">Painel</h1>

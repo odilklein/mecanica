@@ -1,5 +1,3 @@
-<?php $this->layout('core::layouts/auth') ?>
-
 <div class="app-brand justify-content-center mb-6">
     <a href="/" class="app-brand-link gap-2">
         <span class="app-brand-logo demo">

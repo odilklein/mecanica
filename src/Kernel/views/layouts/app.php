@@ -19,6 +19,7 @@
     <script src="/assets/js/config.js"></script>
 </head>
 <body>
+    <?php $currentPath = parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH) ?: '/'; ?>
     <div class="layout-wrapper layout-content-navbar">
         <div class="layout-container">
             <!-- Menu -->
@@ -39,69 +40,21 @@
                 <div class="menu-inner-shadow"></div>
 
                 <ul class="menu-inner py-1">
-                    <li class="menu-header small"><span class="menu-header-text">Principal</span></li>
-                    <li class="menu-item active">
-                        <a href="/" class="menu-link">
-                            <i class="menu-icon icon-base ti tabler-smart-home"></i>
-                            <div>Dashboard</div>
+                    <?php foreach (($menu ?? []) as $section => $items): ?>
+                    <li class="menu-header small"><span class="menu-header-text"><?= e($section) ?></span></li>
+                    <?php foreach ($items as $item): ?>
+                    <?php
+                        $url = $item['url'] ?? '#';
+                        $active = $url === '/' ? $currentPath === '/' : ($url !== '#' && str_starts_with($currentPath, $url));
+                    ?>
+                    <li class="menu-item<?= $active ? ' active' : '' ?>">
+                        <a href="<?= e($url) ?>" class="menu-link">
+                            <i class="menu-icon icon-base ti tabler-<?= e($item['icon'] ?? 'circle') ?>"></i>
+                            <div><?= e($item['label']) ?></div>
                         </a>
                     </li>
-
-                    <li class="menu-header small"><span class="menu-header-text">Cadastros</span></li>
-                    <li class="menu-item">
-                        <a href="/clients" class="menu-link">
-                            <i class="menu-icon icon-base ti tabler-users"></i>
-                            <div>Clientes</div>
-                        </a>
-                    </li>
-                    <li class="menu-item">
-                        <a href="#" class="menu-link">
-                            <i class="menu-icon icon-base ti tabler-car"></i>
-                            <div>Veículos</div>
-                        </a>
-                    </li>
-
-                    <li class="menu-header small"><span class="menu-header-text">Operações</span></li>
-                    <li class="menu-item">
-                        <a href="#" class="menu-link">
-                            <i class="menu-icon icon-base ti tabler-clipboard-list"></i>
-                            <div>Ordens de serviço</div>
-                        </a>
-                    </li>
-                    <li class="menu-item">
-                        <a href="#" class="menu-link">
-                            <i class="menu-icon icon-base ti tabler-truck"></i>
-                            <div>Pedidos de peças</div>
-                        </a>
-                    </li>
-
-                    <li class="menu-header small"><span class="menu-header-text">Documentos</span></li>
-                    <li class="menu-item">
-                        <a href="#" class="menu-link">
-                            <i class="menu-icon icon-base ti tabler-file-text"></i>
-                            <div>Orçamentos</div>
-                        </a>
-                    </li>
-                    <li class="menu-item">
-                        <a href="#" class="menu-link">
-                            <i class="menu-icon icon-base ti tabler-chart-line"></i>
-                            <div>Relatórios</div>
-                        </a>
-                    </li>
-
-                    <li class="menu-header small"><span class="menu-header-text">Sistema</span></li>
-                    <li class="menu-item">
-                        <a href="#" class="menu-link">
-                            <i class="menu-icon icon-base ti tabler-settings"></i>
-                            <div>Configurações</div>
-                        </a>
-                    </li>
-                    <li class="menu-item">
-                        <a href="#" class="menu-link">
-                            <i class="menu-icon icon-base ti tabler-history"></i>
-                            <div>Auditoria</div>
-                        </a>
-                    </li>
+                    <?php endforeach; ?>
+                    <?php endforeach; ?>
                 </ul>
             </aside>
             <!-- / Menu -->
@@ -138,7 +91,7 @@
                                 </a>
                                 <ul class="dropdown-menu dropdown-menu-end">
                                     <li>
-                                        <a class="dropdown-item" href="javascript:void(0);">
+                                        <div class="dropdown-item">
                                             <div class="d-flex align-items-center">
                                                 <div class="flex-shrink-0 me-2">
                                                     <div class="avatar avatar-online">
@@ -150,7 +103,7 @@
                                                     <small class="text-body-secondary"><?= e(roleLabel($user['role'] ?? null)) ?></small>
                                                 </div>
                                             </div>
-                                        </a>
+                                        </div>
                                     </li>
                                     <li><div class="dropdown-divider my-1"></div></li>
                                     <li>
@@ -182,7 +135,7 @@
                             <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Fechar"></button>
                         </div>
                         <?php endif; ?>
-                        <?= $this->section('content') ?>
+                        <?= $content ?? '' ?>
                     </div>
 
                     <footer class="content-footer footer bg-footer-theme">
@@ -212,13 +165,12 @@
     <script src="/assets/vendor/libs/node-waves/node-waves.js"></script>
     <script src="/assets/vendor/js/menu.js"></script>
     <script src="/assets/js/main.js"></script>
+    <script src="/js/masks.js"></script>
 
     <script>
-        // Troca de tema claro/escuro/sistema (padrão Vuexy).
         document.querySelectorAll('[data-bs-theme-value]').forEach(function (btn) {
             btn.addEventListener('click', function () {
-                var theme = btn.getAttribute('data-bs-theme-value');
-                window.Helpers.setTheme(theme);
+                window.Helpers.setTheme(btn.getAttribute('data-bs-theme-value'));
             });
         });
     </script>

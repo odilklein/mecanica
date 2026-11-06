@@ -1,0 +1,265 @@
+<?php
+// =============================================
+// CRUD CONTROLLER — implementação genérica de
+// listar/criar/editar/excluir a partir de um Resource.
+// Um módulo só precisa estender e retornar o Resource.
+// =============================================
+
+declare(strict_types=1);
+
+namespace Kernel\Crud;
+
+use Kernel\Auth\Auth;
+use Kernel\Database\Repository;
+use Kernel\Http\Controller;
+use Kernel\Http\Session;
+use Kernel\Menu\Menu;
+use Kernel\View\ViewFactory;
+use PDO;
+use Psr\Http\Message\ServerRequestInterface;
+
+abstract class CrudController extends Controller
+{
+    protected PDO $pdo;
+
+    public function __construct(Auth $auth, Session $session, ViewFactory $view, Menu $menu, PDO $pdo)
+    {
+        parent::__construct($auth, $session, $view, $menu);
+        $this->pdo = $pdo;
+    }
+
+    /** O módulo define qual Resource este controller gerencia. */
+    abstract protected function resource(): Resource;
+
+    public function index(ServerRequestInterface $request)
+    {
+        $resource = $this->resource();
+        if ($response = $this->guardRoles($resource->roles())) {
+            return $response;
+        }
+
+        $query = $request->getQueryParams();
+        $page = (int) ($query['page'] ?? 1);
+        $search = clean($query['search'] ?? '');
+
+        $data = $this->repository($resource)->paginate($page, 15, $search);
+
+        return $this->render('kernel::crud/index', array_merge($data, [
+            'title' => $resource->labels()['plural'],
+            'resource' => $resource,
+            'search' => $search,
+        ]));
+    }
+
+    public function create(ServerRequestInterface $request)
+    {
+        $resource = $this->resource();
+        if ($response = $this->guardRoles($resource->roles())) {
+            return $response;
+        }
+
+        return $this->render('kernel::crud/form', [
+            'title' => 'Novo(a) ' . $resource->labels()['singular'],
+            'resource' => $resource,
+            'record' => null,
+            'old' => [],
+            'errors' => [],
+        ]);
+    }
+
+    public function store(ServerRequestInterface $request)
+    {
+        $resource = $this->resource();
+        if ($response = $this->guardRoles($resource->roles())) {
+            return $response;
+        }
+        if ($response = $this->guardCsrf($request, $resource->path())) {
+            return $response;
+        }
+
+        [$data, $errors] = $this->validate($resource, $request);
+
+        if ($errors) {
+            return $this->render('kernel::crud/form', [
+                'title' => 'Novo(a) ' . $resource->labels()['singular'],
+                'resource' => $resource,
+                'record' => null,
+                'old' => $data,
+                'errors' => $errors,
+            ]);
+        }
+
+        try {
+            $this->repository($resource)->create($data);
+        } catch (\PDOException $e) {
+            return $this->render('kernel::crud/form', [
+                'title' => 'Novo(a) ' . $resource->labels()['singular'],
+                'resource' => $resource,
+                'record' => null,
+                'old' => $data,
+                'errors' => ['_form' => $this->dbErrorMessage($e)],
+            ]);
+        }
+
+        $this->session->flash('success', $resource->labels()['singular'] . ' cadastrado(a) com sucesso.');
+        return redirect($resource->path());
+    }
+
+    public function edit(ServerRequestInterface $request, $id)
+    {
+        $resource = $this->resource();
+        if ($response = $this->guardRoles($resource->roles())) {
+            return $response;
+        }
+
+        $record = $this->repository($resource)->find((int) $id);
+        if (!$record) {
+            $this->session->flash('error', 'Registro não encontrado.');
+            return redirect($resource->path());
+        }
+
+        return $this->render('kernel::crud/form', [
+            'title' => 'Editar ' . $resource->labels()['singular'],
+            'resource' => $resource,
+            'record' => $record,
+            'old' => $record,
+            'errors' => [],
+        ]);
+    }
+
+    public function update(ServerRequestInterface $request, $id)
+    {
+        $resource = $this->resource();
+        if ($response = $this->guardRoles($resource->roles())) {
+            return $response;
+        }
+        if ($response = $this->guardCsrf($request, $resource->path())) {
+            return $response;
+        }
+
+        $record = $this->repository($resource)->find((int) $id);
+        if (!$record) {
+            $this->session->flash('error', 'Registro não encontrado.');
+            return redirect($resource->path());
+        }
+
+        [$data, $errors] = $this->validate($resource, $request, (int) $id);
+
+        if ($errors) {
+            return $this->render('kernel::crud/form', [
+                'title' => 'Editar ' . $resource->labels()['singular'],
+                'resource' => $resource,
+                'record' => array_merge($record, $data),
+                'old' => $data,
+                'errors' => $errors,
+            ]);
+        }
+
+        try {
+            $this->repository($resource)->update((int) $id, $data);
+        } catch (\PDOException $e) {
+            return $this->render('kernel::crud/form', [
+                'title' => 'Editar ' . $resource->labels()['singular'],
+                'resource' => $resource,
+                'record' => array_merge($record, $data),
+                'old' => $data,
+                'errors' => ['_form' => $this->dbErrorMessage($e)],
+            ]);
+        }
+
+        $this->session->flash('success', $resource->labels()['singular'] . ' atualizado(a) com sucesso.');
+        return redirect($resource->path());
+    }
+
+    public function destroy(ServerRequestInterface $request, $id)
+    {
+        $resource = $this->resource();
+        if ($response = $this->guardRoles($resource->roles())) {
+            return $response;
+        }
+        if ($response = $this->guardCsrf($request, $resource->path())) {
+            return $response;
+        }
+
+        $this->repository($resource)->delete((int) $id);
+        $this->session->flash('success', $resource->labels()['singular'] . ' excluído(a) com sucesso.');
+        return redirect($resource->path());
+    }
+
+    protected function repository(Resource $resource): Repository
+    {
+        return new Repository(
+            $this->pdo,
+            $resource->table(),
+            $resource->fillable(),
+            $resource->searchable()
+        );
+    }
+
+    /**
+     * Valida e normaliza os dados conforme os campos do Resource.
+     *
+     * @return array{0: array, 1: array} [data, errors]
+     */
+    private function validate(Resource $resource, ServerRequestInterface $request, ?int $ignoreId = null): array
+    {
+        $body = $request->getParsedBody() ?? [];
+        $data = [];
+        $errors = [];
+        $repo = $this->repository($resource);
+
+        foreach ($resource->fields() as $field) {
+            $name = $field['name'];
+            $type = $field['type'] ?? 'text';
+
+            if ($type === 'boolean') {
+                $data[$name] = isset($body[$name]) ? 1 : 0;
+                continue;
+            }
+
+            $value = clean($body[$name] ?? '');
+
+            if (!empty($field['required']) && $value === '') {
+                $errors[$name] = 'Campo obrigatório.';
+            }
+
+            if ($value !== '' && !empty($field['validate'])) {
+                if ($field['validate'] === 'email' && !filter_var($value, FILTER_VALIDATE_EMAIL)) {
+                    $errors[$name] = 'Informe um e-mail válido.';
+                }
+                if ($field['validate'] === 'cpf' && !isValidCpf($value)) {
+                    $errors[$name] = 'CPF inválido.';
+                }
+            }
+
+            // Unicidade (ex.: CPF/e-mail).
+            if ($value !== '' && !empty($field['unique']) && !isset($errors[$name])) {
+                $qb = $repo->query()->where($name, '=', $value);
+                if ($ignoreId !== null) {
+                    $qb->where('id', '!=', $ignoreId);
+                }
+                if ($qb->first()) {
+                    $errors[$name] = 'Já existe um registro com este valor.';
+                }
+            }
+
+            if ($type === 'email') {
+                $value = strtolower($value);
+            }
+
+            $data[$name] = $value;
+        }
+
+        return [$data, $errors];
+    }
+
+    /** Mensagem amigável para violações de banco (ex.: duplicidade). */
+    private function dbErrorMessage(\PDOException $e): string
+    {
+        if ((string) $e->getCode() === '23000') {
+            return 'Não foi possível salvar: valor duplicado (verifique CPF/e-mail).';
+        }
+        error_log('CRUD DB error: ' . $e->getMessage());
+        return 'Não foi possível salvar os dados.';
+    }
+}

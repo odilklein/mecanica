@@ -2,7 +2,7 @@
 // =============================================
 // REPOSITORY — acesso a dados genérico sobre uma
 // tabela (listar/paginar/buscar/criar/editar/excluir).
-// Módulos estendem e definem $table + $fillable.
+// Configurável por construtor (usado pelo CRUD genérico).
 // =============================================
 
 declare(strict_types=1);
@@ -11,25 +11,29 @@ namespace Kernel\Database;
 
 use PDO;
 
-abstract class Repository
+class Repository
 {
     protected PDO $pdo;
-
-    /** Nome da tabela. */
     protected string $table;
+    protected array $fillable;
+    protected string $searchable;
+    protected string $orderBy;
+    protected string $orderDirection;
 
-    /** Colunas aceitas em insert/update (whitelist). */
-    protected array $fillable = [];
-
-    /** Coluna pesquisável por texto livre. */
-    protected string $searchable = 'name';
-
-    protected string $orderBy = 'id';
-    protected string $orderDirection = 'desc';
-
-    public function __construct(PDO $pdo)
-    {
+    public function __construct(
+        PDO $pdo,
+        string $table,
+        array $fillable = [],
+        string $searchable = 'name',
+        string $orderBy = 'id',
+        string $orderDirection = 'desc'
+    ) {
         $this->pdo = $pdo;
+        $this->table = $table;
+        $this->fillable = $fillable;
+        $this->searchable = $searchable;
+        $this->orderBy = $orderBy;
+        $this->orderDirection = $orderDirection;
     }
 
     /** @return array{items: array, total: int, page: int, perPage: int, lastPage: int} */
@@ -88,9 +92,7 @@ abstract class Repository
         return new QueryBuilder($this->pdo, $this->table);
     }
 
-    /**
-     * Filtra o array mantendo apenas as colunas permitidas (whitelist).
-     */
+    /** Mantém apenas as colunas permitidas (whitelist). */
     protected function onlyFillable(array $data): array
     {
         if (!$this->fillable) {

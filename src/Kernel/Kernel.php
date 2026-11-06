@@ -13,6 +13,7 @@ use Kernel\Auth\Auth;
 use Kernel\Database\Connection;
 use Kernel\Http\Router;
 use Kernel\Http\Session;
+use Kernel\Menu\Menu;
 use Kernel\Modules\Registry;
 use Kernel\View\ViewFactory;
 use PDO;
@@ -53,6 +54,9 @@ class Kernel
         // Auth e View (resolvidos via autowiring do container).
         $this->container->bind(Auth::class, fn () => new Auth($session, $this->container->get(PDO::class)));
         $this->container->bind(ViewFactory::class, fn () => new ViewFactory($this->basePath));
+
+        // Registro de menu compartilhado (módulos adicionam itens).
+        $this->container->set(Menu::class, new Menu());
 
         // Descobre e registra os módulos (Core, Mechanic, ...).
         $this->registry = new Registry($this->container, $this->basePath);
