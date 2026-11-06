@@ -17,6 +17,8 @@ use Modules\Core\Controllers\AuditController;
 use Modules\Core\Controllers\ClientController;
 use Modules\Core\Controllers\DashboardController;
 use Modules\Core\Controllers\NotificationController;
+use Modules\Core\Controllers\ProfileController;
+use Modules\Core\Controllers\SettingsController;
 use Modules\Core\Controllers\UserController;
 
 class CoreProvider implements ProviderInterface
@@ -45,6 +47,14 @@ class CoreProvider implements ProviderInterface
         $router->post('/notifications/read-all', [NotificationController::class, 'markAllRead']);
         $router->post('/notifications/{id}/read', [NotificationController::class, 'markRead']);
 
+        // Meu perfil.
+        $router->get('/profile', [ProfileController::class, 'show']);
+        $router->post('/profile', [ProfileController::class, 'update']);
+
+        // Configurações (admin).
+        $router->get('/settings', [SettingsController::class, 'index']);
+        $router->post('/settings', [SettingsController::class, 'update']);
+
         $this->menu($container);
     }
 
@@ -57,7 +67,7 @@ class CoreProvider implements ProviderInterface
         $menu->add('Principal', ['label' => 'Notificações', 'icon' => 'bell', 'url' => '/notifications']);
         $menu->add('Cadastros', ['label' => 'Clientes', 'icon' => 'users', 'url' => '/clients', 'roles' => ['admin', 'secretary', 'lead_mechanic']]);
         $menu->add('Cadastros', ['label' => 'Funcionários', 'icon' => 'users-group', 'url' => '/users', 'roles' => ['admin', 'secretary', 'lead_mechanic']]);
-        $menu->add('Sistema', ['label' => 'Configurações', 'icon' => 'settings', 'url' => '#', 'roles' => ['admin']]);
+        $menu->add('Sistema', ['label' => 'Configurações', 'icon' => 'settings', 'url' => '/settings', 'roles' => ['admin']]);
         $menu->add('Sistema', ['label' => 'Auditoria', 'icon' => 'history', 'url' => '/audit', 'roles' => ['admin']]);
     }
 }

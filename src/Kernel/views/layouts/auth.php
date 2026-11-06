@@ -3,8 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
-    <meta name="theme-color" content="#b8270f">
-    <title><?= e($title ?? 'Login') ?> | Mecânica</title>
+    <meta name="theme-color" content="<?= e(setting('theme_color', '#b8270f')) ?>">
+    <title>Login | <?= e(setting('seo_title', 'Mecânica')) ?></title>
     <link rel="icon" href="/assets/img/favicon/favicon.ico">
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -16,6 +16,8 @@
     <link rel="stylesheet" href="/assets/css/demo.css">
     <link rel="stylesheet" href="/css/mecanica.css">
     <link rel="stylesheet" href="/assets/vendor/css/pages/page-auth.css">
+
+    <?= theme_css_inline(setting('theme_color', '#b8270f')) ?>
 
     <script src="/assets/vendor/js/helpers.js"></script>
 </head>

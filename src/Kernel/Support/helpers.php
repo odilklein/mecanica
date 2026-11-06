@@ -79,6 +79,57 @@ if (!function_exists('record_audit')) {
     }
 }
 
+if (!function_exists('setting')) {
+    /** Lê uma configuração do sistema (cache estático por request). */
+    function setting(string $key, ?string $default = null): ?string
+    {
+        static $cache = null;
+        if ($cache === null) {
+            $cache = [];
+            try {
+                $pdo = \Kernel\Database\Connection::fromEnv();
+                foreach ($pdo->query('SELECT setting_key, setting_value FROM settings') as $row) {
+                    $cache[$row['setting_key']] = $row['setting_value'];
+                }
+            } catch (\Throwable $e) {
+                $cache = [];
+            }
+        }
+        return $cache[$key] ?? $default;
+    }
+}
+
+if (!function_exists('theme_css_inline')) {
+    /** Gera o <style> que aplica a cor da marca (claro e escuro). */
+    function theme_css_inline(string $hex): string
+    {
+        $hex = ltrim(trim($hex), '#');
+        if (!preg_match('/^[0-9a-fA-F]{6}$/', $hex)) {
+            $hex = 'b8270f';
+        }
+        $r = (int) hexdec(substr($hex, 0, 2));
+        $g = (int) hexdec(substr($hex, 2, 2));
+        $b = (int) hexdec(substr($hex, 4, 2));
+
+        $mix = static fn (int $c, float $p): int => (int) round($c + (255 - $c) * $p);
+        $subtle = sprintf('#%02x%02x%02x', $mix($r, 0.88), $mix($g, 0.88), $mix($b, 0.88));
+        $border = sprintf('#%02x%02x%02x', $mix($r, 0.55), $mix($g, 0.55), $mix($b, 0.55));
+        $emphasis = sprintf('#%02x%02x%02x', (int) round($r * 0.75), (int) round($g * 0.75), (int) round($b * 0.75));
+        $emphasisDark = sprintf('#%02x%02x%02x', $mix($r, 0.60), $mix($g, 0.60), $mix($b, 0.60));
+
+        $light = ':root{--bs-primary:#' . $hex . ';--bs-primary-rgb:' . $r . ',' . $g . ',' . $b
+            . ';--bs-primary-contrast:#ffffff;--bs-primary-bg-subtle:' . $subtle
+            . ';--bs-primary-border-subtle:' . $border . ';--bs-primary-text-emphasis:' . $emphasis . ';}';
+
+        $dark = '[data-bs-theme="dark"]{--bs-primary:#' . $hex . ';--bs-primary-rgb:' . $r . ',' . $g . ',' . $b
+            . ';--bs-primary-contrast:#ffffff;--bs-primary-bg-subtle:rgba(' . $r . ',' . $g . ',' . $b . ',0.22)'
+            . ';--bs-primary-border-subtle:rgba(' . $r . ',' . $g . ',' . $b . ',0.45)'
+            . ';--bs-primary-text-emphasis:' . $emphasisDark . ';}';
+
+        return '<style id="theme-config">' . $light . $dark . '</style>';
+    }
+}
+
 if (!function_exists('roleLabel')) {
     /** Rótulo legível (pt-BR) de um papel de usuário. */
     function roleLabel(?string $role): string

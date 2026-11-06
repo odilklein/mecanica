@@ -3,8 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
-    <meta name="theme-color" content="#b8270f">
-    <title><?= e($title ?? 'Mecânica') ?></title>
+    <meta name="theme-color" content="<?= e(setting('theme_color', '#b8270f')) ?>">
+    <title><?= e(setting('seo_title', 'Mecânica')) ?><?= !empty($title) ? ' | ' . e($title) : '' ?></title>
+    <meta name="description" content="<?= e(setting('seo_description', '')) ?>">
+    <meta name="keywords" content="<?= e(setting('seo_keywords', '')) ?>">
     <link rel="icon" href="/assets/img/favicon/favicon.ico">
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -15,6 +17,8 @@
     <link rel="stylesheet" href="/assets/vendor/css/core.css">
     <link rel="stylesheet" href="/assets/css/demo.css">
     <link rel="stylesheet" href="/css/mecanica.css">
+
+    <?= theme_css_inline(setting('theme_color', '#b8270f')) ?>
 
     <script src="/assets/vendor/js/helpers.js"></script>
     <script src="/assets/js/config.js"></script>
@@ -108,6 +112,11 @@
                                         </div>
                                     </li>
                                     <li><div class="dropdown-divider my-1"></div></li>
+                                    <li>
+                                        <a class="dropdown-item" href="/profile">
+                                            <i class="icon-base ti tabler-user me-2"></i>Meus dados
+                                        </a>
+                                    </li>
                                     <li>
                                         <form method="POST" action="/logout">
                                             <input type="hidden" name="csrf_token" value="<?= e($csrf) ?>">
