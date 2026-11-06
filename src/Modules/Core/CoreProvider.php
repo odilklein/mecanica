@@ -16,6 +16,7 @@ use Modules\Core\Controllers\AuthController;
 use Modules\Core\Controllers\AuditController;
 use Modules\Core\Controllers\ClientController;
 use Modules\Core\Controllers\DashboardController;
+use Modules\Core\Controllers\NotificationController;
 use Modules\Core\Controllers\UserController;
 
 class CoreProvider implements ProviderInterface
@@ -39,6 +40,11 @@ class CoreProvider implements ProviderInterface
         // Auditoria (somente leitura).
         $router->get('/audit', [AuditController::class, 'index']);
 
+        // Notificações.
+        $router->get('/notifications', [NotificationController::class, 'index']);
+        $router->post('/notifications/read-all', [NotificationController::class, 'markAllRead']);
+        $router->post('/notifications/{id}/read', [NotificationController::class, 'markRead']);
+
         $this->menu($container);
     }
 
@@ -48,6 +54,7 @@ class CoreProvider implements ProviderInterface
         $menu = $container->get(Menu::class);
 
         $menu->add('Principal', ['label' => 'Dashboard', 'icon' => 'smart-home', 'url' => '/']);
+        $menu->add('Principal', ['label' => 'Notificações', 'icon' => 'bell', 'url' => '/notifications']);
         $menu->add('Cadastros', ['label' => 'Clientes', 'icon' => 'users', 'url' => '/clients', 'roles' => ['admin', 'secretary', 'lead_mechanic']]);
         $menu->add('Cadastros', ['label' => 'Funcionários', 'icon' => 'users-group', 'url' => '/users', 'roles' => ['admin', 'secretary', 'lead_mechanic']]);
         $menu->add('Sistema', ['label' => 'Configurações', 'icon' => 'settings', 'url' => '#', 'roles' => ['admin']]);

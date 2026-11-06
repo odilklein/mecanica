@@ -5,6 +5,7 @@ namespace Modules\Mechanic\Controllers;
 
 use Kernel\Crud\CrudController;
 use Kernel\Crud\Resource;
+use Modules\Core\Support\Notify;
 use Modules\Mechanic\Resources\ServiceOrderResource;
 use Modules\Mechanic\Support\ServiceOrderStatus;
 use Psr\Http\Message\ServerRequestInterface;
@@ -62,6 +63,23 @@ class ServiceOrderController extends CrudController
         $completion = $status === 'delivered' ? date('Y-m-d') : null;
         $stmt = $this->pdo->prepare('UPDATE service_orders SET status = :s, completion_date = :c WHERE id = :id');
         $stmt->execute([':s' => $status, ':c' => $completion, ':id' => (int) $id]);
+
+        $order = $this->findOrder((int) $id);
+        if ($order) {
+            $recipients = array_filter([
+                (int) ($order['lead_mechanic_id'] ?? 0),
+                (int) ($order['created_by'] ?? 0),
+                (int) ($this->auth->id() ?? 0),
+            ]);
+            Notify::to(
+                $this->pdo,
+                $recipients,
+                'os_status',
+                'OS #' . str_pad((string) $order['number'], 4, '0', STR_PAD_LEFT)
+                    . ' mudou para "' . ServiceOrderStatus::label($status) . '".',
+                '/service-orders/' . (int) $id
+            );
+        }
 
         $this->session->flash('success', 'Status atualizado para "' . ServiceOrderStatus::label($status) . '".');
         return redirect($resource->path() . '/' . (int) $id);
