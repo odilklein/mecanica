@@ -13,6 +13,7 @@ use Kernel\Http\Router;
 use Kernel\Menu\Menu;
 use Kernel\Modules\ProviderInterface;
 use Modules\Mechanic\Controllers\FipeController;
+use Modules\Mechanic\Controllers\PartOrderController;
 use Modules\Mechanic\Controllers\ServiceOrderController;
 use Modules\Mechanic\Controllers\TaskController;
 use Modules\Mechanic\Controllers\VehicleController;
@@ -41,6 +42,9 @@ class MechanicProvider implements ProviderInterface
         $router->post('/service-orders/{id}', [ServiceOrderController::class, 'update']);
         $router->post('/tasks/{id}/toggle', [TaskController::class, 'toggle']);
 
+        // Pedidos de peças (CRUD genérico).
+        crud_routes($router, '/part-orders', PartOrderController::class);
+
         $this->menu($container);
     }
 
@@ -59,6 +63,12 @@ class MechanicProvider implements ProviderInterface
             'label' => 'Ordens de serviço',
             'icon' => 'clipboard-list',
             'url' => '/service-orders',
+            'roles' => null,
+        ]);
+        $menu->add('Operações', [
+            'label' => 'Pedidos de peças',
+            'icon' => 'truck',
+            'url' => '/part-orders',
             'roles' => null,
         ]);
     }
