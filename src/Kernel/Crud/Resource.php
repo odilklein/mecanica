@@ -50,6 +50,17 @@ abstract class Resource
         return 'database';
     }
 
+    /**
+     * Opções de campos do tipo "select" (nome do campo => [valor => rótulo]).
+     * Recursos com selects dinâmicos (ex.: cliente) sobrescrevem.
+     *
+     * @return array<string, array<int|string, string>>
+     */
+    public function selectOptions(\PDO $pdo): array
+    {
+        return [];
+    }
+
     /** Colunas aceitas em insert/update. */
     public function fillable(): array
     {

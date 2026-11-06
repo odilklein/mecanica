@@ -53,6 +53,22 @@ $action = $isEdit ? $path . '/' . (int) $record['id'] : $path;
                             </div>
                         </div>
 
+                        <?php elseif ($type === 'select'): ?>
+                        <div class="<?= e($colClass) ?>">
+                            <label class="form-label" for="<?= e($name) ?>"><?= e($field['label']) ?><?= $required ? ' *' : '' ?></label>
+                            <div class="input-group input-group-merge">
+                                <span class="input-group-text"><i class="icon-base ti tabler-<?= e($icon) ?>"></i></span>
+                                <select class="form-select <?= $error ? 'is-invalid' : '' ?>" id="<?= e($name) ?>" name="<?= e($name) ?>">
+                                    <option value="">Selecione...</option>
+                                    <?php foreach (($selectOptions[$name] ?? []) as $optValue => $optLabel): ?>
+                                    <option value="<?= e((string) $optValue) ?>" <?= ((string) $value === (string) $optValue) ? 'selected' : '' ?>><?= e($optLabel) ?></option>
+                                    <?php endforeach; ?>
+                                </select>
+                            </div>
+                            <?php if ($error): ?><div class="invalid-feedback d-block"><?= e($error) ?></div><?php endif; ?>
+                            <?php if (!empty($field['help'])): ?><div class="form-text"><?= e($field['help']) ?></div><?php endif; ?>
+                        </div>
+
                         <?php elseif ($type === 'textarea'): ?>
                         <div class="<?= e($colClass) ?>">
                             <label class="form-label" for="<?= e($name) ?>"><?= e($field['label']) ?><?= $required ? ' *' : '' ?></label>
@@ -71,7 +87,9 @@ $action = $isEdit ? $path . '/' . (int) $record['id'] : $path;
                                 <span class="input-group-text"><i class="icon-base ti tabler-<?= e($icon) ?>"></i></span>
                                 <input type="<?= e($type) ?>" class="form-control <?= $error ? 'is-invalid' : '' ?>"
                                        id="<?= e($name) ?>" name="<?= e($name) ?>" value="<?= e($value) ?>"
-                                       <?= !empty($field['max']) ? 'maxlength="' . (int) $field['max'] . '"' : '' ?>
+                                       <?= ($type !== 'number' && !empty($field['max'])) ? 'maxlength="' . (int) $field['max'] . '"' : '' ?>
+                                       <?= ($type === 'number' && isset($field['min'])) ? 'min="' . (int) $field['min'] . '"' : '' ?>
+                                       <?= ($type === 'number' && isset($field['max'])) ? 'max="' . (int) $field['max'] . '"' : '' ?>
                                        <?= !empty($field['mask']) ? 'data-mask="' . e($field['mask']) . '"' : '' ?>>
                             </div>
                             <?php if ($error): ?><div class="invalid-feedback d-block"><?= e($error) ?></div><?php endif; ?>

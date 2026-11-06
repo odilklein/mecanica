@@ -41,8 +41,7 @@ class CoreProvider implements ProviderInterface
 
         $menu->add('Principal', ['label' => 'Dashboard', 'icon' => 'smart-home', 'url' => '/']);
         $menu->add('Cadastros', ['label' => 'Clientes', 'icon' => 'users', 'url' => '/clients', 'roles' => ['admin', 'secretary', 'lead_mechanic']]);
-        $menu->add('Cadastros', ['label' => 'Veículos', 'icon' => 'car', 'url' => '#', 'roles' => ['admin', 'secretary', 'lead_mechanic']]);
-        $menu->add('Operações', ['label' => 'Ordens de serviço', 'icon' => 'clipboard-list', 'url' => '#', 'roles' => []]);
+        $menu->add('Operações', ['label' => 'Ordens de serviço', 'icon' => 'clipboard-list', 'url' => '#', 'roles' => null]);
         $menu->add('Sistema', ['label' => 'Configurações', 'icon' => 'settings', 'url' => '#', 'roles' => ['admin']]);
         $menu->add('Sistema', ['label' => 'Auditoria', 'icon' => 'history', 'url' => '#', 'roles' => ['admin']]);
     }

@@ -58,13 +58,7 @@ abstract class CrudController extends Controller
             return $response;
         }
 
-        return $this->render('kernel::crud/form', [
-            'title' => 'Novo(a) ' . $resource->labels()['singular'],
-            'resource' => $resource,
-            'record' => null,
-            'old' => [],
-            'errors' => [],
-        ]);
+        return $this->render('kernel::crud/form', $this->formData($resource, null, [], []));
     }
 
     public function store(ServerRequestInterface $request)
@@ -80,25 +74,13 @@ abstract class CrudController extends Controller
         [$data, $errors] = $this->validate($resource, $request);
 
         if ($errors) {
-            return $this->render('kernel::crud/form', [
-                'title' => 'Novo(a) ' . $resource->labels()['singular'],
-                'resource' => $resource,
-                'record' => null,
-                'old' => $data,
-                'errors' => $errors,
-            ]);
+            return $this->render('kernel::crud/form', $this->formData($resource, null, $data, $errors));
         }
 
         try {
             $this->repository($resource)->create($data);
         } catch (\PDOException $e) {
-            return $this->render('kernel::crud/form', [
-                'title' => 'Novo(a) ' . $resource->labels()['singular'],
-                'resource' => $resource,
-                'record' => null,
-                'old' => $data,
-                'errors' => ['_form' => $this->dbErrorMessage($e)],
-            ]);
+            return $this->render('kernel::crud/form', $this->formData($resource, null, $data, ['_form' => $this->dbErrorMessage($e)]));
         }
 
         $this->session->flash('success', $resource->labels()['singular'] . ' cadastrado(a) com sucesso.');
@@ -118,13 +100,7 @@ abstract class CrudController extends Controller
             return redirect($resource->path());
         }
 
-        return $this->render('kernel::crud/form', [
-            'title' => 'Editar ' . $resource->labels()['singular'],
-            'resource' => $resource,
-            'record' => $record,
-            'old' => $record,
-            'errors' => [],
-        ]);
+        return $this->render('kernel::crud/form', $this->formData($resource, $record, $record, []));
     }
 
     public function update(ServerRequestInterface $request, $id)
@@ -146,25 +122,13 @@ abstract class CrudController extends Controller
         [$data, $errors] = $this->validate($resource, $request, (int) $id);
 
         if ($errors) {
-            return $this->render('kernel::crud/form', [
-                'title' => 'Editar ' . $resource->labels()['singular'],
-                'resource' => $resource,
-                'record' => array_merge($record, $data),
-                'old' => $data,
-                'errors' => $errors,
-            ]);
+            return $this->render('kernel::crud/form', $this->formData($resource, array_merge($record, $data), $data, $errors));
         }
 
         try {
             $this->repository($resource)->update((int) $id, $data);
         } catch (\PDOException $e) {
-            return $this->render('kernel::crud/form', [
-                'title' => 'Editar ' . $resource->labels()['singular'],
-                'resource' => $resource,
-                'record' => array_merge($record, $data),
-                'old' => $data,
-                'errors' => ['_form' => $this->dbErrorMessage($e)],
-            ]);
+            return $this->render('kernel::crud/form', $this->formData($resource, array_merge($record, $data), $data, ['_form' => $this->dbErrorMessage($e)]));
         }
 
         $this->session->flash('success', $resource->labels()['singular'] . ' atualizado(a) com sucesso.');
@@ -194,6 +158,19 @@ abstract class CrudController extends Controller
             $resource->fillable(),
             $resource->searchable()
         );
+    }
+
+    /** @return array<string, mixed> Dados comuns do formulário. */
+    private function formData(Resource $resource, ?array $record, array $old, array $errors): array
+    {
+        return [
+            'title' => ($record ? 'Editar ' : 'Novo(a) ') . $resource->labels()['singular'],
+            'resource' => $resource,
+            'record' => $record,
+            'old' => $old,
+            'errors' => $errors,
+            'selectOptions' => $resource->selectOptions($this->pdo),
+        ];
     }
 
     /**
@@ -230,9 +207,12 @@ abstract class CrudController extends Controller
                 if ($field['validate'] === 'cpf' && !isValidCpf($value)) {
                     $errors[$name] = 'CPF inválido.';
                 }
+                if ($field['validate'] === 'plate' && !isValidPlate($value)) {
+                    $errors[$name] = 'Placa inválida. Use ABC-1234 ou ABC1D23.';
+                }
             }
 
-            // Unicidade (ex.: CPF/e-mail).
+            // Unicidade (ex.: CPF/placa).
             if ($value !== '' && !empty($field['unique']) && !isset($errors[$name])) {
                 $qb = $repo->query()->where($name, '=', $value);
                 if ($ignoreId !== null) {
@@ -247,17 +227,23 @@ abstract class CrudController extends Controller
                 $value = strtolower($value);
             }
 
+            // Campos numéricos/select vazios viram NULL (evita erro em coluna INT).
+            if (($type === 'number' || $type === 'select') && $value === '') {
+                $data[$name] = null;
+                continue;
+            }
+
             $data[$name] = $value;
         }
 
         return [$data, $errors];
     }
 
-    /** Mensagem amigável para violações de banco (ex.: duplicidade). */
+    /** Mensagem amigável para violações de banco (ex.: duplicidade/fk). */
     private function dbErrorMessage(\PDOException $e): string
     {
         if ((string) $e->getCode() === '23000') {
-            return 'Não foi possível salvar: valor duplicado (verifique CPF/e-mail).';
+            return 'Não foi possível salvar: valor duplicado ou referência inválida (verifique CPF/placa/cliente).';
         }
         error_log('CRUD DB error: ' . $e->getMessage());
         return 'Não foi possível salvar os dados.';

@@ -184,3 +184,12 @@ if (!function_exists('isValidCpf')) {
         return true;
     }
 }
+
+if (!function_exists('isValidPlate')) {
+    /** Valida placa (ABC-1234 ou Mercosul ABC1D23). */
+    function isValidPlate(mixed $plate): bool
+    {
+        $plate = strtoupper(trim((string) $plate));
+        return (bool) preg_match('/^(?:[A-Z]{3}-\d{4}|[A-Z]{3}\d[A-Z0-9]\d{2})$/', $plate);
+    }
+}
