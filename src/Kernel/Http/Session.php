@@ -68,4 +68,19 @@ class Session
     {
         return $token !== null && hash_equals((string) $this->get('_csrf_token', ''), $token);
     }
+
+    /**
+     * Mensagem flash (lida uma única vez, no próximo request).
+     */
+    public function flash(string $key, mixed $value): void
+    {
+        $this->set('_flash_' . $key, $value);
+    }
+
+    public function pullFlash(string $key, mixed $default = null): mixed
+    {
+        $value = $this->get('_flash_' . $key, $default);
+        $this->remove('_flash_' . $key);
+        return $value;
+    }
 }

@@ -49,7 +49,7 @@
 
                     <li class="menu-header small"><span class="menu-header-text">Cadastros</span></li>
                     <li class="menu-item">
-                        <a href="#" class="menu-link">
+                        <a href="/clients" class="menu-link">
                             <i class="menu-icon icon-base ti tabler-users"></i>
                             <div>Clientes</div>
                         </a>
@@ -170,6 +170,18 @@
                 <!-- Content wrapper -->
                 <div class="content-wrapper">
                     <div class="container-xxl flex-grow-1 container-p-y" id="conteudo" tabindex="-1">
+                        <?php if ($success = flash('success')): ?>
+                        <div class="alert alert-success alert-dismissible" role="alert">
+                            <?= e($success) ?>
+                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Fechar"></button>
+                        </div>
+                        <?php endif; ?>
+                        <?php if ($error = flash('error')): ?>
+                        <div class="alert alert-danger alert-dismissible" role="alert">
+                            <?= e($error) ?>
+                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Fechar"></button>
+                        </div>
+                        <?php endif; ?>
                         <?= $this->section('content') ?>
                     </div>
 

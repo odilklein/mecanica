@@ -13,6 +13,7 @@ use Kernel\Container\Container;
 use Kernel\Http\Router;
 use Kernel\Modules\ProviderInterface;
 use Modules\Core\Controllers\AuthController;
+use Modules\Core\Controllers\ClientController;
 use Modules\Core\Controllers\DashboardController;
 
 class CoreProvider implements ProviderInterface
@@ -26,5 +27,13 @@ class CoreProvider implements ProviderInterface
 
         // Dashboard (protegido).
         $router->get('/', [DashboardController::class, 'index']);
+
+        // Clientes (CRUD base).
+        $router->get('/clients', [ClientController::class, 'index']);
+        $router->get('/clients/create', [ClientController::class, 'create']);
+        $router->post('/clients', [ClientController::class, 'store']);
+        $router->get('/clients/{id}/edit', [ClientController::class, 'edit']);
+        $router->post('/clients/{id}', [ClientController::class, 'update']);
+        $router->post('/clients/{id}/delete', [ClientController::class, 'destroy']);
     }
 }

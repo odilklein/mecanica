@@ -58,3 +58,36 @@ if (!function_exists('roleLabel')) {
         return $map[$role] ?? 'Usuário';
     }
 }
+
+if (!function_exists('flash')) {
+    /** Lê (e limpa) uma mensagem flash da sessão. */
+    function flash(string $key, mixed $default = null): mixed
+    {
+        $k = '_flash_' . $key;
+        $value = $_SESSION[$k] ?? $default;
+        unset($_SESSION[$k]);
+        return $value;
+    }
+}
+
+if (!function_exists('isValidCpf')) {
+    /** Valida CPF (aceita com ou sem máscara). */
+    function isValidCpf(mixed $cpf): bool
+    {
+        $cpf = preg_replace('/\D/', '', (string) $cpf);
+        if (strlen($cpf) !== 11 || preg_match('/^(\d)\1{10}$/', $cpf)) {
+            return false;
+        }
+        for ($t = 9; $t < 11; $t++) {
+            $d = 0;
+            for ($c = 0; $c < $t; $c++) {
+                $d += (int) $cpf[$c] * (($t + 1) - $c);
+            }
+            $d = ((10 * $d) % 11) % 10;
+            if ((int) $cpf[$t] !== $d) {
+                return false;
+            }
+        }
+        return true;
+    }
+}
