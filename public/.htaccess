@@ -1,0 +1,14 @@
+# =============================================
+# ROTEAMENTO FRONT CONTROLLER
+# Toda requisição que não é arquivo/diretório real
+# é encaminhada para o index.php.
+# =============================================
+
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+
+    # Se o arquivo/diretório existir fisicamente, serve direto.
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteCond %{REQUEST_FILENAME} !-d
+    RewriteRule ^ index.php [QSA,L]
+</IfModule>

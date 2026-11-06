@@ -1,0 +1,59 @@
+<?php
+// =============================================
+// KERNEL — orquestra o ciclo de vida da aplicação
+// (container, módulos e roteador). Núcleo reutilizável.
+// =============================================
+
+declare(strict_types=1);
+
+namespace Kernel;
+
+use Kernel\Container\Container;
+use Kernel\Http\Router;
+use Kernel\Modules\Registry;
+
+class Kernel
+{
+    private string $basePath;
+    private Container $container;
+    private Router $router;
+    private Registry $registry;
+
+    public function __construct(string $basePath)
+    {
+        $this->basePath = $basePath;
+    }
+
+    /**
+     * Prepara o container, o roteador e registra os módulos.
+     */
+    public function boot(): void
+    {
+        $this->container = new Container();
+        $this->router = new Router($this->container);
+
+        // Serviços/instâncias compartilhadas.
+        $this->container->set('basePath', $this->basePath);
+        $this->container->set(Container::class, $this->container);
+        $this->container->set(Router::class, $this->router);
+
+        // Descobre e registra os módulos (Core, Mechanic, ...).
+        $this->registry = new Registry($this->container, $this->basePath);
+        $this->container->set(Registry::class, $this->registry);
+        $this->registry->discover();
+        $this->registry->register();
+    }
+
+    /**
+     * Despacha a requisição HTTP corrente.
+     */
+    public function run(): void
+    {
+        $this->router->run();
+    }
+
+    public function basePath(): string
+    {
+        return $this->basePath;
+    }
+}
