@@ -46,6 +46,7 @@ $Status = \Modules\Mechanic\Support\PartOrderStatus::class;
                 <tr>
                     <th>OS</th>
                     <th>Cliente</th>
+                    <th>Itens</th>
                     <th>Fornecedor</th>
                     <th>Status</th>
                     <th>Previsão</th>
@@ -57,6 +58,7 @@ $Status = \Modules\Mechanic\Support\PartOrderStatus::class;
                 <tr>
                     <td data-label="OS"><a href="/service-orders/<?= (int) $row['service_order_id'] ?>" class="fw-medium">#<?= str_pad((string) $row['order_number'], 4, '0', STR_PAD_LEFT) ?></a></td>
                     <td data-label="Cliente"><?= e($row['client_name'] ?: '—') ?></td>
+                    <td data-label="Itens"><?= e($row['items'] ?: '—') ?></td>
                     <td data-label="Fornecedor"><?= e($row['supplier'] ?: '—') ?></td>
                     <td data-label="Status"><span class="badge <?= e($Status::badgeClass($row['status'])) ?>"><?= e($Status::label($row['status'])) ?></span></td>
                     <td data-label="Previsão"><?= $row['expected_date'] ? e(date('d/m/Y', strtotime($row['expected_date']))) : '—' ?></td>
@@ -73,7 +75,7 @@ $Status = \Modules\Mechanic\Support\PartOrderStatus::class;
                 <?php endforeach; ?>
                 <?php if (!$items): ?>
                 <tr class="row-empty">
-                    <td colspan="6">
+                    <td colspan="7">
                         <div class="empty-state">
                             <div class="empty-state-icon"><i class="icon-base ti tabler-truck"></i></div>
                             <h4>Nenhum pedido</h4>

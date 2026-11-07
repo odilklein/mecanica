@@ -76,6 +76,19 @@
 
                     <div class="navbar-nav-right d-flex align-items-center justify-content-end" id="navbar-collapse">
                         <ul class="navbar-nav flex-row align-items-center ms-md-auto">
+                            <!-- Notificações -->
+                            <li class="nav-item dropdown me-2">
+                                <a class="nav-link dropdown-toggle hide-arrow btn btn-icon btn-text-secondary rounded-pill" href="javascript:void(0);" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false">
+                                    <span class="position-relative">
+                                        <i class="icon-base ti tabler-bell icon-22px"></i>
+                                        <span class="badge rounded-pill bg-danger badge-notifications border" id="notifBadge" hidden></span>
+                                    </span>
+                                </a>
+                                <ul class="dropdown-menu dropdown-menu-end p-0" id="notifMenu" style="width: 340px;">
+                                    <li><div class="p-3 text-body-secondary text-center">Carregando...</div></li>
+                                </ul>
+                            </li>
+
                             <!-- Tema -->
                             <li class="nav-item dropdown">
                                 <a class="nav-link dropdown-toggle hide-arrow btn btn-icon btn-text-secondary rounded-pill" id="nav-theme" href="javascript:void(0);" data-bs-toggle="dropdown" aria-expanded="false">
@@ -178,6 +191,7 @@
     <script src="/assets/js/main.js"></script>
     <script src="/js/masks.js"></script>
     <script src="/js/viacep.js"></script>
+    <script src="/js/notifications.js"></script>
 
     <script>
         document.querySelectorAll('[data-bs-theme-value]').forEach(function (btn) {

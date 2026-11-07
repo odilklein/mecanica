@@ -47,6 +47,7 @@ class CoreProvider implements ProviderInterface
         $router->get('/notifications', [NotificationController::class, 'index']);
         $router->post('/notifications/read-all', [NotificationController::class, 'markAllRead']);
         $router->post('/notifications/{id}/read', [NotificationController::class, 'markRead']);
+        $router->get('/api/notifications', [NotificationController::class, 'api']);
 
         // Meu perfil.
         $router->get('/profile', [ProfileController::class, 'show']);

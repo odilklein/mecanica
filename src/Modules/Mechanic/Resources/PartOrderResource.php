@@ -39,11 +39,17 @@ class PartOrderResource extends Resource
         return 'mechanic::part_orders/index';
     }
 
+    public function formView(): string
+    {
+        return 'mechanic::part_orders/form';
+    }
+
     public function columns(): array
     {
         return [
             ['field' => 'order_number', 'label' => 'OS'],
             ['field' => 'client_name', 'label' => 'Cliente'],
+            ['field' => 'items', 'label' => 'Itens'],
             ['field' => 'supplier', 'label' => 'Fornecedor'],
             ['field' => 'status', 'label' => 'Status'],
             ['field' => 'expected_date', 'label' => 'Previsão'],
@@ -82,8 +88,11 @@ class PartOrderResource extends Resource
         $offset = ($page - 1) * $perPage;
 
         $stmt = $pdo->prepare(
-            "SELECT po.*, so.number AS order_number, c.name AS client_name
-             {$from} WHERE {$where} ORDER BY po.id DESC LIMIT {$perPage} OFFSET {$offset}"
+            "SELECT po.*, so.number AS order_number, c.name AS client_name,
+                    GROUP_CONCAT(i.description SEPARATOR ', ') AS items
+             {$from}
+             LEFT JOIN part_order_items i ON i.part_order_id = po.id
+             WHERE {$where} GROUP BY po.id ORDER BY po.id DESC LIMIT {$perPage} OFFSET {$offset}"
         );
         $stmt->execute($params);
 

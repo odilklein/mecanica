@@ -84,4 +84,23 @@ class NotificationController extends Controller
         $this->session->flash('success', 'Notificações marcadas como lidas.');
         return redirect('/notifications');
     }
+
+    /** API para o sino do header (polling). */
+    public function api(ServerRequestInterface $request)
+    {
+        if (!$this->auth->check()) {
+            return json_response(['unread' => 0, 'items' => []]);
+        }
+
+        $userId = $this->auth->id();
+
+        $count = $this->pdo->prepare('SELECT COUNT(*) FROM notifications WHERE user_id = :u AND read_at IS NULL');
+        $count->execute([':u' => $userId]);
+        $unread = (int) $count->fetchColumn();
+
+        $items = $this->pdo->prepare('SELECT id, type, message, link, read_at, created_at FROM notifications WHERE user_id = :u ORDER BY id DESC LIMIT 8');
+        $items->execute([':u' => $userId]);
+
+        return json_response(['unread' => $unread, 'items' => $items->fetchAll()]);
+    }
 }
