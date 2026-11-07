@@ -1392,6 +1392,40 @@ a:focus-visible, button:focus-visible, [tabindex]:focus-visible, .dropdown-item:
 @media (max-width: 575.98px) {
     .dt-fixedheader .emp_name,
     .dt-fixedheader .emp_post {
-        max-width: 150px;
+        max-width: 145px;
+    }
+
+    /* Garante que a tabela caiba na tela e que o identificador
+       principal + Ações fiquem sempre visíveis no mobile. */
+    .card-datatable {
+        overflow-x: hidden;
+    }
+
+    .dt-fixedheader.table {
+        width: 100% !important;
+        table-layout: auto;
+    }
+
+    .dt-fixedheader.table > :not(caption) > * > * {
+        padding: 0.65rem 0.4rem;
+    }
+
+    .dt-fixedheader .avatar {
+        width: 2rem;
+        height: 2rem;
+    }
+
+    .dt-fixedheader .avatar-initial {
+        font-size: 0.72rem;
+    }
+
+    .dt-fixedheader th:last-child,
+    .dt-fixedheader td:last-child {
+        width: 42px;
+    }
+
+    .dt-fixedheader td.control,
+    .dt-fixedheader td.dtr-control {
+        padding-inline: 0.35rem !important;
     }
 }

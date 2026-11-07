@@ -16,16 +16,16 @@
     <link rel="stylesheet" href="/assets/vendor/fonts/iconify-icons.css">
     <link rel="stylesheet" href="/assets/vendor/css/core.css">
     <link rel="stylesheet" href="/assets/css/demo.css">
-    <link rel="stylesheet" href="/assets/vendor/libs/select2/select2.css">
-    <link rel="stylesheet" href="/css/mecanica.css">
+    <link rel="stylesheet" href="<?= e(asset('/assets/vendor/libs/select2/select2.css')) ?>">
+    <link rel="stylesheet" href="<?= e(asset('/css/mecanica.css')) ?>">
 
     <?= theme_css_inline(setting('theme_color', '#b8270f')) ?>
 
     <script src="/assets/vendor/js/helpers.js"></script>
-    <script src="/assets/js/config.js"></script>
+    <script src="<?= e(asset('/assets/js/config.js')) ?>"></script>
 
     <?php foreach (($pageStyles ?? []) as $style): ?>
-    <link rel="stylesheet" href="<?= e($style) ?>">
+    <link rel="stylesheet" href="<?= e(asset($style)) ?>">
     <?php endforeach; ?>
 </head>
 <body>
@@ -194,14 +194,14 @@
     <script src="/assets/vendor/libs/node-waves/node-waves.js"></script>
     <script src="/assets/vendor/js/menu.js"></script>
     <script src="/assets/js/main.js"></script>
-    <script src="/js/masks.js"></script>
-    <script src="/js/viacep.js"></script>
-    <script src="/js/notifications.js"></script>
-    <script src="/assets/vendor/libs/select2/select2.js"></script>
-    <script src="/js/select2-init.js"></script>
+    <script src="<?= e(asset('/js/masks.js')) ?>"></script>
+    <script src="<?= e(asset('/js/viacep.js')) ?>"></script>
+    <script src="<?= e(asset('/js/notifications.js')) ?>"></script>
+    <script src="<?= e(asset('/assets/vendor/libs/select2/select2.js')) ?>"></script>
+    <script src="<?= e(asset('/js/select2-init.js')) ?>"></script>
 
     <?php foreach (($pageScripts ?? []) as $script): ?>
-    <script src="<?= e($script) ?>"></script>
+    <script src="<?= e(asset($script)) ?>"></script>
     <?php endforeach; ?>
 
     <script>

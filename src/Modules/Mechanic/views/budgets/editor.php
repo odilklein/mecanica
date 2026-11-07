@@ -100,4 +100,4 @@ $vehiclesJson = json_encode($vehicles, JSON_UNESCAPED_UNICODE);
 window.BUDGET_ITEMS = <?= $itemsJson ?>;
 window.BUDGET_VEHICLES = <?= $vehiclesJson ?>;
 </script>
-<script src="/js/budget-editor.js"></script>
+<script src="<?= e(asset('/js/budget-editor.js')) ?>"></script>

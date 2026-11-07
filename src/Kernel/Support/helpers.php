@@ -22,6 +22,20 @@ if (!function_exists('clean')) {
     }
 }
 
+if (!function_exists('asset')) {
+    /**
+     * URL de um asset público com cache-busting pelo mtime do arquivo.
+     * Ex.: asset('/css/mecanica.css') => /css/mecanica.css?v=123456
+     */
+    function asset(string $path): string
+    {
+        $clean = '/' . ltrim($path, '/');
+        $file = dirname(__DIR__, 3) . '/public' . $clean;
+
+        return is_file($file) ? $clean . '?v=' . filemtime($file) : $clean;
+    }
+}
+
 if (!function_exists('env')) {
     /** Lê uma variável de ambiente (getenv/$_ENV), com fallback. */
     function env(string $key, ?string $default = null): ?string

@@ -60,12 +60,15 @@
                 return;
             }
 
-            $.getJSON('/api/fipe/models?brand=' + encodeURIComponent(brand))
-                .done(function (data) {
-                    setOptions($model, (data || []).map(function (m) {
-                        return { value: m.code, text: m.name };
-                    }));
-                });
+            $.ajax({
+                url: '/api/fipe/models?brand=' + encodeURIComponent(brand),
+                dataType: 'json',
+                cache: false
+            }).done(function (data) {
+                setOptions($model, (data || []).map(function (m) {
+                    return { value: m.code, text: m.name };
+                }));
+            });
         });
 
         $model.on('change', function () {
@@ -78,12 +81,15 @@
                 return;
             }
 
-            $.getJSON('/api/fipe/years?brand=' + encodeURIComponent(brand) + '&model=' + encodeURIComponent(model))
-                .done(function (data) {
-                    setOptions($year, (data || []).map(function (y) {
-                        return { value: y.code, text: y.name };
-                    }));
-                });
+            $.ajax({
+                url: '/api/fipe/years?brand=' + encodeURIComponent(brand) + '&model=' + encodeURIComponent(model),
+                dataType: 'json',
+                cache: false
+            }).done(function (data) {
+                setOptions($year, (data || []).map(function (y) {
+                    return { value: y.code, text: y.name };
+                }));
+            });
         });
 
         $year.on('change', function () {
@@ -96,11 +102,13 @@
                 return;
             }
 
-            $.getJSON(
-                '/api/fipe/price?brand=' + encodeURIComponent(brand)
-                + '&model=' + encodeURIComponent(model)
-                + '&year=' + encodeURIComponent(year)
-            ).done(setValue);
+            $.ajax({
+                url: '/api/fipe/price?brand=' + encodeURIComponent(brand)
+                    + '&model=' + encodeURIComponent(model)
+                    + '&year=' + encodeURIComponent(year),
+                dataType: 'json',
+                cache: false
+            }).done(setValue);
         });
     }
 
