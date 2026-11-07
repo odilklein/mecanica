@@ -92,6 +92,23 @@ class Router
             $request = $request->withParsedBody($_POST);
         }
 
+        // Copia os headers HTTP para o request PSR-7 (o Nyholm não lê
+        // automaticamente de $_SERVER ao criar via createServerRequest).
+        foreach ($_SERVER as $key => $value) {
+            if (is_string($key) && is_string($value) && str_starts_with($key, 'HTTP_')) {
+                $request = $request->withHeader(
+                    str_replace('_', '-', substr($key, 5)),
+                    $value
+                );
+            }
+        }
+        if (!empty($_SERVER['CONTENT_TYPE'])) {
+            $request = $request->withHeader('Content-Type', (string) $_SERVER['CONTENT_TYPE']);
+        }
+        if (!empty($_SERVER['CONTENT_LENGTH'])) {
+            $request = $request->withHeader('Content-Length', (string) $_SERVER['CONTENT_LENGTH']);
+        }
+
         return $this->request = $request;
     }
 

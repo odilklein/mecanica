@@ -82,15 +82,39 @@
                     <div class="navbar-nav-right d-flex align-items-center justify-content-end" id="navbar-collapse">
                         <ul class="navbar-nav flex-row align-items-center ms-md-auto">
                             <!-- Notificações -->
-                            <li class="nav-item dropdown me-2">
+                            <li class="nav-item dropdown-notifications navbar-dropdown dropdown me-3 me-xl-2" id="notifRoot" data-csrf="<?= e($csrf) ?>">
                                 <a class="nav-link dropdown-toggle hide-arrow btn btn-icon btn-text-secondary rounded-pill" href="javascript:void(0);" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false">
                                     <span class="position-relative">
-                                        <i class="icon-base ti tabler-bell icon-22px"></i>
-                                        <span class="badge rounded-pill bg-danger badge-notifications border" id="notifBadge" hidden></span>
+                                        <i class="icon-base ti tabler-bell icon-22px text-heading"></i>
+                                        <span class="badge rounded-pill bg-danger badge-dot badge-notifications border" id="notifBadge" hidden></span>
                                     </span>
                                 </a>
-                                <ul class="dropdown-menu dropdown-menu-end p-0" id="notifMenu" style="width: 340px;">
-                                    <li><div class="p-3 text-body-secondary text-center">Carregando...</div></li>
+                                <ul class="dropdown-menu dropdown-menu-end p-0">
+                                    <li class="dropdown-menu-header border-bottom">
+                                        <div class="dropdown-header d-flex align-items-center py-3">
+                                            <h6 class="mb-0 me-auto">Notificações</h6>
+                                            <div class="d-flex align-items-center h6 mb-0">
+                                                <span class="badge bg-label-primary me-2" id="notifCount">0 novas</span>
+                                                <a href="javascript:void(0)" class="dropdown-notifications-all p-2 btn btn-icon" id="notifMarkAll" title="Marcar todas como lidas">
+                                                    <i class="icon-base ti tabler-mail-opened text-heading"></i>
+                                                </a>
+                                            </div>
+                                        </div>
+                                    </li>
+                                    <li class="dropdown-notifications-list scrollable-container">
+                                        <ul class="list-group list-group-flush" id="notifList">
+                                            <li class="list-group-item">
+                                                <div class="p-3 text-body-secondary text-center">Carregando...</div>
+                                            </li>
+                                        </ul>
+                                    </li>
+                                    <li class="border-top">
+                                        <div class="d-grid p-4">
+                                            <a class="btn btn-primary btn-sm d-flex" href="/notifications">
+                                                <small class="align-middle">Ver todas as notificações</small>
+                                            </a>
+                                        </div>
+                                    </li>
                                 </ul>
                             </li>
 

@@ -1429,3 +1429,31 @@ a:focus-visible, button:focus-visible, [tabindex]:focus-visible, .dropdown-item:
         padding-inline: 0.35rem !important;
     }
 }
+
+/* =============================================
+   NOTIFICAÇÕES — dropdown do header (Vuexy)
+   ============================================= */
+.layout-navbar .navbar-dropdown.dropdown-notifications .dropdown-notifications-list {
+    overflow-y: auto;
+    overscroll-behavior: contain;
+}
+
+.layout-navbar .navbar-dropdown.dropdown-notifications .dropdown-notifications-list::-webkit-scrollbar {
+    width: 6px;
+}
+
+.layout-navbar .navbar-dropdown.dropdown-notifications .dropdown-notifications-list::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.layout-navbar .navbar-dropdown.dropdown-notifications .dropdown-notifications-list::-webkit-scrollbar-thumb {
+    background: rgba(0, 0, 0, 0.18);
+    border-radius: 999px;
+}
+
+@media (max-width: 575.98px) {
+    .layout-navbar .navbar-dropdown.dropdown-notifications .dropdown-menu {
+        min-inline-size: calc(100vw - 2rem);
+        max-inline-size: calc(100vw - 2rem);
+    }
+}

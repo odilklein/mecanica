@@ -66,6 +66,10 @@ class NotificationController extends Controller
         $this->pdo->prepare('UPDATE notifications SET read_at = NOW() WHERE id = :id AND user_id = :u')
             ->execute([':id' => (int) $id, ':u' => $this->auth->id()]);
 
+        if ($this->isAjax($request)) {
+            return json_response(['ok' => true]);
+        }
+
         return redirect('/notifications');
     }
 
@@ -81,8 +85,17 @@ class NotificationController extends Controller
         $this->pdo->prepare('UPDATE notifications SET read_at = NOW() WHERE user_id = :u AND read_at IS NULL')
             ->execute([':u' => $this->auth->id()]);
 
+        if ($this->isAjax($request)) {
+            return json_response(['ok' => true]);
+        }
+
         $this->session->flash('success', 'Notificações marcadas como lidas.');
         return redirect('/notifications');
+    }
+
+    private function isAjax(ServerRequestInterface $request): bool
+    {
+        return strtolower($request->getHeaderLine('X-Requested-With')) === 'xmlhttprequest';
     }
 
     /** API para o sino do header (polling). */

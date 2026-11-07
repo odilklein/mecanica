@@ -2,7 +2,7 @@
 $start = $total === 0 ? 0 : (($page - 1) * $perPage) + 1;
 $end = min($page * $perPage, $total);
 $icons = [
-    'os_status' => 'arrow-right-left',
+    'os_status' => 'arrows-exchange',
     'task' => 'list-check',
     'part' => 'package',
     'os_created' => 'clipboard-plus',
