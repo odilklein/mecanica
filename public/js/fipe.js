@@ -1,126 +1,112 @@
 // =============================================
-// FIPE — cascata marca → modelo → ano com busca
-// (TomSelect) + valor automático.
+// FIPE — cascata marca → modelo → ano
+// (Select2 / Live Search) + valor automático.
+//
+// Requer jQuery + Select2 (já inicializados pelo
+// /js/select2-init.js). Funciona no formulário de
+// veículo e no wizard de OS.
 // =============================================
 (function () {
     'use strict';
 
-    document.addEventListener('DOMContentLoaded', function () {
-        var brandEl = document.getElementById('fipe_brand_code');
-        var modelEl = document.getElementById('fipe_model_code');
-        var yearEl = document.getElementById('fipe_year_code');
-        var valueDisplay = document.getElementById('fipe_value_display');
-        var valueInput = document.getElementById('fipe_value');
-
-        if (!brandEl || !modelEl || !yearEl) {
+    function boot() {
+        var $ = window.jQuery;
+        if (!$) {
             return;
         }
 
-        var tsBrand = null;
-        var tsModel = null;
-        var tsYear = null;
+        var $brand = $('#fipe_brand_code');
+        var $model = $('#fipe_model_code');
+        var $year = $('#fipe_year_code');
+        var $valueDisplay = $('#fipe_value_display');
+        var $valueInput = $('#fipe_value');
 
-        if (window.TomSelect) {
-            var base = {
-                create: false,
-                allowEmptyOption: true,
-                placeholder: 'Digite para buscar...',
-                maxOptions: 1000,
-                sortField: { field: 'text', direction: 'asc' }
-            };
-            tsBrand = new TomSelect(brandEl, base);
-            tsModel = new TomSelect(modelEl, base);
-            tsYear = new TomSelect(yearEl, base);
+        if (!$brand.length || !$model.length || !$year.length) {
+            return;
         }
 
-        // Substitui as opções de um select (TomSelect ou nativo).
-        function setOptions(el, ts, items) {
-            if (ts) {
-                ts.clear(true);
-                ts.clearOptions();
-                items.forEach(function (item) {
-                    ts.addOption({ value: item.value, text: item.text });
-                });
-                ts.refreshOptions(false);
-                return;
-            }
-            el.innerHTML = '';
-            var empty = document.createElement('option');
-            empty.value = '';
-            empty.textContent = 'Selecione...';
-            el.appendChild(empty);
-            items.forEach(function (item) {
-                var opt = document.createElement('option');
-                opt.value = item.value;
-                opt.textContent = item.text;
-                el.appendChild(opt);
+        // Substitui as opções preservando o Select2 quando presente.
+        function setOptions($select, items) {
+            $select.empty();
+            $select.append(new Option('', '', false, false));
+            (items || []).forEach(function (item) {
+                $select.append(new Option(item.text, item.value, false, false));
             });
+            $select.trigger('change.select2');
         }
 
         function setValue(data) {
             var raw = data && data.value != null ? data.value : '';
-            if (valueInput) {
-                valueInput.value = raw;
+            if ($valueInput.length) {
+                $valueInput.val(raw);
             }
-            if (valueDisplay) {
-                valueDisplay.value = raw !== ''
-                    ? Number(raw).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
-                    : '';
+            if ($valueDisplay.length) {
+                $valueDisplay.val(raw !== ''
+                    ? Number(raw).toLocaleString('pt-BR', {
+                        minimumFractionDigits: 2,
+                        maximumFractionDigits: 2
+                    })
+                    : '');
             }
         }
 
-        function onBrandChange() {
-            setOptions(modelEl, tsModel, []);
-            setOptions(yearEl, tsYear, []);
+        $brand.on('change', function () {
+            var brand = $brand.val();
+            setOptions($model, []);
+            setOptions($year, []);
             setValue(null);
-            if (!brandEl.value) {
+
+            if (!brand) {
                 return;
             }
-            fetch('/api/fipe/models?brand=' + encodeURIComponent(brandEl.value))
-                .then(function (r) { return r.json(); })
-                .then(function (data) {
-                    setOptions(modelEl, tsModel, (data || []).map(function (m) {
+
+            $.getJSON('/api/fipe/models?brand=' + encodeURIComponent(brand))
+                .done(function (data) {
+                    setOptions($model, (data || []).map(function (m) {
                         return { value: m.code, text: m.name };
                     }));
-                })
-                .catch(function () {});
-        }
+                });
+        });
 
-        function onModelChange() {
-            setOptions(yearEl, tsYear, []);
+        $model.on('change', function () {
+            var brand = $brand.val();
+            var model = $model.val();
+            setOptions($year, []);
             setValue(null);
-            if (!brandEl.value || !modelEl.value) {
+
+            if (!brand || !model) {
                 return;
             }
-            fetch('/api/fipe/years?brand=' + encodeURIComponent(brandEl.value) + '&model=' + encodeURIComponent(modelEl.value))
-                .then(function (r) { return r.json(); })
-                .then(function (data) {
-                    setOptions(yearEl, tsYear, (data || []).map(function (y) {
+
+            $.getJSON('/api/fipe/years?brand=' + encodeURIComponent(brand) + '&model=' + encodeURIComponent(model))
+                .done(function (data) {
+                    setOptions($year, (data || []).map(function (y) {
                         return { value: y.code, text: y.name };
                     }));
-                })
-                .catch(function () {});
-        }
+                });
+        });
 
-        function onYearChange() {
+        $year.on('change', function () {
+            var brand = $brand.val();
+            var model = $model.val();
+            var year = $year.val();
             setValue(null);
-            if (!brandEl.value || !modelEl.value || !yearEl.value) {
+
+            if (!brand || !model || !year) {
                 return;
             }
-            fetch('/api/fipe/price?brand=' + encodeURIComponent(brandEl.value) + '&model=' + encodeURIComponent(modelEl.value) + '&year=' + encodeURIComponent(yearEl.value))
-                .then(function (r) { return r.json(); })
-                .then(setValue)
-                .catch(function () {});
-        }
 
-        if (tsBrand) {
-            tsBrand.on('change', onBrandChange);
-            tsModel.on('change', onModelChange);
-            tsYear.on('change', onYearChange);
-        } else {
-            brandEl.addEventListener('change', onBrandChange);
-            modelEl.addEventListener('change', onModelChange);
-            yearEl.addEventListener('change', onYearChange);
-        }
-    });
+            $.getJSON(
+                '/api/fipe/price?brand=' + encodeURIComponent(brand)
+                + '&model=' + encodeURIComponent(model)
+                + '&year=' + encodeURIComponent(year)
+            ).done(setValue);
+        });
+    }
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', boot);
+    } else {
+        boot();
+    }
 })();

@@ -211,6 +211,18 @@ abstract class Resource
         return 'kernel::crud/form';
     }
 
+    /** CSS extra do formulário (ex.: Select2, wizard). */
+    public function formStyles(): array
+    {
+        return [];
+    }
+
+    /** JS extra do formulário (ex.: FIPE, wizard). */
+    public function formScripts(): array
+    {
+        return [];
+    }
+
     /** Se definido, a primeira coluna da listagem vira link para {detailPath}/{id}. */
     public function detailPath(): ?string
     {

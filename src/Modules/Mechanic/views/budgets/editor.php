@@ -35,8 +35,8 @@ $vehiclesJson = json_encode($vehicles, JSON_UNESCAPED_UNICODE);
                     <div class="row g-3">
                         <div class="col-md-6">
                             <label class="form-label" for="cliente_id">Cliente *</label>
-                            <select class="form-select" id="cliente_id" name="client_id" required>
-                                <option value="">Selecione</option>
+                            <select class="select2 form-select" id="cliente_id" name="client_id" data-placeholder="Buscar cliente" required>
+                                <option value=""></option>
                                 <?php foreach ($clients as $c): ?>
                                 <option value="<?= (int) $c['id'] ?>" <?= $curClient === (int) $c['id'] ? 'selected' : '' ?>><?= e($c['name']) ?></option>
                                 <?php endforeach; ?>
@@ -44,7 +44,7 @@ $vehiclesJson = json_encode($vehicles, JSON_UNESCAPED_UNICODE);
                         </div>
                         <div class="col-md-6">
                             <label class="form-label" for="veiculo_id">Veículo</label>
-                            <select class="form-select" id="veiculo_id" name="vehicle_id" data-current="<?= $curVehicle ?>">
+                            <select class="select2 form-select" id="veiculo_id" name="vehicle_id" data-placeholder="Selecione o cliente" data-current="<?= $curVehicle ?>">
                                 <option value="">Selecione o cliente</option>
                             </select>
                         </div>

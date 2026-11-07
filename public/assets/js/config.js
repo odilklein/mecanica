@@ -42,7 +42,8 @@ window.config = {
 };
 
 window.assetsPath = document.documentElement.getAttribute('data-assets-path');
-window.templateName = document.documentElement.getAttribute('data-template');
+var templateName = document.documentElement.getAttribute('data-template');
+window.templateName = templateName;
 
 /**
  * TemplateCustomizer

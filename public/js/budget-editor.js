@@ -90,7 +90,12 @@
             var cid = cliente.value;
             var current = veiculo.getAttribute('data-current');
             veiculo.innerHTML = '<option value="">Selecione o cliente</option>';
-            if (!cid) { return; }
+            if (!cid) {
+                if (window.jQuery && window.jQuery(veiculo).data('select2')) {
+                    window.jQuery(veiculo).trigger('change.select2');
+                }
+                return;
+            }
             vehicles.filter(function (v) { return String(v.client_id) === String(cid); }).forEach(function (v) {
                 var opt = document.createElement('option');
                 opt.value = v.id;
@@ -98,6 +103,9 @@
                 if (String(v.id) === String(current)) { opt.selected = true; }
                 veiculo.appendChild(opt);
             });
+            if (window.jQuery && window.jQuery(veiculo).data('select2')) {
+                window.jQuery(veiculo).trigger('change.select2');
+            }
         }
         cliente.addEventListener('change', function () {
             veiculo.setAttribute('data-current', '');

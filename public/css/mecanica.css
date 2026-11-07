@@ -1374,3 +1374,24 @@ a:focus-visible, button:focus-visible, [tabindex]:focus-visible, .dropdown-item:
         font-size: 1.25rem;
     }
 }
+
+/* =============================================
+   DATATABLES — largura do identificador principal
+   (mantém Nome/Veículo visível no mobile; o Responsive
+   decide o que esconder com base na largura da coluna)
+   ============================================= */
+.dt-fixedheader .emp_name,
+.dt-fixedheader .emp_post {
+    display: block;
+    max-width: 240px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+@media (max-width: 575.98px) {
+    .dt-fixedheader .emp_name,
+    .dt-fixedheader .emp_post {
+        max-width: 150px;
+    }
+}

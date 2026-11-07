@@ -40,6 +40,14 @@ class ServiceOrderController extends CrudController
             'vehicles' => $vehicles,
             'mechanics' => $mechanics,
             'brands' => $brands,
+            'pageStyles' => array_merge($resource->formStyles(), [
+                '/assets/vendor/libs/bs-stepper/bs-stepper.css',
+            ]),
+            'pageScripts' => array_merge($resource->formScripts(), [
+                '/assets/vendor/libs/bs-stepper/bs-stepper.js',
+                '/js/fipe.js',
+                '/js/os-wizard.js',
+            ]),
         ]);
     }
 
@@ -96,8 +104,13 @@ class ServiceOrderController extends CrudController
                 );
                 $brandCode = clean($body['fipe_brand_code'] ?? '');
                 $modelCode = clean($body['fipe_model_code'] ?? '');
+                $yearCode = clean($body['fipe_year_code'] ?? '');
                 $brand = clean($body['brand'] ?? '');
                 $model = clean($body['model'] ?? '');
+                $year = (int) ($body['fipe_year'] ?? 0) ?: (int) ($body['year'] ?? 0);
+                if ($year === 0 && $yearCode !== '' && preg_match('/(\d{4})/', $yearCode, $ym)) {
+                    $year = (int) $ym[1];
+                }
                 if ($brandCode !== '' && $brand === '') {
                     $b = $this->pdo->prepare('SELECT name FROM fipe_brands WHERE code = :c');
                     $b->execute([':c' => $brandCode]);
@@ -113,12 +126,12 @@ class ServiceOrderController extends CrudController
                     ':pl' => $plate,
                     ':br' => $brand,
                     ':mo' => $model,
-                    ':yr' => (int) ($body['year'] ?? 0) ?: null,
+                    ':yr' => $year ?: null,
                     ':co' => clean($body['color'] ?? ''),
                     ':fbc' => $brandCode,
                     ':fmc' => $modelCode,
-                    ':fyc' => clean($body['fipe_year_code'] ?? ''),
-                    ':fy' => (int) ($body['fipe_year'] ?? 0) ?: null,
+                    ':fyc' => $yearCode,
+                    ':fy' => $year ?: null,
                     ':fv' => ($body['fipe_value'] ?? '') !== '' ? (float) $body['fipe_value'] : null,
                 ]);
                 $vehicleId = (int) $this->pdo->lastInsertId();

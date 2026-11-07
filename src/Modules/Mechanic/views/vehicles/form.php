@@ -5,27 +5,23 @@ $isEdit = $record !== null;
 $action = $isEdit ? $path . '/' . (int) $record['id'] : $path;
 $opts = $selectOptions ?? [];
 
-$select = static function (string $name, string $label, string $icon, array $options, $value, string $col, array $attrs = [], bool $tomselect = false): string {
+$select = static function (string $name, string $label, string $icon, array $options, $value, string $col, array $attrs = []): string {
     $extra = '';
     foreach ($attrs as $k => $v) {
         $extra .= ' ' . $k . '="' . e($v) . '"';
     }
     $html = '<div class="' . e($col) . '">';
-    $html .= '<label class="form-label" for="' . e($name) . '">' . e($label) . '</label>';
-    $html .= '<div class="input-group input-group-merge">';
-    $html .= '<span class="input-group-text"><i class="icon-base ti tabler-' . e($icon) . '"></i></span>';
-    $html .= '<select class="form-select" id="' . e($name) . '" name="' . e($name) . '"' . $extra . '>';
-    $html .= '<option value="">' . ($tomselect ? '' : 'Selecione...') . '</option>';
+    $html .= '<label class="form-label" for="' . e($name) . '"><i class="icon-base ti tabler-' . e($icon) . ' me-1"></i>' . e($label) . '</label>';
+    $html .= '<select class="select2 form-select" id="' . e($name) . '" name="' . e($name) . '" data-placeholder="Selecione..."' . $extra . '>';
+    $html .= '<option value=""></option>';
     foreach ($options as $ov => $ol) {
         $selected = ((string) $value === (string) $ov) ? ' selected' : '';
         $html .= '<option value="' . e((string) $ov) . '"' . $selected . '>' . e($ol) . '</option>';
     }
-    $html .= '</select></div></div>';
+    $html .= '</select></div>';
     return $html;
 };
 ?>
-<link href="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/css/tom-select.bootstrap5.min.css" rel="stylesheet">
-
 <div class="page-header">
     <div>
         <h1><i class="icon-base ti tabler-car"></i><?= e($title) ?></h1>
@@ -66,10 +62,10 @@ $select = static function (string $name, string $label, string $icon, array $opt
                             <?php if (isset($errors['plate'])): ?><div class="invalid-feedback d-block"><?= e($errors['plate']) ?></div><?php endif; ?>
                         </div>
 
-                        <?= $select('fipe_brand_code', 'Marca *', 'building-factory-2', $opts['fipe_brand_code'] ?? [], $old['fipe_brand_code'] ?? '', 'col-md-6', ['data-fipe-brand' => '1'], true) ?>
-                        <?= $select('fipe_model_code', 'Modelo *', 'car', $opts['fipe_model_code'] ?? [], $old['fipe_model_code'] ?? '', 'col-md-6', ['data-fipe-model' => '1'], true) ?>
+                        <?= $select('fipe_brand_code', 'Marca *', 'building-factory-2', $opts['fipe_brand_code'] ?? [], $old['fipe_brand_code'] ?? '', 'col-md-6', ['data-fipe-brand' => '1']) ?>
+                        <?= $select('fipe_model_code', 'Modelo *', 'car', $opts['fipe_model_code'] ?? [], $old['fipe_model_code'] ?? '', 'col-md-6', ['data-fipe-model' => '1']) ?>
 
-                        <?= $select('fipe_year_code', 'Ano *', 'calendar-event', $opts['fipe_year_code'] ?? [], $old['fipe_year_code'] ?? '', 'col-md-4', ['data-fipe-year' => '1'], true) ?>
+                        <?= $select('fipe_year_code', 'Ano *', 'calendar-event', $opts['fipe_year_code'] ?? [], $old['fipe_year_code'] ?? '', 'col-md-4', ['data-fipe-year' => '1']) ?>
 
                         <div class="col-md-4">
                             <label class="form-label" for="fipe_value_display">Valor FIPE</label>
@@ -98,6 +94,3 @@ $select = static function (string $name, string $label, string $icon, array $opt
         </div>
     </div>
 </div>
-
-<script src="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/js/tom-select.complete.min.js"></script>
-<script src="/js/fipe.js"></script>

@@ -209,7 +209,6 @@
         var cfg = window.CRUD_DATATABLE || {};
         var basePath = cfg.basePath || '';
         var labels = cfg.labels || {};
-        var singular = String(labels.singular || 'registro').toLowerCase();
         var plural = String(labels.plural || 'registros').toLowerCase();
 
         var columns = (cfg.columns || []).map(function (col) {
@@ -269,7 +268,7 @@
                 },
                 topEnd: {
                     search: {
-                        placeholder: 'Buscar ' + singular
+                        placeholder: 'Buscar ' + plural
                     }
                 },
                 bottomStart: {
@@ -282,10 +281,10 @@
             language: {
                 search: 'Buscar:',
                 info: 'Mostrando _START_ a _END_ de _TOTAL_ ' + plural,
-                infoEmpty: 'Nenhum ' + singular + ' encontrado',
+                infoEmpty: 'Nenhum registro encontrado',
                 infoFiltered: '(filtrado de _MAX_ no total)',
-                zeroRecords: 'Nenhum ' + singular + ' encontrado',
-                emptyTable: 'Nenhum ' + singular + ' cadastrado',
+                zeroRecords: 'Nenhum registro encontrado',
+                emptyTable: 'Nenhum registro cadastrado',
                 processing: 'Carregando...',
                 lengthMenu: '_MENU_ registros por página',
                 paginate: {
@@ -355,7 +354,7 @@
             e.preventDefault();
 
             var id = target.getAttribute('data-id');
-            if (!id || !window.confirm('Excluir este ' + singular + '?')) {
+            if (!id || !window.confirm('Excluir este registro?')) {
                 return;
             }
 

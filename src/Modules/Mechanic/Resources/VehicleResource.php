@@ -38,6 +38,11 @@ class VehicleResource extends Resource
         return 'mechanic::vehicles/form';
     }
 
+    public function formScripts(): array
+    {
+        return ['/js/fipe.js'];
+    }
+
     public function columns(): array
     {
         return [

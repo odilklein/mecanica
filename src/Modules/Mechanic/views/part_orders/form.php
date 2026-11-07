@@ -5,14 +5,14 @@ $action = $isEdit ? $path . '/' . (int) $record['id'] : $path;
 $opts = $selectOptions ?? [];
 
 $select = static function (string $name, string $label, string $icon, array $options, $value, string $col): string {
-    $html = '<div class="' . e($col) . '"><label class="form-label" for="' . e($name) . '">' . e($label) . '</label>';
-    $html .= '<div class="input-group input-group-merge"><span class="input-group-text"><i class="icon-base ti tabler-' . e($icon) . '"></i></span>';
-    $html .= '<select class="form-select" id="' . e($name) . '" name="' . e($name) . '"><option value="">Selecione...</option>';
+    $html = '<div class="' . e($col) . '"><label class="form-label" for="' . e($name) . '"><i class="icon-base ti tabler-' . e($icon) . ' me-1"></i>' . e($label) . '</label>';
+    $html .= '<select class="select2 form-select" id="' . e($name) . '" name="' . e($name) . '" data-placeholder="Selecione...">';
+    $html .= '<option value=""></option>';
     foreach ($options as $ov => $ol) {
         $selected = ((string) $value === (string) $ov) ? ' selected' : '';
         $html .= '<option value="' . e((string) $ov) . '"' . $selected . '>' . e($ol) . '</option>';
     }
-    $html .= '</select></div></div>';
+    $html .= '</select></div>';
     return $html;
 };
 ?>

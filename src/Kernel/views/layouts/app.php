@@ -16,6 +16,7 @@
     <link rel="stylesheet" href="/assets/vendor/fonts/iconify-icons.css">
     <link rel="stylesheet" href="/assets/vendor/css/core.css">
     <link rel="stylesheet" href="/assets/css/demo.css">
+    <link rel="stylesheet" href="/assets/vendor/libs/select2/select2.css">
     <link rel="stylesheet" href="/css/mecanica.css">
 
     <?= theme_css_inline(setting('theme_color', '#b8270f')) ?>
@@ -96,12 +97,13 @@
                             <!-- Tema -->
                             <li class="nav-item dropdown">
                                 <a class="nav-link dropdown-toggle hide-arrow btn btn-icon btn-text-secondary rounded-pill" id="nav-theme" href="javascript:void(0);" data-bs-toggle="dropdown" aria-expanded="false">
-                                    <i class="icon-base ti tabler-sun icon-22px" id="themeIcon"></i>
+                                    <span class="visually-hidden" id="nav-theme-text">Tema</span>
+                                    <i class="icon-base ti tabler-sun icon-22px theme-icon-active" id="themeIcon"></i>
                                 </a>
                                 <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="nav-theme">
-                                    <li><button type="button" class="dropdown-item" data-bs-theme-value="light"><i class="icon-base ti tabler-sun me-2"></i>Claro</button></li>
-                                    <li><button type="button" class="dropdown-item" data-bs-theme-value="dark"><i class="icon-base ti tabler-moon-stars me-2"></i>Escuro</button></li>
-                                    <li><button type="button" class="dropdown-item" data-bs-theme-value="system"><i class="icon-base ti tabler-device-desktop-analytics me-2"></i>Sistema</button></li>
+                                    <li><button type="button" class="dropdown-item" data-bs-theme-value="light"><i class="icon-base ti tabler-sun me-2" data-icon="sun"></i>Claro</button></li>
+                                    <li><button type="button" class="dropdown-item" data-bs-theme-value="dark"><i class="icon-base ti tabler-moon-stars me-2" data-icon="moon-stars"></i>Escuro</button></li>
+                                    <li><button type="button" class="dropdown-item" data-bs-theme-value="system"><i class="icon-base ti tabler-device-desktop-analytics me-2" data-icon="device-desktop-analytics"></i>Sistema</button></li>
                                 </ul>
                             </li>
 
@@ -195,6 +197,8 @@
     <script src="/js/masks.js"></script>
     <script src="/js/viacep.js"></script>
     <script src="/js/notifications.js"></script>
+    <script src="/assets/vendor/libs/select2/select2.js"></script>
+    <script src="/js/select2-init.js"></script>
 
     <?php foreach (($pageScripts ?? []) as $script): ?>
     <script src="<?= e($script) ?>"></script>
@@ -203,7 +207,11 @@
     <script>
         document.querySelectorAll('[data-bs-theme-value]').forEach(function (btn) {
             btn.addEventListener('click', function () {
-                window.Helpers.setTheme(btn.getAttribute('data-bs-theme-value'));
+                var value = btn.getAttribute('data-bs-theme-value');
+                window.Helpers.setTheme(value);
+                if (window.Helpers.showActiveTheme) {
+                    window.Helpers.showActiveTheme(value, true);
+                }
             });
         });
 
