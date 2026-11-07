@@ -47,6 +47,51 @@ class ClientResource extends Resource
         ];
     }
 
+    public function datatableSubtitle(): string
+    {
+        return 'Gerencie os clientes da oficina';
+    }
+
+    public function datatableNewLabel(): string
+    {
+        return 'Novo cliente';
+    }
+
+    public function datatableOrder(): array
+    {
+        return [[3, 'asc']];
+    }
+
+    public function datatableColumns(): array
+    {
+        return [
+            $this->dtControlColumn(),
+            $this->dtSelectColumn(),
+            $this->dtIdColumn(),
+            [
+                'title' => 'Cliente',
+                'data' => 'name',
+                'render' => 'name',
+                'secondary' => 'phone',
+                'href' => $this->path() . '/{id}',
+                'priority' => 1,
+            ],
+            ['title' => 'E-mail', 'data' => 'email', 'render' => 'text', 'priority' => 5],
+            ['title' => 'Cidade', 'data' => 'location', 'render' => 'text', 'priority' => 6],
+            $this->dtActionsColumn([
+                ['label' => 'Detalhes', 'icon' => 'eye', 'href' => $this->path() . '/{id}'],
+                ['label' => 'Editar', 'icon' => 'pencil', 'href' => $this->path() . '/{id}/edit', 'primary' => true],
+                ['label' => 'Excluir', 'icon' => 'trash', 'delete' => true],
+            ]),
+        ];
+    }
+
+    public function datatableRow(array $row): array
+    {
+        $row['location'] = trim(($row['city'] ?? '') . (($row['state'] ?? '') ? '/' . $row['state'] : ''));
+        return $row;
+    }
+
     public function fields(): array
     {
         return [

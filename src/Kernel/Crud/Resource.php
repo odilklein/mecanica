@@ -61,10 +61,141 @@ abstract class Resource
         return [];
     }
 
-    /** Template da listagem (permite customização por módulo). */
+    /** Template da listagem (DataTables "Fixed Header" por padrão). */
     public function indexView(): string
     {
-        return 'kernel::crud/index';
+        return 'kernel::crud/datatables';
+    }
+
+    // =========================================================
+    // DataTables (listagem "Fixed Header" do Vuexy)
+    // =========================================================
+
+    /** Subtítulo exibido abaixo do título da página. */
+    public function datatableSubtitle(): string
+    {
+        return 'Gerencie ' . mb_strtolower($this->labels()['plural']);
+    }
+
+    /** Rótulo do botão de criação. */
+    public function datatableNewLabel(): string
+    {
+        return 'Novo(a) ' . $this->labels()['singular'];
+    }
+
+    /** Ordenação inicial: [[índiceDaColuna, 'asc'|'desc']]. */
+    public function datatableOrder(): array
+    {
+        return [[2, 'desc']];
+    }
+
+    /**
+     * Linhas exibidas na listagem. O DataTables pagina/ordena no cliente,
+     * por isso o endpoint devolve todas as linhas.
+     */
+    public function datatableRows(\PDO $pdo): array
+    {
+        return $this->paginate($pdo, 1, 10000, '')['items'];
+    }
+
+    /** Campos derivados/extras de uma linha no JSON do DataTables. */
+    public function datatableRow(array $row): array
+    {
+        return $row;
+    }
+
+    /**
+     * Colunas do DataTables: title, data, render (control/select/text/name/
+     * link/badge/date/money/number/actions), visible e priority.
+     *
+     * A prioridade responsiva 1 mantém a coluna no mobile; números maiores
+     * são escondidos primeiro. Name = 1 e Ações = 2 garantem que, no mobile,
+     * fiquem apenas o identificador principal e as ações.
+     */
+    public function datatableColumns(): array
+    {
+        $columns = [
+            $this->dtControlColumn(),
+            $this->dtSelectColumn(),
+            $this->dtIdColumn(),
+        ];
+
+        $priority = 5;
+        foreach ($this->columns() as $col) {
+            $columns[] = [
+                'title' => $col['label'],
+                'data' => $col['field'],
+                'render' => 'text',
+                'priority' => $priority++,
+            ];
+        }
+
+        $columns[] = $this->dtActionsColumn([
+            ['label' => 'Editar', 'icon' => 'pencil', 'href' => $this->path() . '/{id}/edit', 'primary' => true],
+            ['label' => 'Excluir', 'icon' => 'trash', 'delete' => true],
+        ]);
+
+        return $columns;
+    }
+
+    protected function dtControlColumn(): array
+    {
+        return [
+            'title' => '',
+            'data' => '',
+            'render' => 'control',
+            'orderable' => false,
+            'className' => 'control',
+            'priority' => 9,
+        ];
+    }
+
+    protected function dtSelectColumn(): array
+    {
+        return [
+            'title' => '',
+            'data' => 'id',
+            'render' => 'select',
+            'orderable' => false,
+            'priority' => 9,
+        ];
+    }
+
+    protected function dtIdColumn(): array
+    {
+        return [
+            'title' => 'id',
+            'data' => 'id',
+            'visible' => false,
+            'priority' => 99,
+        ];
+    }
+
+    protected function dtActionsColumn(array $actions): array
+    {
+        return [
+            'title' => 'Ações',
+            'data' => '',
+            'render' => 'actions',
+            'orderable' => false,
+            'className' => 'd-flex align-items-center',
+            'priority' => 2,
+            'actions' => $actions,
+        ];
+    }
+
+    /**
+     * Monta um mapa valor => [label, class] para colunas de badge.
+     *
+     * @param array<string, string> $labels
+     */
+    protected function dtBadges(array $labels, callable $classFor): array
+    {
+        $badges = [];
+        foreach ($labels as $value => $label) {
+            $badges[$value] = ['label' => $label, 'class' => $classFor((string) $value)];
+        }
+        return $badges;
     }
 
     /** Dados paginados da listagem (recursos com JOIN sobrescrevem). */

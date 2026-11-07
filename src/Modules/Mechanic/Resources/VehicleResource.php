@@ -50,6 +50,62 @@ class VehicleResource extends Resource
         ];
     }
 
+    public function datatableSubtitle(): string
+    {
+        return 'Gerencie os veículos dos clientes';
+    }
+
+    public function datatableNewLabel(): string
+    {
+        return 'Novo veículo';
+    }
+
+    public function datatableOrder(): array
+    {
+        return [[3, 'asc']];
+    }
+
+    public function datatableRows(\PDO $pdo): array
+    {
+        return $pdo->query(
+            'SELECT v.*, c.name AS client_name
+               FROM vehicles v
+               LEFT JOIN clients c ON c.id = v.client_id
+              ORDER BY v.plate'
+        )->fetchAll();
+    }
+
+    public function datatableColumns(): array
+    {
+        return [
+            $this->dtControlColumn(),
+            $this->dtSelectColumn(),
+            $this->dtIdColumn(),
+            [
+                'title' => 'Veículo',
+                'data' => 'plate',
+                'render' => 'name',
+                'secondary' => 'vehicle_label',
+                'href' => $this->path() . '/{id}/edit',
+                'priority' => 1,
+            ],
+            ['title' => 'Cliente', 'data' => 'client_name', 'render' => 'text', 'priority' => 5],
+            ['title' => 'Ano', 'data' => 'year', 'render' => 'text', 'priority' => 6],
+            ['title' => 'Cor', 'data' => 'color', 'render' => 'text', 'priority' => 7],
+            ['title' => 'KM', 'data' => 'current_km', 'render' => 'number', 'priority' => 8],
+            $this->dtActionsColumn([
+                ['label' => 'Editar', 'icon' => 'pencil', 'href' => $this->path() . '/{id}/edit', 'primary' => true],
+                ['label' => 'Excluir', 'icon' => 'trash', 'delete' => true],
+            ]),
+        ];
+    }
+
+    public function datatableRow(array $row): array
+    {
+        $row['vehicle_label'] = trim(($row['brand'] ?? '') . ' ' . ($row['model'] ?? ''));
+        return $row;
+    }
+
     public function fillable(): array
     {
         return [

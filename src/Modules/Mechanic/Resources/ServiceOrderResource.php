@@ -34,14 +34,19 @@ class ServiceOrderResource extends Resource
         return ['admin', 'secretary', 'lead_mechanic', 'mechanic'];
     }
 
-    public function indexView(): string
-    {
-        return 'mechanic::service_orders/index';
-    }
-
     public function formView(): string
     {
         return 'mechanic::service_orders/form';
+    }
+
+    public function datatableSubtitle(): string
+    {
+        return 'Acompanhe o trabalho da oficina';
+    }
+
+    public function datatableNewLabel(): string
+    {
+        return 'Nova OS';
     }
 
     public function columns(): array
@@ -54,6 +59,50 @@ class ServiceOrderResource extends Resource
             ['field' => 'priority', 'label' => 'Prioridade'],
             ['field' => 'entry_date', 'label' => 'Entrada'],
         ];
+    }
+
+    public function datatableColumns(): array
+    {
+        $statuses = $this->dtBadges(
+            ServiceOrderStatus::STATUSES,
+            static fn (string $status): string => ServiceOrderStatus::badgeClass($status)
+        );
+        $priorities = $this->dtBadges(
+            ServiceOrderStatus::PRIORITIES,
+            static fn (string $priority): string => ServiceOrderStatus::priorityBadge($priority)
+        );
+
+        return [
+            $this->dtControlColumn(),
+            $this->dtSelectColumn(),
+            $this->dtIdColumn(),
+            [
+                'title' => 'OS',
+                'data' => 'number_label',
+                'render' => 'link',
+                'href' => $this->path() . '/{id}',
+                'priority' => 1,
+            ],
+            ['title' => 'Cliente', 'data' => 'client_name', 'render' => 'text', 'priority' => 5],
+            ['title' => 'Veículo', 'data' => 'vehicle_label', 'render' => 'text', 'priority' => 6],
+            ['title' => 'Status', 'data' => 'status', 'render' => 'badge', 'badge' => $statuses, 'priority' => 4],
+            ['title' => 'Prioridade', 'data' => 'priority', 'render' => 'badge', 'badge' => $priorities, 'priority' => 3],
+            ['title' => 'Entrada', 'data' => 'entry_date', 'render' => 'date', 'priority' => 7],
+            $this->dtActionsColumn([
+                ['label' => 'Detalhes', 'icon' => 'eye', 'href' => $this->path() . '/{id}'],
+                ['label' => 'Editar', 'icon' => 'pencil', 'href' => $this->path() . '/{id}/edit', 'primary' => true],
+                ['label' => 'Excluir', 'icon' => 'trash', 'delete' => true],
+            ]),
+        ];
+    }
+
+    public function datatableRow(array $row): array
+    {
+        $row['number_label'] = '#' . str_pad((string) $row['number'], 4, '0', STR_PAD_LEFT);
+        $row['vehicle_label'] = trim(
+            ($row['vehicle_plate'] ?? '') . (($row['vehicle_model'] ?? '') ? ' · ' . $row['vehicle_model'] : '')
+        );
+        return $row;
     }
 
     public function fillable(): array

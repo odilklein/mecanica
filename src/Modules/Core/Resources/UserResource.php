@@ -32,10 +32,54 @@ class UserResource extends Resource
         return ['admin', 'secretary', 'lead_mechanic'];
     }
 
-    /** Listagem em DataTables (Fixed Header) do Vuexy. */
-    public function indexView(): string
+    public function datatableSubtitle(): string
     {
-        return 'core::users/index';
+        return 'Gerencie os funcionários da oficina';
+    }
+
+    public function datatableNewLabel(): string
+    {
+        return 'Novo funcionário';
+    }
+
+    public function datatableColumns(): array
+    {
+        return [
+            $this->dtControlColumn(),
+            $this->dtSelectColumn(),
+            $this->dtIdColumn(),
+            [
+                'title' => 'Nome',
+                'data' => 'name',
+                'render' => 'name',
+                'secondary' => 'post',
+                'priority' => 1,
+            ],
+            ['title' => 'E-mail', 'data' => 'email', 'render' => 'text', 'priority' => 5],
+            ['title' => 'Admissão', 'data' => 'hire_date', 'render' => 'date', 'priority' => 6],
+            ['title' => 'Salário', 'data' => 'salary', 'render' => 'money', 'priority' => 7],
+            [
+                'title' => 'Situação',
+                'data' => 'status',
+                'render' => 'badge',
+                'badge' => [
+                    1 => ['label' => 'Ativo', 'class' => 'bg-label-success'],
+                    0 => ['label' => 'Inativo', 'class' => 'bg-label-secondary'],
+                ],
+                'priority' => 4,
+            ],
+            $this->dtActionsColumn([
+                ['label' => 'Editar', 'icon' => 'pencil', 'href' => $this->path() . '/{id}/edit', 'primary' => true],
+                ['label' => 'Excluir', 'icon' => 'trash', 'delete' => true],
+            ]),
+        ];
+    }
+
+    public function datatableRow(array $row): array
+    {
+        $row['post'] = $row['job_title'] ?: roleLabel($row['role']);
+        $row['status'] = (int) $row['is_active'];
+        return $row;
     }
 
     public function columns(): array

@@ -38,7 +38,6 @@ class CoreProvider implements ProviderInterface
         $router->get('/clients/{id}', [ClientController::class, 'show']);
 
         // Funcionários (usuários).
-        $router->get('/users/datatable', [UserController::class, 'datatable']);
         crud_routes($router, '/users', UserController::class);
 
         // Auditoria (somente leitura).

@@ -33,6 +33,7 @@ class MechanicProvider implements ProviderInterface
         $router->get('/api/fipe/price', [FipeController::class, 'price']);
 
         // Ordens de serviço (rotas específicas antes da genérica; bramus casa {id} com "/").
+        $router->get('/service-orders/datatable', [ServiceOrderController::class, 'datatable']);
         $router->get('/service-orders', [ServiceOrderController::class, 'index']);
         $router->get('/service-orders/create', [ServiceOrderController::class, 'create']);
         $router->post('/service-orders', [ServiceOrderController::class, 'store']);
@@ -52,6 +53,7 @@ class MechanicProvider implements ProviderInterface
         crud_routes($router, '/part-orders', PartOrderController::class);
 
         // Orçamentos (específicas antes da genérica).
+        $router->get('/budgets/datatable', [BudgetController::class, 'datatable']);
         $router->get('/budgets', [BudgetController::class, 'index']);
         $router->get('/budgets/create', [BudgetController::class, 'create']);
         $router->post('/budgets/save', [BudgetController::class, 'save']);

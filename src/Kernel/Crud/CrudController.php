@@ -38,17 +38,55 @@ abstract class CrudController extends Controller
             return $response;
         }
 
-        $query = $request->getQueryParams();
-        $page = (int) ($query['page'] ?? 1);
-        $search = clean($query['search'] ?? '');
-
-        $data = $resource->paginate($this->pdo, $page, 15, $search);
-
-        return $this->render($resource->indexView(), array_merge($data, [
+        return $this->render($resource->indexView(), [
             'title' => $resource->labels()['plural'],
             'resource' => $resource,
-            'search' => $search,
-        ]));
+            'datatable' => [
+                'url' => $resource->path() . '/datatable',
+                'basePath' => $resource->path(),
+                'csrf' => $this->session->csrfToken(),
+                'title' => $resource->labels()['plural'],
+                'subtitle' => $resource->datatableSubtitle(),
+                'cardTitle' => $resource->labels()['plural'],
+                'newLabel' => $resource->datatableNewLabel(),
+                'columns' => $resource->datatableColumns(),
+                'order' => $resource->datatableOrder(),
+                'labels' => $resource->labels(),
+            ],
+            'pageStyles' => [
+                '/assets/vendor/libs/datatables-bs5/datatables.bootstrap5.css',
+                '/assets/vendor/libs/datatables-responsive-bs5/responsive.bootstrap5.css',
+                '/assets/vendor/libs/datatables-select-bs5/select.bootstrap5.css',
+                '/assets/vendor/libs/datatables-fixedheader-bs5/fixedheader.bootstrap5.css',
+            ],
+            'pageScripts' => [
+                '/assets/vendor/libs/datatables-bs5/datatables-bootstrap5.js',
+                '/js/crud-datatable.js',
+            ],
+        ]);
+    }
+
+    /** JSON da listagem (DataTables client-side: todas as linhas). */
+    public function datatable(ServerRequestInterface $request)
+    {
+        $resource = $this->resource();
+
+        if (!$this->auth->check()) {
+            return json_response(['error' => 'unauthorized'], 401);
+        }
+        if ($resource->roles() && !$this->auth->hasRole($resource->roles())) {
+            return json_response(['error' => 'forbidden'], 403);
+        }
+
+        $data = [];
+        foreach ($resource->datatableRows($this->pdo) as $row) {
+            $row = $resource->datatableRow($row);
+            // Nunca expõe credenciais no JSON da listagem.
+            unset($row['password'], $row['remember_token']);
+            $data[] = $row;
+        }
+
+        return json_response(['data' => $data]);
     }
 
     public function create(ServerRequestInterface $request)

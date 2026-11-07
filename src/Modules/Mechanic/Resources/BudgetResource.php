@@ -34,9 +34,14 @@ class BudgetResource extends Resource
         return ['admin', 'secretary', 'lead_mechanic'];
     }
 
-    public function indexView(): string
+    public function datatableSubtitle(): string
     {
-        return 'mechanic::budgets/index';
+        return 'Gerencie os orçamentos da oficina';
+    }
+
+    public function datatableNewLabel(): string
+    {
+        return 'Novo orçamento';
     }
 
     public function columns(): array
@@ -49,6 +54,46 @@ class BudgetResource extends Resource
             ['field' => 'total', 'label' => 'Total'],
             ['field' => 'budget_date', 'label' => 'Data'],
         ];
+    }
+
+    public function datatableColumns(): array
+    {
+        $statuses = $this->dtBadges(
+            BudgetStatus::STATUSES,
+            static fn (string $status): string => BudgetStatus::badgeClass($status)
+        );
+
+        return [
+            $this->dtControlColumn(),
+            $this->dtSelectColumn(),
+            $this->dtIdColumn(),
+            [
+                'title' => 'Nº',
+                'data' => 'number_label',
+                'render' => 'link',
+                'href' => $this->path() . '/{id}',
+                'priority' => 1,
+            ],
+            ['title' => 'Cliente', 'data' => 'client_name', 'render' => 'text', 'priority' => 5],
+            ['title' => 'Veículo', 'data' => 'vehicle_label', 'render' => 'text', 'priority' => 6],
+            ['title' => 'Status', 'data' => 'status', 'render' => 'badge', 'badge' => $statuses, 'priority' => 4],
+            ['title' => 'Total', 'data' => 'total', 'render' => 'money', 'priority' => 7],
+            ['title' => 'Data', 'data' => 'budget_date', 'render' => 'date', 'priority' => 8],
+            $this->dtActionsColumn([
+                ['label' => 'Detalhes', 'icon' => 'eye', 'href' => $this->path() . '/{id}'],
+                ['label' => 'Editar', 'icon' => 'pencil', 'href' => $this->path() . '/{id}/edit', 'primary' => true],
+                ['label' => 'Excluir', 'icon' => 'trash', 'delete' => true],
+            ]),
+        ];
+    }
+
+    public function datatableRow(array $row): array
+    {
+        $row['number_label'] = '#' . str_pad((string) $row['number'], 4, '0', STR_PAD_LEFT);
+        $row['vehicle_label'] = trim(
+            ($row['vehicle_plate'] ?? '') . (($row['vehicle_model'] ?? '') ? ' · ' . $row['vehicle_model'] : '')
+        );
+        return $row;
     }
 
     public function fillable(): array

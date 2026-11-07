@@ -34,14 +34,19 @@ class PartOrderResource extends Resource
         return ['admin', 'secretary', 'lead_mechanic', 'mechanic'];
     }
 
-    public function indexView(): string
-    {
-        return 'mechanic::part_orders/index';
-    }
-
     public function formView(): string
     {
         return 'mechanic::part_orders/form';
+    }
+
+    public function datatableSubtitle(): string
+    {
+        return 'Acompanhe as peças solicitadas nas ordens de serviço';
+    }
+
+    public function datatableNewLabel(): string
+    {
+        return 'Novo pedido';
     }
 
     public function columns(): array
@@ -54,6 +59,44 @@ class PartOrderResource extends Resource
             ['field' => 'status', 'label' => 'Status'],
             ['field' => 'expected_date', 'label' => 'Previsão'],
         ];
+    }
+
+    public function datatableColumns(): array
+    {
+        $statuses = $this->dtBadges(
+            PartOrderStatus::STATUSES,
+            static fn (string $status): string => PartOrderStatus::badgeClass($status)
+        );
+
+        return [
+            $this->dtControlColumn(),
+            $this->dtSelectColumn(),
+            $this->dtIdColumn(),
+            [
+                'title' => 'OS',
+                'data' => 'order_number_label',
+                'render' => 'link',
+                'href' => '/service-orders/{service_order_id}',
+                'priority' => 1,
+            ],
+            ['title' => 'Cliente', 'data' => 'client_name', 'render' => 'text', 'priority' => 5],
+            ['title' => 'Itens', 'data' => 'items', 'render' => 'text', 'priority' => 6],
+            ['title' => 'Fornecedor', 'data' => 'supplier', 'render' => 'text', 'priority' => 7],
+            ['title' => 'Status', 'data' => 'status', 'render' => 'badge', 'badge' => $statuses, 'priority' => 4],
+            ['title' => 'Previsão', 'data' => 'expected_date', 'render' => 'date', 'priority' => 8],
+            $this->dtActionsColumn([
+                ['label' => 'Editar', 'icon' => 'pencil', 'href' => $this->path() . '/{id}/edit', 'primary' => true],
+                ['label' => 'Excluir', 'icon' => 'trash', 'delete' => true],
+            ]),
+        ];
+    }
+
+    public function datatableRow(array $row): array
+    {
+        $row['order_number_label'] = !empty($row['order_number'])
+            ? '#' . str_pad((string) $row['order_number'], 4, '0', STR_PAD_LEFT)
+            : '—';
+        return $row;
     }
 
     public function fillable(): array
