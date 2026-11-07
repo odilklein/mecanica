@@ -106,30 +106,51 @@
             });
         });
 
-        // Listas dinâmicas de tarefas/peças
+        // Listas dinâmicas de tarefas/peças (peças com quantidade)
         document.querySelectorAll('[data-list]').forEach(function (box) {
+            var isParts = box.getAttribute('data-list') === 'parts';
             var input = box.querySelector('input.form-control');
+            var qtyInput = box.querySelector('.item-qty-input');
             var addBtn = box.querySelector('.btn-add');
             var items = box.querySelector('.dynamic-list-items');
-            var target = document.getElementById(
-                box.getAttribute('data-list') === 'tasks' ? 'tasks_json' : 'parts_json'
-            );
+            var target = document.getElementById(isParts ? 'parts_json' : 'tasks_json');
 
             function sync() {
                 var list = Array.prototype.map.call(items.children, function (row) {
-                    return row.querySelector('.item-text').textContent;
+                    var text = row.querySelector('.item-text').textContent;
+                    if (isParts) {
+                        var qty = row.querySelector('.item-qty');
+                        return {
+                            description: text,
+                            quantity: Math.max(1, parseInt(qty && qty.value, 10) || 1)
+                        };
+                    }
+                    return text;
                 });
                 if (target) {
                     target.value = JSON.stringify(list);
                 }
             }
 
-            function addItem(text) {
-                text = (text || '').trim();
-                if (!text) {
-                    return;
-                }
+            function addPart(text, quantity) {
+                var row = document.createElement('div');
+                row.className = 'd-flex align-items-center gap-2 mb-2';
+                row.innerHTML = '<i class="icon-base ti tabler-grip-vertical text-body-secondary"></i>'
+                    + '<span class="item-text flex-grow-1"></span>'
+                    + '<input type="number" class="form-control form-control-sm item-qty" min="1" step="1" value="1" style="max-width: 90px; min-width: 72px;" aria-label="Quantidade">'
+                    + '<button type="button" class="btn btn-sm btn-icon btn-text-danger"><i class="icon-base ti tabler-x"></i></button>';
+                row.querySelector('.item-text').textContent = text;
+                row.querySelector('.item-qty').value = Math.max(1, parseInt(quantity, 10) || 1);
+                row.querySelector('.item-qty').addEventListener('input', sync);
+                row.querySelector('button').addEventListener('click', function () {
+                    row.remove();
+                    sync();
+                });
+                items.appendChild(row);
+                sync();
+            }
 
+            function addTask(text) {
                 var row = document.createElement('div');
                 row.className = 'd-flex align-items-center gap-2 mb-2';
                 row.innerHTML = '<i class="icon-base ti tabler-grip-vertical text-body-secondary"></i>'
@@ -141,17 +162,33 @@
                     sync();
                 });
                 items.appendChild(row);
-                input.value = '';
                 sync();
             }
 
-            addBtn.addEventListener('click', function () {
-                addItem(input.value);
-            });
+            function add() {
+                var text = input.value.trim();
+                if (!text) {
+                    return;
+                }
+
+                if (isParts) {
+                    addPart(text, qtyInput ? qtyInput.value : 1);
+                    if (qtyInput) {
+                        qtyInput.value = 1;
+                    }
+                } else {
+                    addTask(text);
+                }
+
+                input.value = '';
+                input.focus();
+            }
+
+            addBtn.addEventListener('click', add);
             input.addEventListener('keydown', function (e) {
                 if (e.key === 'Enter') {
                     e.preventDefault();
-                    addItem(input.value);
+                    add();
                 }
             });
         });

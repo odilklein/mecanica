@@ -39,7 +39,7 @@
                 width: $select.data('width') || '100%',
                 dropdownParent: $parent,
                 placeholder: $select.data('placeholder') || 'Selecione...',
-                allowClear: $select.data('allow-clear') !== false && !isMultiple,
+                allowClear: $select.data('allow-clear') === true && !isMultiple,
                 closeOnSelect: !isMultiple,
                 minimumResultsForSearch: $select.data('minimum-results-for-search') === 'Infinity'
                     ? Infinity

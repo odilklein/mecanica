@@ -7,7 +7,7 @@ $opts = $selectOptions ?? [];
 
 $select = static function (string $name, string $label, string $icon, array $options, $value, string $col, bool $required = false): string {
     $html = '<div class="' . e($col) . '">';
-    $html .= '<label class="form-label" for="' . e($name) . '"><i class="icon-base ti tabler-' . e($icon) . ' me-1"></i>' . e($label) . ($required ? ' *' : '') . '</label>';
+    $html .= '<label class="form-label" for="' . e($name) . '">' . e($label) . ($required ? ' *' : '') . '</label>';
     $html .= '<select class="select2 form-select" id="' . e($name) . '" name="' . e($name) . '" data-placeholder="Selecione...">';
     $html .= '<option value=""></option>';
     foreach ($options as $ov => $ol) {

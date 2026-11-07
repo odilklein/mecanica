@@ -132,7 +132,7 @@ class PartOrderResource extends Resource
 
         $stmt = $pdo->prepare(
             "SELECT po.*, so.number AS order_number, c.name AS client_name,
-                    GROUP_CONCAT(i.description SEPARATOR ', ') AS items
+                    GROUP_CONCAT(CONCAT(i.description, ' ×', i.quantity) SEPARATOR ', ') AS items
              {$from}
              LEFT JOIN part_order_items i ON i.part_order_id = po.id
              WHERE {$where} GROUP BY po.id ORDER BY po.id DESC LIMIT {$perPage} OFFSET {$offset}"

@@ -21,14 +21,17 @@ class PartOrderController extends CrudController
         if ($response = $this->guardRoles($resource->roles())) {
             return $response;
         }
+        $query = $request->getQueryParams();
+
         return $this->render('mechanic::part_orders/form', [
             'title' => 'Novo pedido de peça',
             'resource' => $resource,
             'record' => null,
-            'old' => [],
+            'old' => ['service_order_id' => (int) ($query['os_id'] ?? 0)],
             'errors' => [],
             'selectOptions' => $resource->selectOptions($this->pdo, []),
-            'itemsText' => '',
+            'items' => [],
+            'pageScripts' => ['/js/part-order-items.js'],
         ]);
     }
 
@@ -67,7 +70,7 @@ class PartOrderController extends CrudController
                 ':ra' => $received ? date('Y-m-d H:i:s') : null,
             ]);
             $partOrderId = (int) $this->pdo->lastInsertId();
-            $this->saveItems($partOrderId, (string) ($body['items_text'] ?? ''));
+            $this->saveItems($partOrderId, $this->parseItems($body['items_json'] ?? '[]'));
             $this->pdo->commit();
 
             $this->session->flash('success', 'Pedido de peça criado.');
@@ -99,7 +102,8 @@ class PartOrderController extends CrudController
             'old' => $record,
             'errors' => [],
             'selectOptions' => $resource->selectOptions($this->pdo, $record),
-            'itemsText' => $this->itemsText((int) $id),
+            'items' => $this->itemsData((int) $id),
+            'pageScripts' => ['/js/part-order-items.js'],
         ]);
     }
 
@@ -132,7 +136,7 @@ class PartOrderController extends CrudController
                 ':id' => (int) $id,
             ]);
             $this->pdo->prepare('DELETE FROM part_order_items WHERE part_order_id = :id')->execute([':id' => (int) $id]);
-            $this->saveItems((int) $id, (string) ($body['items_text'] ?? ''));
+            $this->saveItems((int) $id, $this->parseItems($body['items_json'] ?? '[]'));
             $this->pdo->commit();
 
             $this->session->flash('success', 'Pedido atualizado.');
@@ -145,32 +149,55 @@ class PartOrderController extends CrudController
         }
     }
 
-    private function saveItems(int $partOrderId, string $text): void
+    /** Converte o JSON de itens em linhas normalizadas. */
+    private function parseItems(mixed $json): array
     {
-        $stmt = $this->pdo->prepare('INSERT INTO part_order_items (part_order_id, description, quantity) VALUES (:p, :d, :q)');
-        foreach (preg_split('/\r?\n/', $text) as $line) {
-            $line = trim($line);
-            if ($line === '') {
+        $decoded = is_string($json) ? json_decode($json, true) : $json;
+        if (!is_array($decoded)) {
+            return [];
+        }
+
+        $items = [];
+        foreach ($decoded as $item) {
+            if (!is_array($item)) {
                 continue;
             }
-            $parts = array_map('trim', explode('|', $line, 2));
-            $desc = $parts[0];
-            $qty = isset($parts[1]) ? max(1, (int) $parts[1]) : 1;
-            if ($desc !== '') {
-                $stmt->execute([':p' => $partOrderId, ':d' => mb_substr($desc, 0, 200), ':q' => $qty]);
+            $description = trim((string) ($item['description'] ?? ''));
+            if ($description === '') {
+                continue;
             }
+            $items[] = [
+                'description' => mb_substr($description, 0, 200),
+                'quantity' => max(1, (int) ($item['quantity'] ?? 1)),
+            ];
+        }
+        return $items;
+    }
+
+    private function saveItems(int $partOrderId, array $items): void
+    {
+        $stmt = $this->pdo->prepare('INSERT INTO part_order_items (part_order_id, description, quantity) VALUES (:p, :d, :q)');
+        foreach ($items as $item) {
+            $stmt->execute([
+                ':p' => $partOrderId,
+                ':d' => $item['description'],
+                ':q' => $item['quantity'],
+            ]);
         }
     }
 
-    private function itemsText(int $partOrderId): string
+    /** @return array<int, array{description:string, quantity:int}> */
+    private function itemsData(int $partOrderId): array
     {
         $stmt = $this->pdo->prepare('SELECT description, quantity FROM part_order_items WHERE part_order_id = :id ORDER BY id');
         $stmt->execute([':id' => $partOrderId]);
-        $lines = [];
-        foreach ($stmt->fetchAll() as $row) {
-            $lines[] = $row['description'] . ' | ' . (int) $row['quantity'];
-        }
-        return implode("\n", $lines);
+
+        return array_map(static function (array $row): array {
+            return [
+                'description' => (string) $row['description'],
+                'quantity' => (int) $row['quantity'],
+            ];
+        }, $stmt->fetchAll());
     }
 
     private function findOrder(int $id): ?array

@@ -3,9 +3,10 @@ $path = $resource->path();
 $isEdit = $record !== null;
 $action = $isEdit ? $path . '/' . (int) $record['id'] : $path;
 $opts = $selectOptions ?? [];
+$items = $items ?? [];
 
 $select = static function (string $name, string $label, string $icon, array $options, $value, string $col): string {
-    $html = '<div class="' . e($col) . '"><label class="form-label" for="' . e($name) . '"><i class="icon-base ti tabler-' . e($icon) . ' me-1"></i>' . e($label) . '</label>';
+    $html = '<div class="' . e($col) . '"><label class="form-label" for="' . e($name) . '">' . e($label) . '</label>';
     $html .= '<select class="select2 form-select" id="' . e($name) . '" name="' . e($name) . '" data-placeholder="Selecione...">';
     $html .= '<option value=""></option>';
     foreach ($options as $ov => $ol) {
@@ -25,14 +26,19 @@ $select = static function (string $name, string $label, string $icon, array $opt
 </div>
 
 <div class="row justify-content-center">
-    <div class="col-lg-9">
+    <div class="col-lg-10">
         <div class="card">
             <div class="card-body p-4">
-                <form method="POST" action="<?= e($action) ?>">
+                <form method="POST" action="<?= e($action) ?>" id="formPartOrder">
                     <input type="hidden" name="csrf_token" value="<?= e($csrf) ?>">
+                    <input type="hidden" name="items_json" id="items_json" value="[]">
+
                     <div class="panel-header">
                         <i class="icon-base ti tabler-truck"></i>
-                        <div><h3 class="panel-title"><?= $isEdit ? 'Editar pedido' : 'Novo pedido' ?></h3><p class="panel-subtitle">Informe a OS e os itens</p></div>
+                        <div>
+                            <h3 class="panel-title"><?= $isEdit ? 'Editar pedido' : 'Novo pedido' ?></h3>
+                            <p class="panel-subtitle">Informe a OS, o fornecedor e os itens solicitados</p>
+                        </div>
                     </div>
 
                     <div class="row g-3">
@@ -51,9 +57,26 @@ $select = static function (string $name, string $label, string $icon, array $opt
                         </div>
 
                         <div class="col-12">
-                            <label class="form-label" for="items_text">Itens</label>
-                            <textarea class="form-control" id="items_text" name="items_text" rows="5" placeholder="Óleo do motor | 1&#10;Filtro de óleo | 1&#10;Pastilha de freio | 2"><?= e($itemsText ?? '') ?></textarea>
-                            <div class="form-text">Um item por linha, no formato <code>descrição | quantidade</code>.</div>
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <label class="form-label mb-0">Itens do pedido</label>
+                                <button type="button" class="btn btn-sm btn-label-primary" id="addPartItem">
+                                    <i class="icon-base ti tabler-plus"></i> Adicionar item
+                                </button>
+                            </div>
+
+                            <div class="table-responsive border rounded">
+                                <table class="table align-middle mb-0 responsive-card">
+                                    <thead>
+                                        <tr>
+                                            <th>Descrição da peça</th>
+                                            <th style="width: 130px;">Quantidade</th>
+                                            <th style="width: 48px;"></th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="partOrderItems"></tbody>
+                                </table>
+                            </div>
+                            <div class="form-text">Digite a descrição e pressione <kbd>Enter</kbd> para adicionar outra linha.</div>
                         </div>
 
                         <div class="col-12">
@@ -63,7 +86,7 @@ $select = static function (string $name, string $label, string $icon, array $opt
 
                         <div class="col-12 d-flex justify-content-end gap-2 mt-3">
                             <a href="<?= e($path) ?>" class="btn btn-outline-secondary">Cancelar</a>
-                            <button type="submit" class="btn btn-primary"><i class="icon-base ti tabler-device-floppy"></i> Salvar</button>
+                            <button type="submit" class="btn btn-primary"><i class="icon-base ti tabler-device-floppy"></i> Salvar pedido</button>
                         </div>
                     </div>
                 </form>
@@ -71,3 +94,7 @@ $select = static function (string $name, string $label, string $icon, array $opt
         </div>
     </div>
 </div>
+
+<script>
+window.PART_ORDER_ITEMS = <?= json_encode($items, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?>;
+</script>

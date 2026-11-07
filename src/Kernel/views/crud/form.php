@@ -58,9 +58,7 @@ $action = $isEdit ? $path . '/' . (int) $record['id'] : $path;
 
                         <?php elseif ($type === 'select'): ?>
                         <div class="<?= e($colClass) ?>">
-                            <label class="form-label" for="<?= e($name) ?>">
-                                <i class="icon-base ti tabler-<?= e($icon) ?> me-1"></i><?= e($field['label']) ?><?= $required ? ' *' : '' ?>
-                            </label>
+                            <label class="form-label" for="<?= e($name) ?>"><?= e($field['label']) ?><?= $required ? ' *' : '' ?></label>
                             <select class="select2 form-select <?= $error ? 'is-invalid' : '' ?>" id="<?= e($name) ?>" name="<?= e($name) ?>" data-placeholder="Selecione...">
                                 <option value=""></option>
                                 <?php foreach (($selectOptions[$name] ?? []) as $optValue => $optLabel): ?>

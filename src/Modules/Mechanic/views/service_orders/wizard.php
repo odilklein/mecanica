@@ -80,8 +80,8 @@ $priorities = \Modules\Mechanic\Support\ServiceOrderStatus::PRIORITIES;
 
                         <div class="row g-6">
                             <div class="col-12">
-                                <label class="form-label" for="client_id"><i class="icon-base ti tabler-user me-1"></i>Cliente cadastrado</label>
-                                <select class="select2 form-select" id="client_id" name="client_id" data-placeholder="Buscar cliente por nome ou telefone">
+                                <label class="form-label" for="client_id">Cliente cadastrado</label>
+                                <select class="select2 form-select" id="client_id" name="client_id" data-placeholder="Buscar cliente por nome ou telefone" data-allow-clear="true">
                                     <option value=""></option>
                                     <?php foreach ($clients as $c): ?>
                                     <option value="<?= (int) $c['id'] ?>"><?= e($c['name'] . ($c['phone'] ? ' — ' . $c['phone'] : '') . ($c['city'] ? ' · ' . $c['city'] : '')) ?></option>
@@ -175,8 +175,8 @@ $priorities = \Modules\Mechanic\Support\ServiceOrderStatus::PRIORITIES;
 
                         <div class="row g-6">
                             <div class="col-12" id="vehicleExistingBox" hidden>
-                                <label class="form-label" for="vehicle_id"><i class="icon-base ti tabler-car me-1"></i>Veículo do cliente</label>
-                                <select class="select2 form-select" id="vehicle_id" name="vehicle_id" data-placeholder="Buscar veículo por placa ou modelo">
+                                <label class="form-label" for="vehicle_id">Veículo do cliente</label>
+                                <select class="select2 form-select" id="vehicle_id" name="vehicle_id" data-placeholder="Buscar veículo por placa ou modelo" data-allow-clear="true">
                                     <option value=""></option>
                                 </select>
                                 <div class="form-text">Selecione um veículo já cadastrado ou deixe em branco para cadastrar um novo.</div>
@@ -184,10 +184,10 @@ $priorities = \Modules\Mechanic\Support\ServiceOrderStatus::PRIORITIES;
                             </div>
 
                             <div class="col-12" id="newVehicleFields">
-                                <h6 class="mb-3"><i class="icon-base ti tabler-car-plus me-1"></i>Novo veículo</h6>
+                                <h6 class="mb-3"><i class="icon-base ti tabler-car me-1"></i>Novo veículo</h6>
                                 <div class="row g-3">
                                     <div class="col-md-6">
-                                        <label class="form-label" for="fipe_brand_code"><i class="icon-base ti tabler-building-factory-2 me-1"></i>Marca *</label>
+                                        <label class="form-label" for="fipe_brand_code">Marca *</label>
                                         <select class="select2 form-select" id="fipe_brand_code" name="fipe_brand_code" data-placeholder="Buscar marca">
                                             <option value=""></option>
                                             <?php foreach ($brands as $b): ?>
@@ -196,13 +196,13 @@ $priorities = \Modules\Mechanic\Support\ServiceOrderStatus::PRIORITIES;
                                         </select>
                                     </div>
                                     <div class="col-md-6">
-                                        <label class="form-label" for="fipe_model_code"><i class="icon-base ti tabler-car me-1"></i>Modelo *</label>
+                                        <label class="form-label" for="fipe_model_code">Modelo *</label>
                                         <select class="select2 form-select" id="fipe_model_code" name="fipe_model_code" data-placeholder="Buscar modelo">
                                             <option value=""></option>
                                         </select>
                                     </div>
                                     <div class="col-md-4">
-                                        <label class="form-label" for="fipe_year_code"><i class="icon-base ti tabler-calendar-event me-1"></i>Ano *</label>
+                                        <label class="form-label" for="fipe_year_code">Ano *</label>
                                         <select class="select2 form-select" id="fipe_year_code" name="fipe_year_code" data-placeholder="Buscar ano">
                                             <option value=""></option>
                                         </select>
@@ -254,7 +254,7 @@ $priorities = \Modules\Mechanic\Support\ServiceOrderStatus::PRIORITIES;
 
                         <div class="row g-6">
                             <div class="col-md-4">
-                                <label class="form-label" for="priority"><i class="icon-base ti tabler-flag me-1"></i>Prioridade</label>
+                                <label class="form-label" for="priority">Prioridade</label>
                                 <select class="select2 form-select" id="priority" name="priority" data-placeholder="Selecione a prioridade">
                                     <option value=""></option>
                                     <?php foreach ($priorities as $key => $label): ?>
@@ -263,14 +263,14 @@ $priorities = \Modules\Mechanic\Support\ServiceOrderStatus::PRIORITIES;
                                 </select>
                             </div>
                             <div class="col-md-8">
-                                <label class="form-label" for="initial_complaint"><i class="icon-base ti tabler-message-2 me-1"></i>Queixa do cliente *</label>
+                                <label class="form-label" for="initial_complaint">Queixa do cliente *</label>
                                 <div class="input-group input-group-merge input-group-merge-textarea">
                                     <span class="input-group-text"><i class="icon-base ti tabler-message-2"></i></span>
                                     <textarea class="form-control" id="initial_complaint" name="initial_complaint" rows="2" placeholder="Ex.: Barulho no motor ao acelerar"></textarea>
                                 </div>
                             </div>
                             <div class="col-12">
-                                <label class="form-label" for="internal_notes"><i class="icon-base ti tabler-notes me-1"></i>Observações internas</label>
+                                <label class="form-label" for="internal_notes">Observações internas</label>
                                 <div class="input-group input-group-merge input-group-merge-textarea">
                                     <span class="input-group-text"><i class="icon-base ti tabler-lock"></i></span>
                                     <textarea class="form-control" id="internal_notes" name="internal_notes" rows="2" placeholder="Não visíveis ao cliente"></textarea>
@@ -301,6 +301,7 @@ $priorities = \Modules\Mechanic\Support\ServiceOrderStatus::PRIORITIES;
                                             <div class="dynamic-list-items"></div>
                                             <div class="input-group mt-2">
                                                 <input class="form-control" placeholder="Ex.: Pastilha de freio">
+                                                <input type="number" class="form-control item-qty-input" min="1" step="1" value="1" style="max-width: 90px" title="Quantidade" aria-label="Quantidade">
                                                 <button type="button" class="btn btn-outline-primary btn-add"><i class="icon-base ti tabler-plus"></i></button>
                                             </div>
                                         </div>
@@ -348,7 +349,7 @@ $priorities = \Modules\Mechanic\Support\ServiceOrderStatus::PRIORITIES;
 
                         <div class="row g-3 mt-2">
                             <div class="col-md-6">
-                                <label class="form-label" for="lead_mechanic_id"><i class="icon-base ti tabler-user-check me-1"></i>Mecânico responsável</label>
+                                <label class="form-label" for="lead_mechanic_id">Mecânico responsável</label>
                                 <select class="select2 form-select" id="lead_mechanic_id" name="lead_mechanic_id" data-placeholder="Selecione o responsável">
                                     <option value=""></option>
                                     <?php foreach ($mechanics as $m): ?>

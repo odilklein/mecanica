@@ -240,9 +240,9 @@ class ServiceOrderController extends CrudController
         $events->execute([':id' => (int) $id]);
 
         $parts = $this->pdo->prepare(
-            'SELECT p.*, GROUP_CONCAT(i.description SEPARATOR ", ") AS items
+            "SELECT p.*, GROUP_CONCAT(CONCAT(i.description, ' ×', i.quantity) SEPARATOR ', ') AS items
                FROM part_orders p LEFT JOIN part_order_items i ON i.part_order_id = p.id
-              WHERE p.service_order_id = :id GROUP BY p.id ORDER BY p.id DESC'
+              WHERE p.service_order_id = :id GROUP BY p.id ORDER BY p.id DESC"
         );
         $parts->execute([':id' => (int) $id]);
 

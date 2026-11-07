@@ -414,7 +414,7 @@ $eventCount = count($events);
         <div class="card">
             <div class="card-header d-flex justify-content-between align-items-center">
                 <h5 class="card-title m-0">Peças</h5>
-                <a href="/part-orders/create" class="btn btn-sm btn-label-primary">
+                <a href="/part-orders/create?os_id=<?= $orderId ?>" class="btn btn-sm btn-label-primary">
                     <i class="icon-base ti tabler-plus"></i> Novo pedido
                 </a>
             </div>
