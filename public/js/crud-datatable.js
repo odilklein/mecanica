@@ -300,7 +300,13 @@
                     display: DataTable.Responsive.display.modal({
                         header: function (row) {
                             var data = row.data();
-                            return 'Detalhes de ' + (data.name || data.plate || data.number_label || ('#' + data.id));
+                            return 'Detalhes de ' + (
+                                data.name
+                                || data.plate
+                                || data.number_label
+                                || data.order_number_label
+                                || ('#' + data.id)
+                            );
                         }
                     }),
                     type: 'column',
