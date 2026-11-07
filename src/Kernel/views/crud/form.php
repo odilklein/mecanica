@@ -51,7 +51,7 @@ $action = $isEdit ? $path . '/' . (int) $record['id'] : $path;
                         <?php if ($type === 'boolean'): ?>
                         <div class="col-12">
                             <div class="form-check form-switch">
-                                <input class="form-check-input" type="checkbox" role="switch" id="<?= e($name) ?>" name="<?= e($name) ?>" value="1" <?= ($value ?? 1) ? 'checked' : '' ?>>
+                                <input class="form-check-input" type="checkbox" role="switch" id="<?= e($name) ?>" name="<?= e($name) ?>" value="1" <?= (($value === '' || $value === null) ? 1 : $value) ? 'checked' : '' ?>>
                                 <label class="form-check-label" for="<?= e($name) ?>"><i class="icon-base ti tabler-<?= e($icon) ?> me-1"></i><?= e($field['label']) ?></label>
                             </div>
                         </div>

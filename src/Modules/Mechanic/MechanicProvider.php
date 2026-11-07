@@ -19,6 +19,8 @@ use Modules\Mechanic\Controllers\ReportController;
 use Modules\Mechanic\Controllers\ServiceOrderController;
 use Modules\Mechanic\Controllers\TaskController;
 use Modules\Mechanic\Controllers\VehicleController;
+use Modules\Mechanic\Controllers\PartsController;
+use Modules\Mechanic\Controllers\PartController;
 
 class MechanicProvider implements ProviderInterface
 {
@@ -27,10 +29,18 @@ class MechanicProvider implements ProviderInterface
         // Veículos (CRUD genérico + FIPE).
         crud_routes($router, '/vehicles', VehicleController::class);
 
+        // Peças (CRUD simples + autocomplete).
+        crud_routes($router, '/parts', PartController::class);
+
         // API do catálogo FIPE (selects em cascata).
         $router->get('/api/fipe/models', [FipeController::class, 'models']);
         $router->get('/api/fipe/years', [FipeController::class, 'years']);
         $router->get('/api/fipe/price', [FipeController::class, 'price']);
+
+        // API do catálogo de peças (Canal da Peça + cache local).
+        $router->get('/api/parts/autocomplete', [PartsController::class, 'autocomplete']);
+        $router->get('/api/parts/search', [PartsController::class, 'search']);
+        $router->get('/api/parts/vehicles', [PartsController::class, 'vehicles']);
 
         // Ordens de serviço (rotas específicas antes da genérica; bramus casa {id} com "/").
         $router->get('/service-orders/datatable', [ServiceOrderController::class, 'datatable']);
@@ -77,6 +87,12 @@ class MechanicProvider implements ProviderInterface
             'label' => 'Veículos',
             'icon' => 'car',
             'url' => '/vehicles',
+            'roles' => ['admin', 'secretary', 'lead_mechanic'],
+        ]);
+        $menu->add('Cadastros', [
+            'label' => 'Peças',
+            'icon' => 'package',
+            'url' => '/parts',
             'roles' => ['admin', 'secretary', 'lead_mechanic'],
         ]);
         $menu->add('Operações', [

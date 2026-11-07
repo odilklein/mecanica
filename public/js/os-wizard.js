@@ -106,92 +106,165 @@
             });
         });
 
-        // Listas dinâmicas de tarefas/peças (peças com quantidade)
-        document.querySelectorAll('[data-list]').forEach(function (box) {
-            var isParts = box.getAttribute('data-list') === 'parts';
+        // Tarefas
+        (function () {
+            var box = document.querySelector('[data-list="tasks"]');
+            if (!box) {
+                return;
+            }
+
             var input = box.querySelector('input.form-control');
-            var qtyInput = box.querySelector('.item-qty-input');
             var addBtn = box.querySelector('.btn-add');
             var items = box.querySelector('.dynamic-list-items');
-            var target = document.getElementById(isParts ? 'parts_json' : 'tasks_json');
+            var target = document.getElementById('tasks_json');
 
-            function sync() {
+            function syncTasks() {
                 var list = Array.prototype.map.call(items.children, function (row) {
-                    var text = row.querySelector('.item-text').textContent;
-                    if (isParts) {
-                        var qty = row.querySelector('.item-qty');
-                        return {
-                            description: text,
-                            quantity: Math.max(1, parseInt(qty && qty.value, 10) || 1)
-                        };
-                    }
-                    return text;
+                    return row.querySelector('.item-text').textContent;
                 });
                 if (target) {
                     target.value = JSON.stringify(list);
                 }
             }
 
-            function addPart(text, quantity) {
-                var row = document.createElement('div');
-                row.className = 'd-flex align-items-center gap-2 mb-2';
-                row.innerHTML = '<i class="icon-base ti tabler-grip-vertical text-body-secondary"></i>'
-                    + '<span class="item-text flex-grow-1"></span>'
-                    + '<input type="number" class="form-control form-control-sm item-qty" min="1" step="1" value="1" style="max-width: 90px; min-width: 72px;" aria-label="Quantidade">'
-                    + '<button type="button" class="btn btn-sm btn-icon btn-text-danger"><i class="icon-base ti tabler-x"></i></button>';
-                row.querySelector('.item-text').textContent = text;
-                row.querySelector('.item-qty').value = Math.max(1, parseInt(quantity, 10) || 1);
-                row.querySelector('.item-qty').addEventListener('input', sync);
-                row.querySelector('button').addEventListener('click', function () {
-                    row.remove();
-                    sync();
-                });
-                items.appendChild(row);
-                sync();
-            }
-
             function addTask(text) {
-                var row = document.createElement('div');
-                row.className = 'd-flex align-items-center gap-2 mb-2';
-                row.innerHTML = '<i class="icon-base ti tabler-grip-vertical text-body-secondary"></i>'
-                    + '<span class="item-text flex-grow-1"></span>'
-                    + '<button type="button" class="btn btn-sm btn-icon btn-text-danger"><i class="icon-base ti tabler-x"></i></button>';
-                row.querySelector('.item-text').textContent = text;
-                row.querySelector('button').addEventListener('click', function () {
-                    row.remove();
-                    sync();
-                });
-                items.appendChild(row);
-                sync();
-            }
-
-            function add() {
-                var text = input.value.trim();
+                text = (text || '').trim();
                 if (!text) {
                     return;
                 }
 
-                if (isParts) {
-                    addPart(text, qtyInput ? qtyInput.value : 1);
-                    if (qtyInput) {
-                        qtyInput.value = 1;
-                    }
-                } else {
-                    addTask(text);
-                }
-
+                var row = document.createElement('div');
+                row.className = 'd-flex align-items-center gap-2 mb-2';
+                row.innerHTML = '<i class="icon-base ti tabler-grip-vertical text-body-secondary"></i>'
+                    + '<span class="item-text flex-grow-1"></span>'
+                    + '<button type="button" class="btn btn-sm btn-icon btn-text-danger"><i class="icon-base ti tabler-x"></i></button>';
+                row.querySelector('.item-text').textContent = text;
+                row.querySelector('button').addEventListener('click', function () {
+                    row.remove();
+                    syncTasks();
+                });
+                items.appendChild(row);
                 input.value = '';
                 input.focus();
+                syncTasks();
             }
 
-            addBtn.addEventListener('click', add);
+            addBtn.addEventListener('click', function () {
+                addTask(input.value);
+            });
             input.addEventListener('keydown', function (e) {
                 if (e.key === 'Enter') {
                     e.preventDefault();
-                    add();
+                    addTask(input.value);
                 }
             });
-        });
+        })();
+
+        // Peças (autocomplete com preço + quantidade)
+        (function () {
+            var box = document.querySelector('[data-list="parts"]');
+            if (!box) {
+                return;
+            }
+
+            var items = box.querySelector('.dynamic-list-items');
+            var target = document.getElementById('parts_json');
+            var qtyInput = document.getElementById('osPartQty');
+
+            function syncParts() {
+                var list = Array.prototype.map.call(items.children, function (row) {
+                    var qty = row.querySelector('.item-qty');
+                    return {
+                        description: row.querySelector('.item-text').textContent,
+                        quantity: Math.max(1, parseInt(qty && qty.value, 10) || 1),
+                        sku: row.dataset.sku || null,
+                        unit_price: row.dataset.unitPrice !== '' ? parseFloat(row.dataset.unitPrice) : null,
+                        supplier: null,
+                        product_url: null,
+                        catalog_notes: row.dataset.catalogNotes || null
+                    };
+                });
+                if (target) {
+                    target.value = JSON.stringify(list);
+                }
+            }
+
+            function addPartRow(text, quantity, meta) {
+                meta = meta || {};
+                text = (text || '').trim();
+                if (!text) {
+                    return;
+                }
+
+                var row = document.createElement('div');
+                row.className = 'd-flex align-items-start gap-2 mb-2';
+                row.innerHTML = '<i class="icon-base ti tabler-grip-vertical text-body-secondary mt-1"></i>'
+                    + '<div class="flex-grow-1"><span class="item-text d-block"></span><div class="catalog-info small text-body-secondary"></div></div>'
+                    + '<input type="number" class="form-control form-control-sm item-qty" min="1" step="1" value="1" style="max-width: 90px; min-width: 72px;" aria-label="Quantidade">'
+                    + '<button type="button" class="btn btn-sm btn-icon btn-text-danger"><i class="icon-base ti tabler-x"></i></button>';
+
+                row.querySelector('.item-text').textContent = text;
+                row.querySelector('.item-qty').value = Math.max(1, parseInt(quantity, 10) || 1);
+
+                var metaParts = [meta.brand, meta.part_code, meta.price_label]
+                    .filter(function (value) { return value !== undefined && value !== null && value !== ''; });
+                row.querySelector('.catalog-info').textContent = metaParts.join(' · ');
+
+                row.dataset.sku = meta.sku || '';
+                row.dataset.unitPrice = meta.price != null ? String(meta.price) : '';
+                row.dataset.catalogNotes = meta.catalog_notes || [meta.brand, meta.part_code, meta.category]
+                    .filter(Boolean).join(' · ');
+
+                row.querySelector('.item-qty').addEventListener('input', syncParts);
+                row.querySelector('button').addEventListener('click', function () {
+                    row.remove();
+                    syncParts();
+                });
+                items.appendChild(row);
+                syncParts();
+            }
+
+            if (window.PartAutocomplete) {
+                window.PartAutocomplete.init('#osPartSearch', function (item) {
+                    var quantity = Math.max(1, parseInt(qtyInput && qtyInput.value, 10) || 1);
+                    addPartRow(item.name || item.text, quantity, item);
+                    if (qtyInput) {
+                        qtyInput.value = '1';
+                    }
+                });
+            }
+
+            var manualInput = document.getElementById('osPartManual');
+            var manualAdd = document.getElementById('osPartManualAdd');
+
+            function addManualPart() {
+                var text = manualInput ? manualInput.value.trim() : '';
+                if (!text) {
+                    return;
+                }
+                var quantity = Math.max(1, parseInt(qtyInput && qtyInput.value, 10) || 1);
+                addPartRow(text, quantity, {});
+                if (manualInput) {
+                    manualInput.value = '';
+                    manualInput.focus();
+                }
+                if (qtyInput) {
+                    qtyInput.value = '1';
+                }
+            }
+
+            if (manualAdd) {
+                manualAdd.addEventListener('click', addManualPart);
+            }
+            if (manualInput) {
+                manualInput.addEventListener('keydown', function (e) {
+                    if (e.key === 'Enter') {
+                        e.preventDefault();
+                        addManualPart();
+                    }
+                });
+            }
+        })();
 
         // Revisão
         function updateReview() {

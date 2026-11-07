@@ -25,6 +25,9 @@
             if ($select.hasClass('select2-hidden-accessible')) {
                 return;
             }
+            if ($select.hasClass('part-autocomplete')) {
+                return;
+            }
 
             var $parent = $select.closest('.position-relative, .input-group');
 

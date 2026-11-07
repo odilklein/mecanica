@@ -177,13 +177,29 @@ class ServiceOrderController extends CrudController
                 $this->pdo->prepare("INSERT INTO part_orders (service_order_id, status, created_by) VALUES (:o, 'requested', :u)")
                     ->execute([':o' => $orderId, ':u' => $userId]);
                 $partOrderId = (int) $this->pdo->lastInsertId();
-                $itemStmt = $this->pdo->prepare('INSERT INTO part_order_items (part_order_id, description, quantity) VALUES (:p, :d, :q)');
+                $itemStmt = $this->pdo->prepare(
+                    'INSERT INTO part_order_items
+                        (part_order_id, description, quantity, sku, unit_price, supplier, product_url, catalog_notes)
+                     VALUES (:p, :d, :q, :sku, :price, :supplier, :url, :notes)'
+                );
                 foreach ($parts as $part) {
                     $desc = trim((string) (is_array($part) ? ($part['description'] ?? '') : $part));
                     $qty = is_array($part) ? max(1, (int) ($part['quantity'] ?? 1)) : 1;
-                    if ($desc !== '') {
-                        $itemStmt->execute([':p' => $partOrderId, ':d' => mb_substr($desc, 0, 200), ':q' => $qty]);
+                    if ($desc === '') {
+                        continue;
                     }
+                    $itemStmt->execute([
+                        ':p' => $partOrderId,
+                        ':d' => mb_substr($desc, 0, 200),
+                        ':q' => $qty,
+                        ':sku' => is_array($part) ? (trim((string) ($part['sku'] ?? '')) ?: null) : null,
+                        ':price' => is_array($part) && isset($part['unit_price']) && $part['unit_price'] !== ''
+                            ? (float) $part['unit_price']
+                            : null,
+                        ':supplier' => is_array($part) ? (trim((string) ($part['supplier'] ?? '')) ?: null) : null,
+                        ':url' => is_array($part) ? (trim((string) ($part['product_url'] ?? '')) ?: null) : null,
+                        ':notes' => is_array($part) ? (trim((string) ($part['catalog_notes'] ?? '')) ?: null) : null,
+                    ]);
                 }
             }
 

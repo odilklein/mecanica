@@ -223,6 +223,7 @@
     <script src="<?= e(asset('/js/notifications.js')) ?>"></script>
     <script src="<?= e(asset('/assets/vendor/libs/select2/select2.js')) ?>"></script>
     <script src="<?= e(asset('/js/select2-init.js')) ?>"></script>
+    <script src="<?= e(asset('/js/part-autocomplete.js')) ?>"></script>
 
     <?php foreach (($pageScripts ?? []) as $script): ?>
     <script src="<?= e(asset($script)) ?>"></script>

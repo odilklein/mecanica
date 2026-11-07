@@ -57,6 +57,22 @@ $select = static function (string $name, string $label, string $icon, array $opt
                         </div>
 
                         <div class="col-12">
+                            <div class="card border mb-3">
+                                <div class="card-body py-3">
+                                    <div class="row g-2 align-items-end">
+                                        <div class="col-md-9">
+                                            <label class="form-label" for="partOrderSearch">Buscar peça no catálogo</label>
+                                            <select class="form-select part-autocomplete" id="partOrderSearch" data-placeholder="Digite nome, marca ou código..."></select>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <label class="form-label" for="partOrderSearchQty">Quantidade</label>
+                                            <input type="number" class="form-control" id="partOrderSearchQty" value="1" min="1" step="1">
+                                        </div>
+                                    </div>
+                                    <div class="form-text">Escolha uma sugestão. Para uma peça que não está na lista, use “Adicionar item”.</div>
+                                </div>
+                            </div>
+
                             <div class="d-flex justify-content-between align-items-center mb-2">
                                 <label class="form-label mb-0">Itens do pedido</label>
                                 <button type="button" class="btn btn-sm btn-label-primary" id="addPartItem">

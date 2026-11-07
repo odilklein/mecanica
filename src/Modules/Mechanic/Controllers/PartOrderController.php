@@ -169,6 +169,13 @@ class PartOrderController extends CrudController
             $items[] = [
                 'description' => mb_substr($description, 0, 200),
                 'quantity' => max(1, (int) ($item['quantity'] ?? 1)),
+                'sku' => trim((string) ($item['sku'] ?? '')) ?: null,
+                'unit_price' => isset($item['unit_price']) && $item['unit_price'] !== ''
+                    ? (float) $item['unit_price']
+                    : null,
+                'supplier' => trim((string) ($item['supplier'] ?? '')) ?: null,
+                'product_url' => trim((string) ($item['product_url'] ?? '')) ?: null,
+                'catalog_notes' => trim((string) ($item['catalog_notes'] ?? '')) ?: null,
             ];
         }
         return $items;
@@ -176,12 +183,21 @@ class PartOrderController extends CrudController
 
     private function saveItems(int $partOrderId, array $items): void
     {
-        $stmt = $this->pdo->prepare('INSERT INTO part_order_items (part_order_id, description, quantity) VALUES (:p, :d, :q)');
+        $stmt = $this->pdo->prepare(
+            'INSERT INTO part_order_items
+                (part_order_id, description, quantity, sku, unit_price, supplier, product_url, catalog_notes)
+             VALUES (:p, :d, :q, :sku, :price, :supplier, :url, :notes)'
+        );
         foreach ($items as $item) {
             $stmt->execute([
                 ':p' => $partOrderId,
                 ':d' => $item['description'],
                 ':q' => $item['quantity'],
+                ':sku' => $item['sku'] ?? null,
+                ':price' => $item['unit_price'] ?? null,
+                ':supplier' => $item['supplier'] ?? null,
+                ':url' => $item['product_url'] ?? null,
+                ':notes' => $item['catalog_notes'] ?? null,
             ]);
         }
     }
@@ -189,13 +205,21 @@ class PartOrderController extends CrudController
     /** @return array<int, array{description:string, quantity:int}> */
     private function itemsData(int $partOrderId): array
     {
-        $stmt = $this->pdo->prepare('SELECT description, quantity FROM part_order_items WHERE part_order_id = :id ORDER BY id');
+        $stmt = $this->pdo->prepare(
+            'SELECT description, quantity, sku, unit_price, supplier, product_url, catalog_notes
+               FROM part_order_items WHERE part_order_id = :id ORDER BY id'
+        );
         $stmt->execute([':id' => $partOrderId]);
 
         return array_map(static function (array $row): array {
             return [
                 'description' => (string) $row['description'],
                 'quantity' => (int) $row['quantity'],
+                'sku' => $row['sku'],
+                'unit_price' => $row['unit_price'] !== null ? (float) $row['unit_price'] : null,
+                'supplier' => $row['supplier'],
+                'product_url' => $row['product_url'],
+                'catalog_notes' => $row['catalog_notes'],
             ];
         }, $stmt->fetchAll());
     }

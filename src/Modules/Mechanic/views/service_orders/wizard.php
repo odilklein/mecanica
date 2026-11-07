@@ -299,11 +299,19 @@ $priorities = \Modules\Mechanic\Support\ServiceOrderStatus::PRIORITIES;
                                     <div class="card-body">
                                         <div class="dynamic-list" data-list="parts">
                                             <div class="dynamic-list-items"></div>
-                                            <div class="input-group mt-2">
-                                                <input class="form-control" placeholder="Ex.: Pastilha de freio">
-                                                <input type="number" class="form-control item-qty-input" min="1" step="1" value="1" style="max-width: 90px" title="Quantidade" aria-label="Quantidade">
-                                                <button type="button" class="btn btn-outline-primary btn-add"><i class="icon-base ti tabler-plus"></i></button>
+                                            <div class="row g-2 mt-2">
+                                                <div class="col">
+                                                    <select class="form-select part-autocomplete" id="osPartSearch" data-placeholder="Buscar peça por nome, marca ou código..."></select>
+                                                </div>
+                                                <div class="col-auto" style="width: 90px;">
+                                                    <input type="number" class="form-control item-qty-input" id="osPartQty" value="1" min="1" step="1" title="Quantidade" aria-label="Quantidade">
+                                                </div>
                                             </div>
+                                            <div class="input-group mt-2">
+                                                <input type="text" class="form-control" id="osPartManual" placeholder="Ou digite uma peça manual...">
+                                                <button type="button" class="btn btn-outline-primary" id="osPartManualAdd"><i class="icon-base ti tabler-plus"></i></button>
+                                            </div>
+                                            <div class="form-text">Escolha uma sugestão ou adicione uma peça manual.</div>
                                         </div>
                                     </div>
                                 </div>
