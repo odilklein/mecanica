@@ -236,7 +236,7 @@ class ServiceOrderController extends CrudController
         $responsibles = $this->pdo->prepare('SELECT r.*, u.name, u.role FROM service_order_responsibles r JOIN users u ON u.id = r.user_id WHERE r.order_id = :id ORDER BY u.name');
         $responsibles->execute([':id' => (int) $id]);
 
-        $events = $this->pdo->prepare('SELECT e.*, u.name AS author FROM service_order_events e LEFT JOIN users u ON u.id = e.created_by WHERE e.order_id = :id ORDER BY e.id DESC');
+        $events = $this->pdo->prepare('SELECT e.*, u.name AS author FROM service_order_events e LEFT JOIN users u ON u.id = e.created_by WHERE e.order_id = :id ORDER BY e.id ASC');
         $events->execute([':id' => (int) $id]);
 
         $parts = $this->pdo->prepare(
@@ -248,6 +248,22 @@ class ServiceOrderController extends CrudController
 
         $delivery = $this->pdo->prepare('SELECT * FROM service_order_deliveries WHERE order_id = :id ORDER BY id DESC LIMIT 1');
         $delivery->execute([':id' => (int) $id]);
+
+        // Orçamento mais recente vinculado à OS e seus itens.
+        $budgetStmt = $this->pdo->prepare('SELECT * FROM budgets WHERE service_order_id = :id ORDER BY id DESC LIMIT 1');
+        $budgetStmt->execute([':id' => (int) $id]);
+        $budget = $budgetStmt->fetch() ?: null;
+
+        $budgetItems = [];
+        if ($budget) {
+            $itemsStmt = $this->pdo->prepare('SELECT * FROM budget_items WHERE budget_id = :id ORDER BY id');
+            $itemsStmt->execute([':id' => (int) $budget['id']]);
+            $budgetItems = $itemsStmt->fetchAll();
+        }
+
+        $clientOrders = $this->pdo->prepare('SELECT COUNT(*) FROM service_orders WHERE client_id = :id');
+        $clientOrders->execute([':id' => (int) $order['client_id']]);
+        $clientOrdersCount = (int) $clientOrders->fetchColumn();
 
         $mechanics = $this->pdo->query("SELECT id, name, role FROM users WHERE is_active = 1 AND role IN ('lead_mechanic','mechanic') ORDER BY name")->fetchAll();
 
@@ -265,6 +281,9 @@ class ServiceOrderController extends CrudController
             'events' => $events->fetchAll(),
             'parts' => $parts->fetchAll(),
             'delivery' => $delivery->fetch() ?: null,
+            'budget' => $budget,
+            'budgetItems' => $budgetItems,
+            'clientOrdersCount' => $clientOrdersCount,
             'mechanics' => $mechanics,
             'statuses' => ServiceOrderStatus::STATUSES,
             'statusAvailable' => $statusAvailable,
@@ -444,7 +463,11 @@ class ServiceOrderController extends CrudController
     {
         $stmt = $this->pdo->prepare(
             'SELECT so.*, c.name AS client_name, c.phone AS client_phone, c.email AS client_email,
-                    v.plate AS vehicle_plate, v.model AS vehicle_model, v.brand AS vehicle_brand, v.year AS vehicle_year,
+                    c.cpf AS client_cpf, c.city AS client_city, c.state AS client_state,
+                    c.created_at AS client_since,
+                    v.plate AS vehicle_plate, v.model AS vehicle_model, v.brand AS vehicle_brand,
+                    v.year AS vehicle_year, v.color AS vehicle_color, v.current_km AS vehicle_km,
+                    v.fipe_value AS vehicle_fipe_value,
                     u.name AS lead_mechanic
                FROM service_orders so
                LEFT JOIN clients c ON c.id = so.client_id

@@ -18,6 +18,13 @@
         return d.innerHTML;
     }
 
+    function initialsOf(name) {
+        var matches = String(name || '').match(/\b\w/g) || [];
+        return matches.slice(0, 2).map(function (letter) {
+            return letter.toUpperCase();
+        }).join('') || '?';
+    }
+
     function timeAgo(value) {
         if (!value) {
             return '';
@@ -85,15 +92,16 @@
                 + '<div class="flex-shrink-0 me-3">'
                 + '<div class="avatar">'
                 + '<span class="avatar-initial rounded-circle ' + meta.color + '">'
-                + '<i class="icon-base ti tabler-' + meta.icon + '"></i>'
+                + esc(initialsOf(actor))
                 + '</span>'
                 + '</div>'
                 + '</div>'
                 + '<div class="flex-grow-1">'
                 + '<h6 class="mb-1 small">'
-                + '<i class="icon-base ti tabler-user icon-xs me-1 text-body-secondary"></i>'
                 + '<span class="fw-medium">' + esc(actor) + '</span>'
-                + '<span class="fw-normal text-body-secondary"> · ' + esc(meta.label) + '</span>'
+                + '<span class="fw-normal text-body-secondary"> · '
+                + '<i class="icon-base ti tabler-' + meta.icon + ' icon-xs me-1"></i>'
+                + esc(meta.label) + '</span>'
                 + '</h6>'
                 + '<small class="mb-1 d-block text-body">' + subtitle + '</small>'
                 + '<small class="text-body-secondary">'

@@ -22,7 +22,15 @@ class BudgetController extends CrudController
         if ($response = $this->guardRoles($resource->roles())) {
             return $response;
         }
-        return $this->renderEditor($resource, null, []);
+
+        $query = $request->getQueryParams();
+        $defaults = [
+            'client_id' => (int) ($query['cliente_id'] ?? 0),
+            'vehicle_id' => (int) ($query['veiculo_id'] ?? 0),
+            'service_order_id' => (int) ($query['os_id'] ?? 0),
+        ];
+
+        return $this->renderEditor($resource, null, [], $defaults);
     }
 
     public function edit(ServerRequestInterface $request, $id)
@@ -56,6 +64,7 @@ class BudgetController extends CrudController
         $id = (int) ($body['id'] ?? 0);
         $clientId = (int) ($body['client_id'] ?? 0);
         $vehicleId = (int) ($body['vehicle_id'] ?? 0) ?: null;
+        $serviceOrderId = (int) ($body['service_order_id'] ?? 0) ?: null;
         $validUntil = clean($body['valid_until'] ?? '') ?: null;
         $discount = (float) str_replace(',', '.', (string) ($body['discount'] ?? 0));
         $notes = clean($body['notes'] ?? '');
@@ -74,18 +83,18 @@ class BudgetController extends CrudController
             if ($isNew) {
                 $number = (int) $this->pdo->query('SELECT COALESCE(MAX(number), 0) + 1 FROM budgets')->fetchColumn();
                 $this->pdo->prepare(
-                    'INSERT INTO budgets (number, client_id, vehicle_id, budget_date, valid_until, status, discount, notes, created_by)
-                     VALUES (:num, :cl, :ve, :bd, :vu, :st, :d, :n, :u)'
+                    'INSERT INTO budgets (number, client_id, vehicle_id, service_order_id, budget_date, valid_until, status, discount, notes, created_by)
+                     VALUES (:num, :cl, :ve, :so, :bd, :vu, :st, :d, :n, :u)'
                 )->execute([
-                    ':num' => $number, ':cl' => $clientId, ':ve' => $vehicleId,
+                    ':num' => $number, ':cl' => $clientId, ':ve' => $vehicleId, ':so' => $serviceOrderId,
                     ':bd' => date('Y-m-d'), ':vu' => $validUntil, ':st' => 'open',
                     ':d' => $discount, ':n' => $notes, ':u' => $this->auth->id(),
                 ]);
                 $id = (int) $this->pdo->lastInsertId();
             } else {
                 $this->pdo->prepare(
-                    'UPDATE budgets SET client_id = :cl, vehicle_id = :ve, valid_until = :vu, discount = :d, notes = :n WHERE id = :id'
-                )->execute([':cl' => $clientId, ':ve' => $vehicleId, ':vu' => $validUntil, ':d' => $discount, ':n' => $notes, ':id' => $id]);
+                    'UPDATE budgets SET client_id = :cl, vehicle_id = :ve, service_order_id = :so, valid_until = :vu, discount = :d, notes = :n WHERE id = :id'
+                )->execute([':cl' => $clientId, ':ve' => $vehicleId, ':so' => $serviceOrderId, ':vu' => $validUntil, ':d' => $discount, ':n' => $notes, ':id' => $id]);
                 $this->pdo->prepare('DELETE FROM budget_items WHERE budget_id = :id')->execute([':id' => $id]);
             }
 
@@ -166,7 +175,7 @@ class BudgetController extends CrudController
         ]);
     }
 
-    private function renderEditor(Resource $resource, ?array $budget, array $items): string
+    private function renderEditor(Resource $resource, ?array $budget, array $items, array $defaults = []): string
     {
         $clients = $this->pdo->query('SELECT id, name FROM clients ORDER BY name')->fetchAll();
         $vehicles = $this->pdo->query('SELECT id, client_id, plate, model FROM vehicles ORDER BY plate')->fetchAll();
@@ -176,6 +185,7 @@ class BudgetController extends CrudController
             'resource' => $resource,
             'budget' => $budget,
             'items' => $items,
+            'defaults' => $defaults,
             'clients' => $clients,
             'vehicles' => $vehicles,
         ]);

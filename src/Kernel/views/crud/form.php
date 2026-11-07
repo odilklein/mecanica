@@ -58,16 +58,15 @@ $action = $isEdit ? $path . '/' . (int) $record['id'] : $path;
 
                         <?php elseif ($type === 'select'): ?>
                         <div class="<?= e($colClass) ?>">
-                            <label class="form-label" for="<?= e($name) ?>"><?= e($field['label']) ?><?= $required ? ' *' : '' ?></label>
-                            <div class="input-group input-group-merge">
-                                <span class="input-group-text"><i class="icon-base ti tabler-<?= e($icon) ?>"></i></span>
-                                <select class="form-select <?= $error ? 'is-invalid' : '' ?>" id="<?= e($name) ?>" name="<?= e($name) ?>">
-                                    <option value="">Selecione...</option>
-                                    <?php foreach (($selectOptions[$name] ?? []) as $optValue => $optLabel): ?>
-                                    <option value="<?= e((string) $optValue) ?>" <?= ((string) $value === (string) $optValue) ? 'selected' : '' ?>><?= e($optLabel) ?></option>
-                                    <?php endforeach; ?>
-                                </select>
-                            </div>
+                            <label class="form-label" for="<?= e($name) ?>">
+                                <i class="icon-base ti tabler-<?= e($icon) ?> me-1"></i><?= e($field['label']) ?><?= $required ? ' *' : '' ?>
+                            </label>
+                            <select class="select2 form-select <?= $error ? 'is-invalid' : '' ?>" id="<?= e($name) ?>" name="<?= e($name) ?>" data-placeholder="Selecione...">
+                                <option value=""></option>
+                                <?php foreach (($selectOptions[$name] ?? []) as $optValue => $optLabel): ?>
+                                <option value="<?= e((string) $optValue) ?>" <?= ((string) $value === (string) $optValue) ? 'selected' : '' ?>><?= e($optLabel) ?></option>
+                                <?php endforeach; ?>
+                            </select>
                             <?php if ($error): ?><div class="invalid-feedback d-block"><?= e($error) ?></div><?php endif; ?>
                             <?php if (!empty($field['help'])): ?><div class="form-text"><?= e($field['help']) ?></div><?php endif; ?>
                         </div>

@@ -36,11 +36,14 @@
             var isMultiple = $select.prop('multiple');
 
             $select.select2({
-                width: '100%',
+                width: $select.data('width') || '100%',
                 dropdownParent: $parent,
                 placeholder: $select.data('placeholder') || 'Selecione...',
                 allowClear: $select.data('allow-clear') !== false && !isMultiple,
                 closeOnSelect: !isMultiple,
+                minimumResultsForSearch: $select.data('minimum-results-for-search') === 'Infinity'
+                    ? Infinity
+                    : 0,
                 language: {
                     noResults: function () {
                         return 'Nenhum resultado encontrado';

@@ -2,8 +2,10 @@
 $path = $resource->path();
 $isEdit = $budget !== null;
 $bid = $isEdit ? (int) $budget['id'] : 0;
-$curClient = $isEdit ? (int) $budget['client_id'] : 0;
-$curVehicle = $isEdit ? (int) ($budget['vehicle_id'] ?? 0) : 0;
+$defaults = $defaults ?? [];
+$curClient = $isEdit ? (int) $budget['client_id'] : (int) ($defaults['client_id'] ?? 0);
+$curVehicle = $isEdit ? (int) ($budget['vehicle_id'] ?? 0) : (int) ($defaults['vehicle_id'] ?? 0);
+$curServiceOrder = $isEdit ? (int) ($budget['service_order_id'] ?? 0) : (int) ($defaults['service_order_id'] ?? 0);
 $itemsJson = json_encode(array_map(static function ($i) {
     return [
         'type' => $i['type'],
@@ -25,6 +27,7 @@ $vehiclesJson = json_encode($vehicles, JSON_UNESCAPED_UNICODE);
 <form method="POST" action="<?= e($path) ?>/save" id="formOrcamento">
     <input type="hidden" name="csrf_token" value="<?= e($csrf) ?>">
     <input type="hidden" name="id" value="<?= $bid ?>">
+    <input type="hidden" name="service_order_id" value="<?= $curServiceOrder ?>">
     <input type="hidden" name="items_json" id="items_json" value="[]">
 
     <div class="row g-3">

@@ -13,6 +13,12 @@ $typeLabels = [
     'part' => 'Pedido de peça',
     'os_created' => 'Nova ordem de serviço',
 ];
+$colors = [
+    'os_status' => 'bg-label-info',
+    'task' => 'bg-label-success',
+    'part' => 'bg-label-warning',
+    'os_created' => 'bg-label-primary',
+];
 ?>
 <div class="page-header">
     <div>
@@ -34,19 +40,26 @@ $typeLabels = [
             $unread = empty($row['read_at']);
             $actor = $row['created_by_name'] ?: 'Sistema';
             $recipient = $row['user_name'] ?: '—';
+            $initials = '';
+            if (preg_match_all('/\b\w/u', $actor, $m)) {
+                $initials = strtoupper(implode('', array_slice($m[0], 0, 2)));
+            }
+            $initials = $initials ?: '?';
         ?>
         <li class="list-group-item d-flex align-items-start gap-3 <?= $unread ? 'bg-label-primary' : '' ?>">
             <div class="avatar">
-                <span class="avatar-initial rounded-circle <?= $unread ? 'bg-primary' : 'bg-label-secondary' ?>">
-                    <i class="icon-base ti tabler-<?= e($icons[$row['type']] ?? 'bell') ?>"></i>
+                <span class="avatar-initial rounded-circle <?= e($colors[$row['type']] ?? 'bg-label-secondary') ?>">
+                    <?= e($initials) ?>
                 </span>
             </div>
             <div class="flex-grow-1">
                 <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
                     <span class="fw-medium">
-                        <i class="icon-base ti tabler-user icon-xs me-1 text-body-secondary"></i>
                         <?= e($actor) ?>
-                        <span class="fw-normal text-body-secondary">· <?= e($typeLabels[$row['type']] ?? 'Notificação') ?></span>
+                        <span class="fw-normal text-body-secondary">·
+                            <i class="icon-base ti tabler-<?= e($icons[$row['type']] ?? 'bell') ?> icon-xs me-1"></i>
+                            <?= e($typeLabels[$row['type']] ?? 'Notificação') ?>
+                        </span>
                     </span>
                     <small class="text-body-secondary"><?= e(date('d/m/Y H:i', strtotime($row['created_at']))) ?></small>
                 </div>
