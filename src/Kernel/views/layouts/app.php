@@ -147,16 +147,15 @@
                 <!-- Content wrapper -->
                 <div class="content-wrapper">
                     <div class="container-xxl flex-grow-1 container-p-y" id="conteudo" tabindex="-1">
-                        <?php if ($success = flash('success')): ?>
-                        <div class="alert alert-success alert-dismissible" role="alert">
-                            <?= e($success) ?>
-                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Fechar"></button>
-                        </div>
-                        <?php endif; ?>
-                        <?php if ($error = flash('error')): ?>
-                        <div class="alert alert-danger alert-dismissible" role="alert">
-                            <?= e($error) ?>
-                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Fechar"></button>
+                        <?php $flashSuccess = flash('success'); $flashError = flash('error'); ?>
+                        <?php if ($flashSuccess || $flashError): ?>
+                        <div class="toast-container position-fixed top-0 end-0 p-3" style="z-index: 1090;">
+                            <div class="toast align-items-center text-bg-<?= $flashError ? 'danger' : 'success' ?> border-0" role="alert" data-autohide="true">
+                                <div class="d-flex">
+                                    <div class="toast-body"><?= e($flashError ?: $flashSuccess) ?></div>
+                                    <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Fechar"></button>
+                                </div>
+                            </div>
                         </div>
                         <?php endif; ?>
                         <?= $content ?? '' ?>
@@ -198,6 +197,12 @@
             btn.addEventListener('click', function () {
                 window.Helpers.setTheme(btn.getAttribute('data-bs-theme-value'));
             });
+        });
+
+        document.querySelectorAll('.toast').forEach(function (t) {
+            if (window.bootstrap && bootstrap.Toast) {
+                new bootstrap.Toast(t, { delay: 5000 }).show();
+            }
         });
     </script>
 </body>
