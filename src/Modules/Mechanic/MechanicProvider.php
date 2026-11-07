@@ -38,11 +38,15 @@ class MechanicProvider implements ProviderInterface
         $router->post('/service-orders', [ServiceOrderController::class, 'store']);
         $router->get('/service-orders/{id}/edit', [ServiceOrderController::class, 'edit']);
         $router->post('/service-orders/{id}/status', [ServiceOrderController::class, 'updateStatus']);
-        $router->post('/service-orders/{id}/tasks', [TaskController::class, 'store']);
+        $router->post('/service-orders/{id}/diagnosis', [ServiceOrderController::class, 'updateDiagnosis']);
+        $router->post('/service-orders/{id}/responsible/{userId}/delete', [ServiceOrderController::class, 'removeResponsible']);
+        $router->post('/service-orders/{id}/responsible', [ServiceOrderController::class, 'assignResponsible']);
+        $router->post('/service-orders/{id}/task-status', [ServiceOrderController::class, 'updateTaskStatus']);
+        $router->post('/service-orders/{id}/tasks', [ServiceOrderController::class, 'addTask']);
+        $router->post('/service-orders/{id}/delivery', [ServiceOrderController::class, 'registerDelivery']);
         $router->post('/service-orders/{id}/delete', [ServiceOrderController::class, 'destroy']);
         $router->get('/service-orders/{id}', [ServiceOrderController::class, 'show']);
         $router->post('/service-orders/{id}', [ServiceOrderController::class, 'update']);
-        $router->post('/tasks/{id}/toggle', [TaskController::class, 'toggle']);
 
         // Pedidos de peças (CRUD genérico).
         crud_routes($router, '/part-orders', PartOrderController::class);

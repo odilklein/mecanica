@@ -17,7 +17,193 @@ class ServiceOrderController extends CrudController
         return new ServiceOrderResource();
     }
 
-    /** Página de detalhes: dados, status e tarefas. */
+    // =========================================================
+    // WIZARD (novo atendimento)
+    // =========================================================
+
+    public function create(ServerRequestInterface $request)
+    {
+        $resource = $this->resource();
+        if ($response = $this->guardRoles($resource->roles())) {
+            return $response;
+        }
+
+        $clients = $this->pdo->query('SELECT id, name, phone, city FROM clients ORDER BY name')->fetchAll();
+        $vehicles = $this->pdo->query('SELECT id, client_id, plate, brand, model, year FROM vehicles ORDER BY plate')->fetchAll();
+        $mechanics = $this->pdo->query("SELECT id, name, role FROM users WHERE is_active = 1 AND role IN ('lead_mechanic','mechanic') ORDER BY name")->fetchAll();
+        $brands = $this->pdo->query('SELECT code, name FROM fipe_brands ORDER BY name')->fetchAll();
+
+        return $this->render('mechanic::service_orders/wizard', [
+            'title' => 'Novo atendimento',
+            'resource' => $resource,
+            'clients' => $clients,
+            'vehicles' => $vehicles,
+            'mechanics' => $mechanics,
+            'brands' => $brands,
+        ]);
+    }
+
+    public function store(ServerRequestInterface $request)
+    {
+        $resource = $this->resource();
+        if ($response = $this->guardRoles($resource->roles())) {
+            return $response;
+        }
+        if ($response = $this->guardCsrf($request, $resource->path())) {
+            return $response;
+        }
+
+        $body = $request->getParsedBody();
+        $userId = $this->auth->id();
+
+        $this->pdo->beginTransaction();
+        try {
+            // Cliente: existente ou novo
+            $clientId = (int) ($body['client_id'] ?? 0);
+            if ($clientId <= 0) {
+                $name = clean($body['client_name'] ?? '');
+                if ($name === '') {
+                    throw new \RuntimeException('Informe o nome do cliente.');
+                }
+                $stmt = $this->pdo->prepare(
+                    'INSERT INTO clients (name, phone, email, zip, address, address_number, neighborhood, city, state)
+                     VALUES (:n, :p, :e, :z, :a, :an, :nb, :c, :s)'
+                );
+                $stmt->execute([
+                    ':n' => $name,
+                    ':p' => clean($body['client_phone'] ?? ''),
+                    ':e' => strtolower(clean($body['client_email'] ?? '')),
+                    ':z' => clean($body['client_zip'] ?? ''),
+                    ':a' => clean($body['client_address'] ?? ''),
+                    ':an' => clean($body['client_address_number'] ?? ''),
+                    ':nb' => clean($body['client_neighborhood'] ?? ''),
+                    ':c' => clean($body['client_city'] ?? ''),
+                    ':s' => strtoupper(clean($body['client_state'] ?? '')),
+                ]);
+                $clientId = (int) $this->pdo->lastInsertId();
+            }
+
+            // Veículo: existente ou novo
+            $vehicleId = (int) ($body['vehicle_id'] ?? 0);
+            if ($vehicleId <= 0) {
+                $plate = strtoupper(clean($body['plate'] ?? ''));
+                if ($plate === '') {
+                    throw new \RuntimeException('Informe a placa do veículo.');
+                }
+                $stmt = $this->pdo->prepare(
+                    'INSERT INTO vehicles (client_id, plate, brand, model, year, color, fipe_brand_code, fipe_model_code, fipe_year_code, fipe_year, fipe_value)
+                     VALUES (:cl, :pl, :br, :mo, :yr, :co, :fbc, :fmc, :fyc, :fy, :fv)'
+                );
+                $brandCode = clean($body['fipe_brand_code'] ?? '');
+                $modelCode = clean($body['fipe_model_code'] ?? '');
+                $brand = clean($body['brand'] ?? '');
+                $model = clean($body['model'] ?? '');
+                if ($brandCode !== '' && $brand === '') {
+                    $b = $this->pdo->prepare('SELECT name FROM fipe_brands WHERE code = :c');
+                    $b->execute([':c' => $brandCode]);
+                    $brand = (string) ($b->fetchColumn() ?: '');
+                }
+                if ($brandCode !== '' && $modelCode !== '' && $model === '') {
+                    $m = $this->pdo->prepare('SELECT m.name FROM fipe_models m JOIN fipe_brands b ON b.id = m.brand_id WHERE b.code = :b AND m.code = :m');
+                    $m->execute([':b' => $brandCode, ':m' => $modelCode]);
+                    $model = (string) ($m->fetchColumn() ?: '');
+                }
+                $stmt->execute([
+                    ':cl' => $clientId,
+                    ':pl' => $plate,
+                    ':br' => $brand,
+                    ':mo' => $model,
+                    ':yr' => (int) ($body['year'] ?? 0) ?: null,
+                    ':co' => clean($body['color'] ?? ''),
+                    ':fbc' => $brandCode,
+                    ':fmc' => $modelCode,
+                    ':fyc' => clean($body['fipe_year_code'] ?? ''),
+                    ':fy' => (int) ($body['fipe_year'] ?? 0) ?: null,
+                    ':fv' => ($body['fipe_value'] ?? '') !== '' ? (float) $body['fipe_value'] : null,
+                ]);
+                $vehicleId = (int) $this->pdo->lastInsertId();
+            }
+
+            $mechanics = array_values(array_filter(array_map('intval', (array) ($body['mechanics'] ?? []))));
+            $lead = (int) ($body['lead_mechanic_id'] ?? 0) ?: ($mechanics[0] ?? null);
+
+            // OS
+            $number = (int) $this->pdo->query('SELECT COALESCE(MAX(number), 0) + 1 FROM service_orders')->fetchColumn();
+            $stmt = $this->pdo->prepare(
+                'INSERT INTO service_orders (number, client_id, vehicle_id, status, priority, initial_complaint, internal_notes, diagnosis, entry_date, lead_mechanic_id, created_by)
+                 VALUES (:num, :cl, :ve, :st, :pr, :ic, :inotes, :diag, :ed, :lead, :cb)'
+            );
+            $stmt->execute([
+                ':num' => $number,
+                ':cl' => $clientId,
+                ':ve' => $vehicleId,
+                ':st' => 'received',
+                ':pr' => clean($body['priority'] ?? 'normal'),
+                ':ic' => clean($body['initial_complaint'] ?? ''),
+                ':inotes' => clean($body['internal_notes'] ?? ''),
+                ':diag' => clean($body['diagnosis'] ?? ''),
+                ':ed' => date('Y-m-d'),
+                ':lead' => $lead,
+                ':cb' => $userId,
+            ]);
+            $orderId = (int) $this->pdo->lastInsertId();
+
+            // Tarefas
+            $tasks = json_decode((string) ($body['tasks_json'] ?? '[]'), true) ?: [];
+            $taskStmt = $this->pdo->prepare('INSERT INTO service_order_tasks (order_id, description, created_by) VALUES (:o, :d, :u)');
+            foreach ($tasks as $task) {
+                $desc = trim((string) $task);
+                if ($desc !== '') {
+                    $taskStmt->execute([':o' => $orderId, ':d' => mb_substr($desc, 0, 255), ':u' => $userId]);
+                }
+            }
+
+            // Peças → pedido de peças com itens
+            $parts = json_decode((string) ($body['parts_json'] ?? '[]'), true) ?: [];
+            if ($parts) {
+                $this->pdo->prepare("INSERT INTO part_orders (service_order_id, status, created_by) VALUES (:o, 'requested', :u)")
+                    ->execute([':o' => $orderId, ':u' => $userId]);
+                $partOrderId = (int) $this->pdo->lastInsertId();
+                $itemStmt = $this->pdo->prepare('INSERT INTO part_order_items (part_order_id, description, quantity) VALUES (:p, :d, :q)');
+                foreach ($parts as $part) {
+                    $desc = trim((string) (is_array($part) ? ($part['description'] ?? '') : $part));
+                    $qty = is_array($part) ? max(1, (int) ($part['quantity'] ?? 1)) : 1;
+                    if ($desc !== '') {
+                        $itemStmt->execute([':p' => $partOrderId, ':d' => mb_substr($desc, 0, 200), ':q' => $qty]);
+                    }
+                }
+            }
+
+            // Responsáveis
+            $respStmt = $this->pdo->prepare('INSERT IGNORE INTO service_order_responsibles (order_id, user_id) VALUES (:o, :u)');
+            foreach ($mechanics as $mechanicId) {
+                $respStmt->execute([':o' => $orderId, ':u' => $mechanicId]);
+            }
+
+            // Evento inicial
+            $this->pdo->prepare('INSERT INTO service_order_events (order_id, type, description, created_by) VALUES (:o, :t, :d, :u)')
+                ->execute([':o' => $orderId, ':t' => 'created', ':d' => 'OS criada.', ':u' => $userId]);
+
+            $this->pdo->commit();
+
+            if ($mechanics) {
+                Notify::to($this->pdo, $mechanics, 'os_created', 'Você foi designado para a OS #' . str_pad((string) $number, 4, '0', STR_PAD_LEFT) . '.', '/service-orders/' . $orderId);
+            }
+
+            $this->session->flash('success', 'OS #' . str_pad((string) $number, 4, '0', STR_PAD_LEFT) . ' criada com sucesso.');
+            return redirect($resource->path() . '/' . $orderId);
+        } catch (\Throwable $e) {
+            $this->pdo->rollBack();
+            error_log('Wizard OS: ' . $e->getMessage());
+            $this->session->flash('error', 'Não foi possível criar a OS: ' . $e->getMessage());
+            return redirect($resource->path() . '/create');
+        }
+    }
+
+    // =========================================================
+    // DETALHES
+    // =========================================================
+
     public function show(ServerRequestInterface $request, $id)
     {
         $resource = $this->resource();
@@ -31,19 +217,51 @@ class ServiceOrderController extends CrudController
             return redirect($resource->path());
         }
 
-        $tasks = $this->pdo->prepare('SELECT * FROM service_order_tasks WHERE order_id = :id ORDER BY id');
+        $tasks = $this->pdo->prepare('SELECT t.*, u.name AS creator FROM service_order_tasks t LEFT JOIN users u ON u.id = t.created_by WHERE t.order_id = :id ORDER BY t.id');
         $tasks->execute([':id' => (int) $id]);
+
+        $responsibles = $this->pdo->prepare('SELECT r.*, u.name, u.role FROM service_order_responsibles r JOIN users u ON u.id = r.user_id WHERE r.order_id = :id ORDER BY u.name');
+        $responsibles->execute([':id' => (int) $id]);
+
+        $events = $this->pdo->prepare('SELECT e.*, u.name AS author FROM service_order_events e LEFT JOIN users u ON u.id = e.created_by WHERE e.order_id = :id ORDER BY e.id DESC');
+        $events->execute([':id' => (int) $id]);
+
+        $parts = $this->pdo->prepare(
+            'SELECT p.*, GROUP_CONCAT(i.description SEPARATOR ", ") AS items
+               FROM part_orders p LEFT JOIN part_order_items i ON i.part_order_id = p.id
+              WHERE p.service_order_id = :id GROUP BY p.id ORDER BY p.id DESC'
+        );
+        $parts->execute([':id' => (int) $id]);
+
+        $delivery = $this->pdo->prepare('SELECT * FROM service_order_deliveries WHERE order_id = :id ORDER BY id DESC LIMIT 1');
+        $delivery->execute([':id' => (int) $id]);
+
+        $mechanics = $this->pdo->query("SELECT id, name, role FROM users WHERE is_active = 1 AND role IN ('lead_mechanic','mechanic') ORDER BY name")->fetchAll();
+
+        $statusAvailable = array_values(array_unique(array_merge(
+            [$order['status']],
+            array_diff(ServiceOrderStatus::next((string) $order['status']), ['delivered'])
+        )));
 
         return $this->render('mechanic::service_orders/show', [
             'title' => 'OS #' . str_pad((string) $order['number'], 4, '0', STR_PAD_LEFT),
             'resource' => $resource,
             'order' => $order,
             'tasks' => $tasks->fetchAll(),
+            'responsibles' => $responsibles->fetchAll(),
+            'events' => $events->fetchAll(),
+            'parts' => $parts->fetchAll(),
+            'delivery' => $delivery->fetch() ?: null,
+            'mechanics' => $mechanics,
             'statuses' => ServiceOrderStatus::STATUSES,
+            'statusAvailable' => $statusAvailable,
         ]);
     }
 
-    /** Altera o status da OS. */
+    // =========================================================
+    // AÇÕES
+    // =========================================================
+
     public function updateStatus(ServerRequestInterface $request, $id)
     {
         $resource = $this->resource();
@@ -61,8 +279,10 @@ class ServiceOrderController extends CrudController
         }
 
         $completion = $status === 'delivered' ? date('Y-m-d') : null;
-        $stmt = $this->pdo->prepare('UPDATE service_orders SET status = :s, completion_date = :c WHERE id = :id');
-        $stmt->execute([':s' => $status, ':c' => $completion, ':id' => (int) $id]);
+        $this->pdo->prepare('UPDATE service_orders SET status = :s, completion_date = :c WHERE id = :id')
+            ->execute([':s' => $status, ':c' => $completion, ':id' => (int) $id]);
+
+        $this->event((int) $id, 'status', 'Status alterado para "' . ServiceOrderStatus::label($status) . '".');
 
         $order = $this->findOrder((int) $id);
         if ($order) {
@@ -71,25 +291,147 @@ class ServiceOrderController extends CrudController
                 (int) ($order['created_by'] ?? 0),
                 (int) ($this->auth->id() ?? 0),
             ]);
-            Notify::to(
-                $this->pdo,
-                $recipients,
-                'os_status',
-                'OS #' . str_pad((string) $order['number'], 4, '0', STR_PAD_LEFT)
-                    . ' mudou para "' . ServiceOrderStatus::label($status) . '".',
-                '/service-orders/' . (int) $id
-            );
+            Notify::to($this->pdo, $recipients, 'os_status', 'OS #' . str_pad((string) $order['number'], 4, '0', STR_PAD_LEFT) . ' mudou para "' . ServiceOrderStatus::label($status) . '".', '/service-orders/' . (int) $id);
         }
 
         $this->session->flash('success', 'Status atualizado para "' . ServiceOrderStatus::label($status) . '".');
         return redirect($resource->path() . '/' . (int) $id);
     }
 
+    public function updateDiagnosis(ServerRequestInterface $request, $id)
+    {
+        $resource = $this->resource();
+        if ($response = $this->guardRoles($resource->roles())) {
+            return $response;
+        }
+        if ($response = $this->guardCsrf($request, $resource->path() . '/' . (int) $id)) {
+            return $response;
+        }
+
+        $body = $request->getParsedBody();
+        $this->pdo->prepare('UPDATE service_orders SET diagnosis = :d, internal_notes = :n WHERE id = :id')
+            ->execute([':d' => clean($body['diagnosis'] ?? ''), ':n' => clean($body['internal_notes'] ?? ''), ':id' => (int) $id]);
+
+        $this->event((int) $id, 'diagnosis', 'Diagnóstico atualizado.');
+        $this->session->flash('success', 'Diagnóstico salvo.');
+        return redirect($resource->path() . '/' . (int) $id);
+    }
+
+    public function assignResponsible(ServerRequestInterface $request, $id)
+    {
+        $resource = $this->resource();
+        if ($response = $this->guardRoles(['admin', 'secretary', 'lead_mechanic'])) {
+            return $response;
+        }
+        if ($response = $this->guardCsrf($request, $resource->path() . '/' . (int) $id)) {
+            return $response;
+        }
+
+        $userId = (int) ($request->getParsedBody()['user_id'] ?? 0);
+        if ($userId > 0) {
+            $this->pdo->prepare('INSERT IGNORE INTO service_order_responsibles (order_id, user_id) VALUES (:o, :u)')
+                ->execute([':o' => (int) $id, ':u' => $userId]);
+            $this->event((int) $id, 'responsible', 'Mecânico designado.');
+            Notify::to($this->pdo, [$userId], 'os_created', 'Você foi designado para uma OS.', '/service-orders/' . (int) $id);
+        }
+
+        return redirect($resource->path() . '/' . (int) $id);
+    }
+
+    public function removeResponsible(ServerRequestInterface $request, $id, $userId)
+    {
+        $resource = $this->resource();
+        if ($response = $this->guardRoles(['admin', 'secretary', 'lead_mechanic'])) {
+            return $response;
+        }
+        if ($response = $this->guardCsrf($request, $resource->path() . '/' . (int) $id)) {
+            return $response;
+        }
+
+        $this->pdo->prepare('DELETE FROM service_order_responsibles WHERE order_id = :o AND user_id = :u')
+            ->execute([':o' => (int) $id, ':u' => (int) $userId]);
+
+        return redirect($resource->path() . '/' . (int) $id);
+    }
+
+    public function addTask(ServerRequestInterface $request, $id)
+    {
+        $resource = $this->resource();
+        if ($response = $this->guardRoles($resource->roles())) {
+            return $response;
+        }
+        if ($response = $this->guardCsrf($request, $resource->path() . '/' . (int) $id)) {
+            return $response;
+        }
+
+        $desc = clean($request->getParsedBody()['description'] ?? '');
+        if ($desc !== '') {
+            $this->pdo->prepare('INSERT INTO service_order_tasks (order_id, description, created_by) VALUES (:o, :d, :u)')
+                ->execute([':o' => (int) $id, ':d' => mb_substr($desc, 0, 255), ':u' => $this->auth->id()]);
+            $this->event((int) $id, 'task', 'Tarefa adicionada: ' . mb_substr($desc, 0, 120));
+        }
+
+        return redirect($resource->path() . '/' . (int) $id);
+    }
+
+    public function updateTaskStatus(ServerRequestInterface $request, $id)
+    {
+        $resource = $this->resource();
+        if ($response = $this->guardRoles($resource->roles())) {
+            return $response;
+        }
+        if ($response = $this->guardCsrf($request, $resource->path() . '/' . (int) $id)) {
+            return $response;
+        }
+
+        $taskId = (int) ($request->getParsedBody()['task_id'] ?? 0);
+        $status = (string) ($request->getParsedBody()['task_status'] ?? '');
+        if ($taskId > 0 && in_array($status, ['pending', 'in_progress', 'done'], true)) {
+            $this->pdo->prepare('UPDATE service_order_tasks SET status = :s WHERE id = :id AND order_id = :o')
+                ->execute([':s' => $status, ':id' => $taskId, ':o' => (int) $id]);
+        }
+
+        return redirect($resource->path() . '/' . (int) $id);
+    }
+
+    public function registerDelivery(ServerRequestInterface $request, $id)
+    {
+        $resource = $this->resource();
+        if ($response = $this->guardRoles(['admin', 'secretary', 'lead_mechanic'])) {
+            return $response;
+        }
+        if ($response = $this->guardCsrf($request, $resource->path() . '/' . (int) $id)) {
+            return $response;
+        }
+
+        $body = $request->getParsedBody();
+        $this->pdo->prepare(
+            'INSERT INTO service_order_deliveries (order_id, modality, responsible, destination, exit_km)
+             VALUES (:o, :m, :r, :d, :km)'
+        )->execute([
+            ':o' => (int) $id,
+            ':m' => ($body['modality'] ?? 'pickup') === 'delivery' ? 'delivery' : 'pickup',
+            ':r' => clean($body['responsible'] ?? ''),
+            ':d' => clean($body['destination'] ?? ''),
+            ':km' => (int) ($body['exit_km'] ?? 0) ?: null,
+        ]);
+
+        $this->event((int) $id, 'delivery', 'Entrega/retirada registrada.');
+        $this->session->flash('success', 'Entrega registrada.');
+        return redirect($resource->path() . '/' . (int) $id);
+    }
+
+    private function event(int $orderId, string $type, string $description): void
+    {
+        $this->pdo->prepare('INSERT INTO service_order_events (order_id, type, description, created_by) VALUES (:o, :t, :d, :u)')
+            ->execute([':o' => $orderId, ':t' => $type, ':d' => mb_substr($description, 0, 255), ':u' => $this->auth->id()]);
+    }
+
     private function findOrder(int $id): ?array
     {
         $stmt = $this->pdo->prepare(
-            'SELECT so.*, c.name AS client_name, c.phone AS client_phone,
-                    v.plate AS vehicle_plate, v.model AS vehicle_model, v.brand AS vehicle_brand,
+            'SELECT so.*, c.name AS client_name, c.phone AS client_phone, c.email AS client_email,
+                    v.plate AS vehicle_plate, v.model AS vehicle_model, v.brand AS vehicle_brand, v.year AS vehicle_year,
                     u.name AS lead_mechanic
                FROM service_orders so
                LEFT JOIN clients c ON c.id = so.client_id

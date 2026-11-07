@@ -63,4 +63,20 @@ class ServiceOrderStatus
         ];
         return $map[$priority] ?? 'bg-label-secondary';
     }
+
+    /** Próximos status válidos a partir do atual. */
+    public static function next(string $status): array
+    {
+        $flow = [
+            'received' => ['in_analysis', 'cancelled'],
+            'in_analysis' => ['awaiting_approval', 'in_progress', 'cancelled'],
+            'awaiting_approval' => ['awaiting_part', 'in_progress', 'cancelled'],
+            'awaiting_part' => ['in_progress', 'cancelled'],
+            'in_progress' => ['ready_for_delivery', 'cancelled'],
+            'ready_for_delivery' => ['delivered', 'cancelled'],
+            'delivered' => [],
+            'cancelled' => [],
+        ];
+        return $flow[$status] ?? [];
+    }
 }
