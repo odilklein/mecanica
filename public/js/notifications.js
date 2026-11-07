@@ -71,6 +71,8 @@
             var meta = TYPE_META[n.type] || { label: 'Notificação', icon: 'bell', color: 'bg-label-secondary' };
             var unread = !n.read_at;
             var href = n.link || '';
+            var actor = n.created_by_name || n.user_name || 'Sistema';
+            var recipient = n.user_name || '';
             var subtitle = n.message
                 ? esc(n.message)
                 : (href ? '<a href="' + esc(href) + '">Abrir detalhes</a>' : '');
@@ -88,9 +90,16 @@
                 + '</div>'
                 + '</div>'
                 + '<div class="flex-grow-1">'
-                + '<h6 class="mb-1 small">' + esc(meta.label) + '</h6>'
+                + '<h6 class="mb-1 small">'
+                + '<i class="icon-base ti tabler-user icon-xs me-1 text-body-secondary"></i>'
+                + '<span class="fw-medium">' + esc(actor) + '</span>'
+                + '<span class="fw-normal text-body-secondary"> · ' + esc(meta.label) + '</span>'
+                + '</h6>'
                 + '<small class="mb-1 d-block text-body">' + subtitle + '</small>'
-                + '<small class="text-body-secondary">' + esc(timeAgo(n.created_at)) + '</small>'
+                + '<small class="text-body-secondary">'
+                + (recipient ? 'Para ' + esc(recipient) + ' · ' : '')
+                + esc(timeAgo(n.created_at))
+                + '</small>'
                 + '</div>'
                 + '<div class="flex-shrink-0 dropdown-notifications-actions">'
                 + '<a href="javascript:void(0)" class="dropdown-notifications-read" title="Marcar como lida">'

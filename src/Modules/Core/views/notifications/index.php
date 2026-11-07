@@ -7,6 +7,12 @@ $icons = [
     'part' => 'package',
     'os_created' => 'clipboard-plus',
 ];
+$typeLabels = [
+    'os_status' => 'Ordem de serviço',
+    'task' => 'Tarefa',
+    'part' => 'Pedido de peça',
+    'os_created' => 'Nova ordem de serviço',
+];
 ?>
 <div class="page-header">
     <div>
@@ -24,7 +30,11 @@ $icons = [
 <div class="card">
     <ul class="list-group list-group-flush">
         <?php foreach ($items as $row): ?>
-        <?php $unread = empty($row['read_at']); ?>
+        <?php
+            $unread = empty($row['read_at']);
+            $actor = $row['created_by_name'] ?: 'Sistema';
+            $recipient = $row['user_name'] ?: '—';
+        ?>
         <li class="list-group-item d-flex align-items-start gap-3 <?= $unread ? 'bg-label-primary' : '' ?>">
             <div class="avatar">
                 <span class="avatar-initial rounded-circle <?= $unread ? 'bg-primary' : 'bg-label-secondary' ?>">
@@ -33,10 +43,18 @@ $icons = [
             </div>
             <div class="flex-grow-1">
                 <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
-                    <span class="fw-medium"><?= e($row['message']) ?></span>
+                    <span class="fw-medium">
+                        <i class="icon-base ti tabler-user icon-xs me-1 text-body-secondary"></i>
+                        <?= e($actor) ?>
+                        <span class="fw-normal text-body-secondary">· <?= e($typeLabels[$row['type']] ?? 'Notificação') ?></span>
+                    </span>
                     <small class="text-body-secondary"><?= e(date('d/m/Y H:i', strtotime($row['created_at']))) ?></small>
                 </div>
-                <div class="d-flex align-items-center gap-3 mt-1">
+                <p class="mb-2 mt-1"><?= e($row['message']) ?></p>
+                <div class="d-flex align-items-center gap-3 flex-wrap">
+                    <small class="text-body-secondary">
+                        <i class="icon-base ti tabler-user-check icon-xs me-1"></i>Para: <?= e($recipient) ?>
+                    </small>
                     <?php if (!empty($row['link'])): ?>
                     <a href="<?= e($row['link']) ?>" class="small"><i class="icon-base ti tabler-external-link me-1"></i>Abrir</a>
                     <?php endif; ?>

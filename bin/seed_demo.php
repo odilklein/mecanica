@@ -440,12 +440,18 @@ try {
 
     foreach (array_slice($osIds, 0, 12) as $n => $orderId) {
         $userId = $notifUsers[$n % count($notifUsers)];
+        $notifType = $notifTypes[$n % count($notifTypes)];
+        $creatorId = $notifType === 'os_created'
+            ? $adminId
+            : $mechanicIds[$n % count($mechanicIds)];
+
         q(
             $pdo,
-            'INSERT INTO notifications (user_id, type, message, link, read_at, created_at) VALUES (?, ?, ?, ?, ?, ?)',
+            'INSERT INTO notifications (user_id, created_by, type, message, link, read_at, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)',
             [
                 $userId,
-                $notifTypes[$n % count($notifTypes)],
+                $creatorId,
+                $notifType,
                 $notifMessages[$n % count($notifMessages)] . ' (OS #' . ($nextOs + ($n % $osCount)) . ')',
                 '/service-orders/' . $orderId,
                 $n % 3 === 0 ? $now->modify('-1 hour')->format('Y-m-d H:i:s') : null,

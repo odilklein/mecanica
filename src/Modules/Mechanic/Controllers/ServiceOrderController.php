@@ -200,7 +200,7 @@ class ServiceOrderController extends CrudController
             $this->pdo->commit();
 
             if ($mechanics) {
-                Notify::to($this->pdo, $mechanics, 'os_created', 'Você foi designado para a OS #' . str_pad((string) $number, 4, '0', STR_PAD_LEFT) . '.', '/service-orders/' . $orderId);
+                Notify::to($this->pdo, $mechanics, 'os_created', 'Você foi designado para a OS #' . str_pad((string) $number, 4, '0', STR_PAD_LEFT) . '.', '/service-orders/' . $orderId, $userId);
             }
 
             $this->session->flash('success', 'OS #' . str_pad((string) $number, 4, '0', STR_PAD_LEFT) . ' criada com sucesso.');
@@ -304,7 +304,7 @@ class ServiceOrderController extends CrudController
                 (int) ($order['created_by'] ?? 0),
                 (int) ($this->auth->id() ?? 0),
             ]);
-            Notify::to($this->pdo, $recipients, 'os_status', 'OS #' . str_pad((string) $order['number'], 4, '0', STR_PAD_LEFT) . ' mudou para "' . ServiceOrderStatus::label($status) . '".', '/service-orders/' . (int) $id);
+            Notify::to($this->pdo, $recipients, 'os_status', 'OS #' . str_pad((string) $order['number'], 4, '0', STR_PAD_LEFT) . ' mudou para "' . ServiceOrderStatus::label($status) . '".', '/service-orders/' . (int) $id, $this->auth->id());
         }
 
         $this->session->flash('success', 'Status atualizado para "' . ServiceOrderStatus::label($status) . '".');
@@ -345,7 +345,7 @@ class ServiceOrderController extends CrudController
             $this->pdo->prepare('INSERT IGNORE INTO service_order_responsibles (order_id, user_id) VALUES (:o, :u)')
                 ->execute([':o' => (int) $id, ':u' => $userId]);
             $this->event((int) $id, 'responsible', 'Mecânico designado.');
-            Notify::to($this->pdo, [$userId], 'os_created', 'Você foi designado para uma OS.', '/service-orders/' . (int) $id);
+            Notify::to($this->pdo, [$userId], 'os_created', 'Você foi designado para uma OS.', '/service-orders/' . (int) $id, $this->auth->id());
         }
 
         return redirect($resource->path() . '/' . (int) $id);

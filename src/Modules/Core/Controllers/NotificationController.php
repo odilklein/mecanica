@@ -40,7 +40,13 @@ class NotificationController extends Controller
         $offset = ($page - 1) * $perPage;
 
         $stmt = $this->pdo->prepare(
-            "SELECT * FROM notifications WHERE user_id = :u ORDER BY id DESC LIMIT {$perPage} OFFSET {$offset}"
+            "SELECT n.*, u.name AS user_name, cb.name AS created_by_name
+               FROM notifications n
+               LEFT JOIN users u ON u.id = n.user_id
+               LEFT JOIN users cb ON cb.id = n.created_by
+              WHERE n.user_id = :u
+              ORDER BY n.id DESC
+              LIMIT {$perPage} OFFSET {$offset}"
         );
         $stmt->execute([':u' => $userId]);
 
@@ -111,7 +117,16 @@ class NotificationController extends Controller
         $count->execute([':u' => $userId]);
         $unread = (int) $count->fetchColumn();
 
-        $items = $this->pdo->prepare('SELECT id, type, message, link, read_at, created_at FROM notifications WHERE user_id = :u ORDER BY id DESC LIMIT 8');
+        $items = $this->pdo->prepare(
+            'SELECT n.id, n.user_id, n.created_by, n.type, n.message, n.link, n.read_at, n.created_at,
+                    u.name AS user_name, cb.name AS created_by_name
+               FROM notifications n
+               LEFT JOIN users u ON u.id = n.user_id
+               LEFT JOIN users cb ON cb.id = n.created_by
+              WHERE n.user_id = :u
+              ORDER BY n.id DESC
+              LIMIT 8'
+        );
         $items->execute([':u' => $userId]);
 
         return json_response(['unread' => $unread, 'items' => $items->fetchAll()]);
