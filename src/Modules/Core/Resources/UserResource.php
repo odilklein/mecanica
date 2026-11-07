@@ -32,6 +32,12 @@ class UserResource extends Resource
         return ['admin', 'secretary', 'lead_mechanic'];
     }
 
+    /** Listagem em DataTables (Fixed Header) do Vuexy. */
+    public function indexView(): string
+    {
+        return 'core::users/index';
+    }
+
     public function columns(): array
     {
         return [

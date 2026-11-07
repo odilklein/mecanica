@@ -22,6 +22,10 @@
 
     <script src="/assets/vendor/js/helpers.js"></script>
     <script src="/assets/js/config.js"></script>
+
+    <?php foreach (($pageStyles ?? []) as $style): ?>
+    <link rel="stylesheet" href="<?= e($style) ?>">
+    <?php endforeach; ?>
 </head>
 <body>
     <?php $currentPath = parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH) ?: '/'; ?>
@@ -191,6 +195,10 @@
     <script src="/js/masks.js"></script>
     <script src="/js/viacep.js"></script>
     <script src="/js/notifications.js"></script>
+
+    <?php foreach (($pageScripts ?? []) as $script): ?>
+    <script src="<?= e($script) ?>"></script>
+    <?php endforeach; ?>
 
     <script>
         document.querySelectorAll('[data-bs-theme-value]').forEach(function (btn) {
