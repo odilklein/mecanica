@@ -345,6 +345,116 @@
             new DataTable.FixedHeader(dt);
         }
 
+        // Filtros por coluna (ex.: categoria/marca)
+        bindFilters(dt, cfg.filters || []);
+
+        function bindFilters(tableApi, filters) {
+            if (!filters.length) {
+                return;
+            }
+
+            var $ = window.jQuery;
+            var active = {};
+            var populated = false;
+
+            DataTable.ext.search.push(function (settings, data, dataIndex) {
+                if (settings.nTable !== table) {
+                    return true;
+                }
+                var row = tableApi.row(dataIndex).data() || {};
+                for (var field in active) {
+                    if (active[field] && String(row[field] == null ? '' : row[field]) !== active[field]) {
+                        return false;
+                    }
+                }
+                return true;
+            });
+
+            function populate() {
+                var rows = tableApi.rows().data().toArray();
+
+                filters.forEach(function (filter) {
+                    var select = document.querySelector('[data-dt-filter="' + filter.field + '"]');
+                    if (!select) {
+                        return;
+                    }
+
+                    var values = {};
+                    rows.forEach(function (row) {
+                        var value = row[filter.field];
+                        if (value !== null && value !== undefined && String(value).trim() !== '') {
+                            values[String(value)] = true;
+                        }
+                    });
+
+                    var sorted = Object.keys(values).sort(function (a, b) {
+                        return a.localeCompare(b, 'pt-BR');
+                    });
+
+                    select.innerHTML = '<option value=""></option>';
+                    sorted.forEach(function (value) {
+                        var opt = document.createElement('option');
+                        opt.value = value;
+                        opt.textContent = value;
+                        select.appendChild(opt);
+                    });
+
+                    if ($ && $(select).data('select2')) {
+                        $(select).trigger('change.select2');
+                    }
+                });
+
+                populated = true;
+            }
+
+            function apply() {
+                filters.forEach(function (filter) {
+                    var select = document.querySelector('[data-dt-filter="' + filter.field + '"]');
+                    active[filter.field] = select ? select.value : '';
+                });
+                tableApi.draw();
+            }
+
+            filters.forEach(function (filter) {
+                var select = document.querySelector('[data-dt-filter="' + filter.field + '"]');
+                if (!select) {
+                    return;
+                }
+                if ($) {
+                    $(select).on('change', apply);
+                } else {
+                    select.addEventListener('change', apply);
+                }
+            });
+
+            var clearBtn = document.getElementById('dtClearFilters');
+            if (clearBtn) {
+                clearBtn.addEventListener('click', function () {
+                    filters.forEach(function (filter) {
+                        var select = document.querySelector('[data-dt-filter="' + filter.field + '"]');
+                        if (select) {
+                            select.value = '';
+                            if ($) {
+                                $(select).trigger('change.select2');
+                            }
+                        }
+                        active[filter.field] = '';
+                    });
+                    tableApi.draw();
+                });
+            }
+
+            tableApi.on('draw', function () {
+                if (!populated) {
+                    populate();
+                }
+            });
+
+            if (tableApi.rows().count() > 0) {
+                populate();
+            }
+        }
+
         // Exclusão (POST com CSRF, mantendo o padrão do sistema)
         document.addEventListener('click', function (e) {
             var target = e.target.closest('.delete-record');

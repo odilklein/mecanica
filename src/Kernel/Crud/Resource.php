@@ -90,6 +90,15 @@ abstract class Resource
     }
 
     /**
+     * Filtros exibidos acima da listagem. Cada item:
+     * ['field' => 'category', 'label' => 'Categoria'].
+     */
+    public function datatableFilters(): array
+    {
+        return [];
+    }
+
+    /**
      * Linhas exibidas na listagem. O DataTables pagina/ordena no cliente,
      * por isso o endpoint devolve todas as linhas.
      */

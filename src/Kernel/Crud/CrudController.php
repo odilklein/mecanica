@@ -51,6 +51,7 @@ abstract class CrudController extends Controller
                 'newLabel' => $resource->datatableNewLabel(),
                 'columns' => $resource->datatableColumns(),
                 'order' => $resource->datatableOrder(),
+                'filters' => $resource->datatableFilters(),
                 'labels' => $resource->labels(),
             ],
             'pageStyles' => [

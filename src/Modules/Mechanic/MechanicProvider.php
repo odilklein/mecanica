@@ -17,6 +17,7 @@ use Modules\Mechanic\Controllers\BudgetController;
 use Modules\Mechanic\Controllers\PartOrderController;
 use Modules\Mechanic\Controllers\ReportController;
 use Modules\Mechanic\Controllers\ServiceOrderController;
+use Modules\Mechanic\Controllers\ServiceOrderChatController;
 use Modules\Mechanic\Controllers\TaskController;
 use Modules\Mechanic\Controllers\VehicleController;
 use Modules\Mechanic\Controllers\PartsController;
@@ -55,6 +56,8 @@ class MechanicProvider implements ProviderInterface
         $router->post('/service-orders/{id}/task-status', [ServiceOrderController::class, 'updateTaskStatus']);
         $router->post('/service-orders/{id}/tasks', [ServiceOrderController::class, 'addTask']);
         $router->post('/service-orders/{id}/delivery', [ServiceOrderController::class, 'registerDelivery']);
+        $router->get('/service-orders/{id}/messages', [ServiceOrderChatController::class, 'index']);
+        $router->post('/service-orders/{id}/messages', [ServiceOrderChatController::class, 'store']);
         $router->post('/service-orders/{id}/delete', [ServiceOrderController::class, 'destroy']);
         $router->get('/service-orders/{id}', [ServiceOrderController::class, 'show']);
         $router->post('/service-orders/{id}', [ServiceOrderController::class, 'update']);

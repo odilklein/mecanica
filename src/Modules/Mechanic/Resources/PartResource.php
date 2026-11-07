@@ -47,6 +47,14 @@ class PartResource extends Resource
         return [[3, 'asc']];
     }
 
+    public function datatableFilters(): array
+    {
+        return [
+            ['field' => 'category', 'label' => 'Categoria'],
+            ['field' => 'brand', 'label' => 'Marca'],
+        ];
+    }
+
     public function columns(): array
     {
         return [
@@ -55,7 +63,6 @@ class PartResource extends Resource
             ['field' => 'part_code', 'label' => 'Código'],
             ['field' => 'category', 'label' => 'Categoria'],
             ['field' => 'price', 'label' => 'Preço'],
-            ['field' => 'is_active', 'label' => 'Situação'],
         ];
     }
 
@@ -76,16 +83,6 @@ class PartResource extends Resource
             ['title' => 'Código', 'data' => 'part_code', 'render' => 'text', 'priority' => 6],
             ['title' => 'Categoria', 'data' => 'category', 'render' => 'text', 'priority' => 7],
             ['title' => 'Preço', 'data' => 'price', 'render' => 'money', 'priority' => 8],
-            [
-                'title' => 'Situação',
-                'data' => 'status',
-                'render' => 'badge',
-                'badge' => [
-                    1 => ['label' => 'Ativa', 'class' => 'bg-label-success'],
-                    0 => ['label' => 'Inativa', 'class' => 'bg-label-secondary'],
-                ],
-                'priority' => 4,
-            ],
             $this->dtActionsColumn([
                 ['label' => 'Editar', 'icon' => 'pencil', 'href' => $this->path() . '/{id}/edit', 'primary' => true],
                 ['label' => 'Excluir', 'icon' => 'trash', 'delete' => true],
@@ -96,7 +93,6 @@ class PartResource extends Resource
     public function datatableRow(array $row): array
     {
         $row['subtitle'] = trim(($row['brand'] ?? '') . (($row['part_code'] ?? '') ? ' · ' . $row['part_code'] : ''));
-        $row['status'] = (int) $row['is_active'];
         return $row;
     }
 
@@ -108,7 +104,6 @@ class PartResource extends Resource
             ['name' => 'part_code', 'label' => 'Código', 'type' => 'text', 'icon' => 'barcode', 'max' => 80, 'col' => 'col-md-4', 'placeholder' => 'Ex.: N1728'],
             ['name' => 'category', 'label' => 'Categoria', 'type' => 'text', 'icon' => 'category', 'max' => 120, 'col' => 'col-md-4', 'placeholder' => 'Ex.: Freios'],
             ['name' => 'price', 'label' => 'Preço de referência (R$)', 'type' => 'number', 'icon' => 'currency-real', 'min' => 0, 'step' => '0.01', 'col' => 'col-md-4'],
-            ['name' => 'is_active', 'label' => 'Peça ativa', 'type' => 'boolean', 'icon' => 'toggle-right', 'col' => 'col-12'],
         ];
     }
 }

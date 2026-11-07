@@ -6,9 +6,10 @@ $action = $isEdit ? $path . '/' . (int) $record['id'] : $path;
 $opts = $selectOptions ?? [];
 
 $select = static function (string $name, string $label, string $icon, array $options, $value, string $col, bool $required = false): string {
+    $priorityClass = $name === 'priority' ? ' select2-priority' : '';
     $html = '<div class="' . e($col) . '">';
     $html .= '<label class="form-label" for="' . e($name) . '">' . e($label) . ($required ? ' *' : '') . '</label>';
-    $html .= '<select class="select2 form-select" id="' . e($name) . '" name="' . e($name) . '" data-placeholder="Selecione...">';
+    $html .= '<select class="select2 form-select' . $priorityClass . '" id="' . e($name) . '" name="' . e($name) . '" data-placeholder="Selecione...">';
     $html .= '<option value=""></option>';
     foreach ($options as $ov => $ol) {
         $selected = ((string) $value === (string) $ov) ? ' selected' : '';

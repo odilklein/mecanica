@@ -8,6 +8,7 @@ use Kernel\Crud\Resource;
 use Modules\Core\Support\Notify;
 use Modules\Mechanic\Resources\ServiceOrderResource;
 use Modules\Mechanic\Support\ServiceOrderStatus;
+use Modules\Mechanic\Support\ServiceOrderChat;
 use Psr\Http\Message\ServerRequestInterface;
 
 class ServiceOrderController extends CrudController
@@ -42,9 +43,11 @@ class ServiceOrderController extends CrudController
             'brands' => $brands,
             'pageStyles' => array_merge($resource->formStyles(), [
                 '/assets/vendor/libs/bs-stepper/bs-stepper.css',
+                '/assets/vendor/libs/nouislider/nouislider.css',
             ]),
             'pageScripts' => array_merge($resource->formScripts(), [
                 '/assets/vendor/libs/bs-stepper/bs-stepper.js',
+                '/assets/vendor/libs/nouislider/nouislider.js',
                 '/js/fipe.js',
                 '/js/os-wizard.js',
             ]),
@@ -288,6 +291,13 @@ class ServiceOrderController extends CrudController
             array_diff(ServiceOrderStatus::next((string) $order['status']), ['delivered'])
         )));
 
+        $canChat = ServiceOrderChat::canParticipate(
+            $this->pdo,
+            $order,
+            (int) $this->auth->id(),
+            $this->auth->hasRole(['admin'])
+        );
+
         return $this->render('mechanic::service_orders/show', [
             'title' => 'OS #' . str_pad((string) $order['number'], 4, '0', STR_PAD_LEFT),
             'resource' => $resource,
@@ -303,6 +313,9 @@ class ServiceOrderController extends CrudController
             'mechanics' => $mechanics,
             'statuses' => ServiceOrderStatus::STATUSES,
             'statusAvailable' => $statusAvailable,
+            'canChat' => $canChat,
+            'pageStyles' => ['/assets/vendor/css/pages/app-chat.css'],
+            'pageScripts' => ['/js/os-chat.js'],
         ]);
     }
 
@@ -484,11 +497,12 @@ class ServiceOrderController extends CrudController
                     v.plate AS vehicle_plate, v.model AS vehicle_model, v.brand AS vehicle_brand,
                     v.year AS vehicle_year, v.color AS vehicle_color, v.current_km AS vehicle_km,
                     v.fipe_value AS vehicle_fipe_value,
-                    u.name AS lead_mechanic
+                    u.name AS lead_mechanic, creator.name AS creator_name
                FROM service_orders so
                LEFT JOIN clients c ON c.id = so.client_id
                LEFT JOIN vehicles v ON v.id = so.vehicle_id
                LEFT JOIN users u ON u.id = so.lead_mechanic_id
+               LEFT JOIN users creator ON creator.id = so.created_by
               WHERE so.id = :id'
         );
         $stmt->execute([':id' => $id]);

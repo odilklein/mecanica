@@ -170,6 +170,9 @@
             var items = box.querySelector('.dynamic-list-items');
             var target = document.getElementById('parts_json');
             var qtyInput = document.getElementById('osPartQty');
+            var qtyValue = document.getElementById('osPartQtyValue');
+            var countEl = document.getElementById('osPartsCount');
+            var sliderEl = document.getElementById('osPartQtySlider');
 
             function syncParts() {
                 var list = Array.prototype.map.call(items.children, function (row) {
@@ -186,6 +189,9 @@
                 });
                 if (target) {
                     target.value = JSON.stringify(list);
+                }
+                if (countEl) {
+                    countEl.textContent = String(items.children.length);
                 }
             }
 
@@ -224,13 +230,54 @@
                 syncParts();
             }
 
+            function setQuantity(value) {
+                var v = Math.max(1, Math.min(99, parseInt(value, 10) || 1));
+                if (qtyInput) {
+                    qtyInput.value = String(v);
+                }
+                if (qtyValue) {
+                    qtyValue.textContent = String(v);
+                }
+                if (sliderEl && sliderEl.noUiSlider) {
+                    sliderEl.noUiSlider.set(v);
+                }
+            }
+
+            if (sliderEl && window.noUiSlider) {
+                noUiSlider.create(sliderEl, {
+                    start: [1],
+                    connect: [true, false],
+                    step: 1,
+                    range: { min: 1, max: 99 }
+                });
+                sliderEl.noUiSlider.on('update', function (values) {
+                    var v = Math.round(Number(values[0]));
+                    if (qtyInput) {
+                        qtyInput.value = String(v);
+                    }
+                    if (qtyValue) {
+                        qtyValue.textContent = String(v);
+                    }
+                });
+            }
+
+            if (qtyInput) {
+                qtyInput.addEventListener('input', function () {
+                    var v = Math.max(1, Math.min(99, parseInt(qtyInput.value, 10) || 1));
+                    if (qtyValue) {
+                        qtyValue.textContent = String(v);
+                    }
+                    if (sliderEl && sliderEl.noUiSlider) {
+                        sliderEl.noUiSlider.set(v);
+                    }
+                });
+            }
+
             if (window.PartAutocomplete) {
                 window.PartAutocomplete.init('#osPartSearch', function (item) {
                     var quantity = Math.max(1, parseInt(qtyInput && qtyInput.value, 10) || 1);
                     addPartRow(item.name || item.text, quantity, item);
-                    if (qtyInput) {
-                        qtyInput.value = '1';
-                    }
+                    setQuantity(1);
                 });
             }
 
@@ -248,9 +295,7 @@
                     manualInput.value = '';
                     manualInput.focus();
                 }
-                if (qtyInput) {
-                    qtyInput.value = '1';
-                }
+                setQuantity(1);
             }
 
             if (manualAdd) {

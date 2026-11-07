@@ -255,7 +255,7 @@ $priorities = \Modules\Mechanic\Support\ServiceOrderStatus::PRIORITIES;
                         <div class="row g-6">
                             <div class="col-md-4">
                                 <label class="form-label" for="priority">Prioridade</label>
-                                <select class="select2 form-select" id="priority" name="priority" data-placeholder="Selecione a prioridade">
+                                <select class="select2 select2-priority form-select" id="priority" name="priority" data-placeholder="Selecione a prioridade">
                                     <option value=""></option>
                                     <?php foreach ($priorities as $key => $label): ?>
                                     <option value="<?= e($key) ?>" <?= $key === 'normal' ? 'selected' : '' ?>><?= e($label) ?></option>
@@ -278,45 +278,65 @@ $priorities = \Modules\Mechanic\Support\ServiceOrderStatus::PRIORITIES;
                             </div>
                         </div>
 
-                        <div class="row g-3 mt-1">
-                            <div class="col-lg-6">
-                                <div class="card h-100">
-                                    <div class="card-header"><i class="icon-base ti tabler-list-check me-2"></i>Tarefas</div>
-                                    <div class="card-body">
-                                        <div class="dynamic-list" data-list="tasks">
-                                            <div class="dynamic-list-items"></div>
-                                            <div class="input-group mt-2">
-                                                <input class="form-control" placeholder="Digite a tarefa e pressione Enter">
-                                                <button type="button" class="btn btn-outline-primary btn-add"><i class="icon-base ti tabler-plus"></i></button>
-                                            </div>
-                                        </div>
+                        <!-- Peças necessárias (destaque) -->
+                        <div class="card border-primary border mb-3 mt-4">
+                            <div class="card-header d-flex justify-content-between align-items-center">
+                                <div class="d-flex align-items-center gap-2">
+                                    <i class="icon-base ti tabler-package icon-md text-primary"></i>
+                                    <div>
+                                        <h6 class="mb-0">Peças necessárias</h6>
+                                        <small class="text-body-secondary">Sugestões com preço de referência</small>
                                     </div>
                                 </div>
+                                <span class="badge bg-label-primary" id="osPartsCount">0</span>
                             </div>
-                            <div class="col-lg-6">
-                                <div class="card h-100">
-                                    <div class="card-header"><i class="icon-base ti tabler-package me-2"></i>Peças necessárias</div>
-                                    <div class="card-body">
-                                        <div class="dynamic-list" data-list="parts">
-                                            <div class="dynamic-list-items"></div>
-                                            <div class="row g-2 mt-2">
-                                                <div class="col">
-                                                    <select class="form-select part-autocomplete" id="osPartSearch" data-placeholder="Buscar peça por nome, marca ou código..."></select>
-                                                </div>
-                                                <div class="col-auto" style="width: 90px;">
-                                                    <input type="number" class="form-control item-qty-input" id="osPartQty" value="1" min="1" step="1" title="Quantidade" aria-label="Quantidade">
-                                                </div>
-                                            </div>
-                                            <div class="input-group mt-2">
-                                                <input type="text" class="form-control" id="osPartManual" placeholder="Ou digite uma peça manual...">
-                                                <button type="button" class="btn btn-outline-primary" id="osPartManualAdd"><i class="icon-base ti tabler-plus"></i></button>
-                                            </div>
-                                            <div class="form-text">Escolha uma sugestão ou adicione uma peça manual.</div>
-                                        </div>
+                            <div class="card-body">
+                                <div class="row g-3">
+                                    <div class="col-lg-8">
+                                        <label class="form-label" for="osPartSearch">Buscar peça no catálogo</label>
+                                        <select class="form-select part-autocomplete" id="osPartSearch" data-placeholder="Buscar por nome, marca ou código..."></select>
+                                        <div class="form-text">Escolha uma sugestão ou use o campo manual abaixo. O preço é uma referência do catálogo.</div>
+                                    </div>
+                                    <div class="col-lg-4">
+                                        <label class="form-label d-flex justify-content-between align-items-center" for="osPartQty">
+                                            <span>Quantidade</span>
+                                            <span class="badge bg-label-primary" id="osPartQtyValue">1</span>
+                                        </label>
+                                        <div id="osPartQtySlider" class="mt-2 mb-2"></div>
+                                        <input type="number" class="form-control" id="osPartQty" value="1" min="1" max="99" step="1" aria-label="Quantidade">
+                                    </div>
+                                </div>
+
+                                <div class="input-group mt-3">
+                                    <input type="text" class="form-control" id="osPartManual" placeholder="Ou digite uma peça manual...">
+                                    <button type="button" class="btn btn-outline-primary" id="osPartManualAdd"><i class="icon-base ti tabler-plus"></i></button>
+                                </div>
+
+                                <div class="dynamic-list mt-3" data-list="parts">
+                                    <div class="dynamic-list-items"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Tarefas -->
+                        <div class="card">
+                            <div class="card-header d-flex justify-content-between align-items-center">
+                                <div class="d-flex align-items-center gap-2">
+                                    <i class="icon-base ti tabler-list-check icon-md"></i>
+                                    <h6 class="mb-0">Tarefas</h6>
+                                </div>
+                            </div>
+                            <div class="card-body">
+                                <div class="dynamic-list" data-list="tasks">
+                                    <div class="dynamic-list-items"></div>
+                                    <div class="input-group mt-2">
+                                        <input class="form-control" placeholder="Digite a tarefa e pressione Enter">
+                                        <button type="button" class="btn btn-outline-primary btn-add"><i class="icon-base ti tabler-plus"></i></button>
                                     </div>
                                 </div>
                             </div>
                         </div>
+
                         <input type="hidden" name="tasks_json" id="tasks_json" value="[]">
                         <input type="hidden" name="parts_json" id="parts_json" value="[]">
 

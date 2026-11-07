@@ -12,6 +12,36 @@
         return;
     }
 
+    var PRIORITY_COLORS = {
+        low: 'secondary',
+        normal: 'info',
+        high: 'warning',
+        urgent: 'danger'
+    };
+
+    function priorityColor(item) {
+        return PRIORITY_COLORS[item && item.id] || 'secondary';
+    }
+
+    function priorityResult(item) {
+        if (item.loading) {
+            return item.text;
+        }
+        if (!item.id) {
+            return item.text;
+        }
+        return '<span class="badge bg-label-' + priorityColor(item) + '">' + item.text + '</span>';
+    }
+
+    function prioritySelection(item) {
+        if (!item.id) {
+            return item.text;
+        }
+        return '<span class="d-inline-flex align-items-center gap-2">'
+            + '<span class="badge badge-dot bg-' + priorityColor(item) + '"></span>'
+            + item.text + '</span>';
+    }
+
     function initSelect2(selector) {
         var $ = window.jQuery;
 
@@ -38,7 +68,7 @@
 
             var isMultiple = $select.prop('multiple');
 
-            $select.select2({
+            var options = {
                 width: $select.data('width') || '100%',
                 dropdownParent: $parent,
                 placeholder: $select.data('placeholder') || 'Selecione...',
@@ -55,7 +85,17 @@
                         return 'Buscando...';
                     }
                 }
-            });
+            };
+
+            if ($select.hasClass('select2-priority')) {
+                options.templateResult = priorityResult;
+                options.templateSelection = prioritySelection;
+                options.escapeMarkup = function (markup) {
+                    return markup;
+                };
+            }
+
+            $select.select2(options);
         });
     }
 
