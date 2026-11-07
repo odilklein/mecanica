@@ -51,6 +51,7 @@ $end = min($page * $perPage, $total);
             <tbody>
                 <?php foreach ($items as $row): ?>
                 <tr>
+                    <?php $firstCol = true; ?>
                     <?php foreach ($columns as $col): ?>
                     <?php
                         $raw = $row[$col['field']] ?? null;
@@ -58,8 +59,16 @@ $end = min($page * $perPage, $total);
                         if (isset($col['format']) && is_callable($col['format'])) {
                             $value = (string) $col['format']($raw);
                         }
+                        $detail = $resource->detailPath();
                     ?>
-                    <td data-label="<?= e($col['label']) ?>"><?= e($value !== '' ? $value : '—') ?></td>
+                    <td data-label="<?= e($col['label']) ?>">
+                        <?php if ($firstCol && $detail !== null): ?>
+                        <a href="<?= e($detail . '/' . (int) $row['id']) ?>" class="fw-medium"><?= e($value !== '' ? $value : '—') ?></a>
+                        <?php else: ?>
+                        <?= e($value !== '' ? $value : '—') ?>
+                        <?php endif; ?>
+                    </td>
+                    <?php $firstCol = false; ?>
                     <?php endforeach; ?>
                     <td class="actions-cell" data-label="Ações">
                         <div class="d-flex gap-1">

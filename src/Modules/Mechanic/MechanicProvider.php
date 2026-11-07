@@ -54,13 +54,11 @@ class MechanicProvider implements ProviderInterface
         // Orçamentos (específicas antes da genérica).
         $router->get('/budgets', [BudgetController::class, 'index']);
         $router->get('/budgets/create', [BudgetController::class, 'create']);
-        $router->post('/budgets', [BudgetController::class, 'store']);
+        $router->post('/budgets/save', [BudgetController::class, 'save']);
         $router->get('/budgets/{id}/edit', [BudgetController::class, 'edit']);
-        $router->post('/budgets/{id}/items', [BudgetController::class, 'addItem']);
+        $router->get('/budgets/{id}/print', [BudgetController::class, 'print']);
         $router->post('/budgets/{id}/delete', [BudgetController::class, 'destroy']);
         $router->get('/budgets/{id}', [BudgetController::class, 'show']);
-        $router->post('/budgets/{id}', [BudgetController::class, 'update']);
-        $router->post('/budget-items/{id}/delete', [BudgetController::class, 'removeItem']);
 
         // Relatórios.
         $router->get('/reports', [ReportController::class, 'index']);

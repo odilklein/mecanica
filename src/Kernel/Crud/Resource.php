@@ -80,6 +80,12 @@ abstract class Resource
         return 'kernel::crud/form';
     }
 
+    /** Se definido, a primeira coluna da listagem vira link para {detailPath}/{id}. */
+    public function detailPath(): ?string
+    {
+        return null;
+    }
+
     /**
      * Transforma os dados antes de gravar (ex.: hash de senha).
      * $ignoreId é null em criação e o id em edição.

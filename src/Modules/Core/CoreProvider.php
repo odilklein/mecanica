@@ -35,6 +35,7 @@ class CoreProvider implements ProviderInterface
 
         // Clientes (CRUD genérico).
         crud_routes($router, '/clients', ClientController::class);
+        $router->get('/clients/{id}', [ClientController::class, 'show']);
 
         // Funcionários (usuários).
         crud_routes($router, '/users', UserController::class);

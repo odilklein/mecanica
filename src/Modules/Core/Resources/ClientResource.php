@@ -32,6 +32,11 @@ class ClientResource extends Resource
         return ['admin', 'secretary', 'lead_mechanic'];
     }
 
+    public function detailPath(): ?string
+    {
+        return '/clients';
+    }
+
     public function columns(): array
     {
         return [

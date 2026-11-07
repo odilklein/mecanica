@@ -16,6 +16,111 @@ class BudgetController extends CrudController
         return new BudgetResource();
     }
 
+    public function create(ServerRequestInterface $request)
+    {
+        $resource = $this->resource();
+        if ($response = $this->guardRoles($resource->roles())) {
+            return $response;
+        }
+        return $this->renderEditor($resource, null, []);
+    }
+
+    public function edit(ServerRequestInterface $request, $id)
+    {
+        $resource = $this->resource();
+        if ($response = $this->guardRoles($resource->roles())) {
+            return $response;
+        }
+        $budget = $this->findBudget((int) $id);
+        if (!$budget) {
+            $this->session->flash('error', 'Orçamento não encontrado.');
+            return redirect($resource->path());
+        }
+        $items = $this->pdo->prepare('SELECT * FROM budget_items WHERE budget_id = :id ORDER BY id');
+        $items->execute([':id' => (int) $id]);
+
+        return $this->renderEditor($resource, $budget, $items->fetchAll());
+    }
+
+    public function save(ServerRequestInterface $request)
+    {
+        $resource = $this->resource();
+        if ($response = $this->guardRoles($resource->roles())) {
+            return $response;
+        }
+        if ($response = $this->guardCsrf($request, $resource->path())) {
+            return $response;
+        }
+
+        $body = $request->getParsedBody();
+        $id = (int) ($body['id'] ?? 0);
+        $clientId = (int) ($body['client_id'] ?? 0);
+        $vehicleId = (int) ($body['vehicle_id'] ?? 0) ?: null;
+        $validUntil = clean($body['valid_until'] ?? '') ?: null;
+        $discount = (float) str_replace(',', '.', (string) ($body['discount'] ?? 0));
+        $notes = clean($body['notes'] ?? '');
+        $items = json_decode((string) ($body['items_json'] ?? '[]'), true) ?: [];
+
+        if ($clientId <= 0) {
+            $this->session->flash('error', 'Selecione o cliente.');
+            return redirect($resource->path() . ($id > 0 ? '/' . $id . '/edit' : '/create'));
+        }
+
+        $isNew = $id <= 0;
+
+        try {
+            $this->pdo->beginTransaction();
+
+            if ($isNew) {
+                $number = (int) $this->pdo->query('SELECT COALESCE(MAX(number), 0) + 1 FROM budgets')->fetchColumn();
+                $this->pdo->prepare(
+                    'INSERT INTO budgets (number, client_id, vehicle_id, budget_date, valid_until, status, discount, notes, created_by)
+                     VALUES (:num, :cl, :ve, :bd, :vu, :st, :d, :n, :u)'
+                )->execute([
+                    ':num' => $number, ':cl' => $clientId, ':ve' => $vehicleId,
+                    ':bd' => date('Y-m-d'), ':vu' => $validUntil, ':st' => 'open',
+                    ':d' => $discount, ':n' => $notes, ':u' => $this->auth->id(),
+                ]);
+                $id = (int) $this->pdo->lastInsertId();
+            } else {
+                $this->pdo->prepare(
+                    'UPDATE budgets SET client_id = :cl, vehicle_id = :ve, valid_until = :vu, discount = :d, notes = :n WHERE id = :id'
+                )->execute([':cl' => $clientId, ':ve' => $vehicleId, ':vu' => $validUntil, ':d' => $discount, ':n' => $notes, ':id' => $id]);
+                $this->pdo->prepare('DELETE FROM budget_items WHERE budget_id = :id')->execute([':id' => $id]);
+            }
+
+            $stmt = $this->pdo->prepare(
+                'INSERT INTO budget_items (budget_id, type, description, quantity, unit_price, subtotal)
+                 VALUES (:b, :t, :d, :q, :p, :s)'
+            );
+            foreach ($items as $item) {
+                $desc = trim((string) ($item['description'] ?? ''));
+                if ($desc === '') {
+                    continue;
+                }
+                $type = ($item['type'] ?? 'part') === 'service' ? 'service' : 'part';
+                $qty = max(0.01, (float) ($item['quantity'] ?? 1));
+                $price = max(0, (float) ($item['unit_price'] ?? 0));
+                $stmt->execute([
+                    ':b' => $id, ':t' => $type, ':d' => mb_substr($desc, 0, 200),
+                    ':q' => $qty, ':p' => $price, ':s' => round($qty * $price, 2),
+                ]);
+            }
+
+            $this->recalcBudget($id);
+            record_audit($this->pdo, $this->auth->id(), 'budgets', $id, $isNew ? 'create' : 'update');
+            $this->pdo->commit();
+
+            $this->session->flash('success', $isNew ? 'Orçamento criado.' : 'Orçamento atualizado.');
+            return redirect($resource->path() . '/' . $id);
+        } catch (\Throwable $e) {
+            $this->pdo->rollBack();
+            error_log('Budget save: ' . $e->getMessage());
+            $this->session->flash('error', 'Não foi possível salvar o orçamento.');
+            return redirect($resource->path() . ($isNew ? '/create' : '/' . $id . '/edit'));
+        }
+    }
+
     public function show(ServerRequestInterface $request, $id)
     {
         $resource = $this->resource();
@@ -41,65 +146,39 @@ class BudgetController extends CrudController
         ]);
     }
 
-    public function addItem(ServerRequestInterface $request, $id)
+    public function print(ServerRequestInterface $request, $id)
     {
         $resource = $this->resource();
         if ($response = $this->guardRoles($resource->roles())) {
             return $response;
         }
-        if ($response = $this->guardCsrf($request, $resource->path() . '/' . (int) $id)) {
-            return $response;
+
+        $budget = $this->findBudget((int) $id);
+        if (!$budget) {
+            return redirect($resource->path());
         }
+        $items = $this->pdo->prepare('SELECT * FROM budget_items WHERE budget_id = :id ORDER BY id');
+        $items->execute([':id' => (int) $id]);
 
-        $body = $request->getParsedBody();
-        $description = clean($body['description'] ?? '');
-        if ($description !== '') {
-            $type = ($body['type'] ?? 'part') === 'service' ? 'service' : 'part';
-            $qty = (float) str_replace(',', '.', (string) ($body['quantity'] ?? 1));
-            $price = (float) str_replace(',', '.', (string) ($body['unit_price'] ?? 0));
-            $subtotal = round($qty * $price, 2);
-
-            $this->pdo->prepare(
-                'INSERT INTO budget_items (budget_id, type, description, quantity, unit_price, subtotal)
-                 VALUES (:b, :t, :d, :q, :p, :s)'
-            )->execute([
-                ':b' => (int) $id,
-                ':t' => $type,
-                ':d' => mb_substr($description, 0, 200),
-                ':q' => $qty > 0 ? $qty : 1,
-                ':p' => $price,
-                ':s' => $subtotal,
-            ]);
-
-            $this->recalcBudget((int) $id);
-            $this->session->flash('success', 'Item adicionado.');
-        }
-
-        return redirect($resource->path() . '/' . (int) $id);
+        return $this->view->render('mechanic::budgets/print', [
+            'budget' => $budget,
+            'items' => $items->fetchAll(),
+        ]);
     }
 
-    public function removeItem(ServerRequestInterface $request, $itemId)
+    private function renderEditor(Resource $resource, ?array $budget, array $items): string
     {
-        $resource = $this->resource();
-        if ($response = $this->guardRoles($resource->roles())) {
-            return $response;
-        }
+        $clients = $this->pdo->query('SELECT id, name FROM clients ORDER BY name')->fetchAll();
+        $vehicles = $this->pdo->query('SELECT id, client_id, plate, model FROM vehicles ORDER BY plate')->fetchAll();
 
-        $stmt = $this->pdo->prepare('SELECT budget_id FROM budget_items WHERE id = :id');
-        $stmt->execute([':id' => (int) $itemId]);
-        $budgetId = (int) $stmt->fetchColumn();
-
-        if ($budgetId > 0) {
-            if ($response = $this->guardCsrf($request, $resource->path() . '/' . $budgetId)) {
-                return $response;
-            }
-            $this->pdo->prepare('DELETE FROM budget_items WHERE id = :id')->execute([':id' => (int) $itemId]);
-            $this->recalcBudget($budgetId);
-            $this->session->flash('success', 'Item removido.');
-            return redirect($resource->path() . '/' . $budgetId);
-        }
-
-        return redirect($resource->path());
+        return $this->render('mechanic::budgets/editor', [
+            'title' => $budget ? 'Editar orçamento' : 'Novo orçamento',
+            'resource' => $resource,
+            'budget' => $budget,
+            'items' => $items,
+            'clients' => $clients,
+            'vehicles' => $vehicles,
+        ]);
     }
 
     private function recalcBudget(int $budgetId): void
