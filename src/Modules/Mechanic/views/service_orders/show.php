@@ -16,15 +16,6 @@ if (preg_match_all('/\b\w/u', (string) ($order['client_name'] ?? ''), $m)) {
 }
 $clientInitials = $clientInitials ?: '?';
 
-$initialsOf = static function (string $name): string {
-    if (preg_match_all('/\b\w/u', $name, $m)) {
-        return strtoupper(implode('', array_slice($m[0], 0, 2)));
-    }
-    return '?';
-};
-$creatorInitials = $initialsOf((string) ($order['creator_name'] ?? 'Sistema'));
-$leadInitials = $initialsOf((string) ($order['lead_mechanic'] ?? ''));
-
 $vehicleLabel = trim(($order['vehicle_brand'] ?? '') . ' ' . ($order['vehicle_model'] ?? ''));
 $budgetItems = $budgetItems ?? [];
 $eventCount = count($events);
@@ -47,6 +38,9 @@ $eventCount = count($events);
     <div class="page-header-actions">
         <a href="<?= e($path) ?>" class="btn btn-label-secondary">
             <i class="icon-base ti tabler-arrow-left"></i> Voltar
+        </a>
+        <a href="/service-orders/<?= $orderId ?>/ticket" class="btn btn-label-info">
+            <i class="icon-base ti tabler-messages"></i> Ticket
         </a>
         <a href="/budgets/create?os_id=<?= $orderId ?>&cliente_id=<?= (int) $order['client_id'] ?>&veiculo_id=<?= (int) $order['vehicle_id'] ?>" class="btn btn-label-primary">
             <i class="icon-base ti tabler-file-plus"></i> Novo orçamento
@@ -197,61 +191,6 @@ $eventCount = count($events);
                 </form>
             </div>
         </div>
-
-        <?php if (!empty($canChat)): ?>
-        <!-- Chat / ticket da OS -->
-        <div class="card mb-6" id="osChat"
-             data-order-id="<?= $orderId ?>"
-             data-endpoint="<?= e($path . '/' . $orderId . '/messages') ?>"
-             data-csrf="<?= e($csrf) ?>"
-             data-current-user="<?= (int) ($user['id'] ?? 0) ?>">
-            <div class="card-header d-flex justify-content-between align-items-center">
-                <div class="d-flex align-items-center gap-2">
-                    <span class="avatar avatar-sm">
-                        <span class="avatar-initial rounded-circle bg-label-primary">
-                            <i class="icon-base ti tabler-message-2"></i>
-                        </span>
-                    </span>
-                    <div>
-                        <h5 class="card-title m-0">Chat da OS</h5>
-                        <small class="text-body-secondary">
-                            Ticket #<?= str_pad((string) $order['number'], 4, '0', STR_PAD_LEFT) ?>
-                            · <?= e($order['creator_name'] ?: 'Sistema') ?>
-                            <?= $order['lead_mechanic'] ? ' + ' . e($order['lead_mechanic']) : '' ?>
-                        </small>
-                    </div>
-                </div>
-                <div class="d-flex align-items-center">
-                    <div class="avatar avatar-sm me-1" title="Criador da OS">
-                        <span class="avatar-initial rounded-circle bg-label-primary"><?= e($creatorInitials) ?></span>
-                    </div>
-                    <?php if (!empty($order['lead_mechanic'])): ?>
-                    <div class="avatar avatar-sm" title="Responsável">
-                        <span class="avatar-initial rounded-circle bg-label-info"><?= e($leadInitials) ?></span>
-                    </div>
-                    <?php endif; ?>
-                </div>
-            </div>
-            <div class="card-body p-0">
-                <div class="chat-history-body px-4 py-3" id="osChatBody" style="max-height: 360px; overflow-y: auto;">
-                    <ul class="list-unstyled chat-history mb-0" id="osChatList"></ul>
-                    <div class="text-center text-body-secondary py-4" id="osChatEmpty">
-                        Nenhuma mensagem ainda. Inicie a conversa com a equipe.
-                    </div>
-                </div>
-                <div class="border-top p-3">
-                    <form id="osChatForm" class="d-flex gap-2 align-items-end">
-                        <input type="hidden" name="csrf_token" value="<?= e($csrf) ?>">
-                        <textarea class="form-control" id="osChatInput" rows="1" maxlength="2000" placeholder="Escreva uma mensagem..." style="resize: none;"></textarea>
-                        <button type="submit" class="btn btn-primary">
-                            <i class="icon-base ti tabler-send"></i>
-                        </button>
-                    </form>
-                    <div class="form-text">Mensagens visíveis apenas para o criador e a equipe designada.</div>
-                </div>
-            </div>
-        </div>
-        <?php endif; ?>
 
         <!-- Histórico / timeline -->
         <div class="card">

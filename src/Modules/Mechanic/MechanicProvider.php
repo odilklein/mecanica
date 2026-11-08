@@ -9,6 +9,7 @@ declare(strict_types=1);
 namespace Modules\Mechanic;
 
 use Kernel\Container\Container;
+use Kernel\Auth\Auth;
 use Kernel\Http\Router;
 use Kernel\Menu\Menu;
 use Kernel\Modules\ProviderInterface;
@@ -17,8 +18,10 @@ use Modules\Mechanic\Controllers\BudgetController;
 use Modules\Mechanic\Controllers\PartOrderController;
 use Modules\Mechanic\Controllers\ReportController;
 use Modules\Mechanic\Controllers\ServiceOrderController;
-use Modules\Mechanic\Controllers\ServiceOrderChatController;
 use Modules\Mechanic\Controllers\TaskController;
+use Modules\Mechanic\Controllers\TicketController;
+use Modules\Mechanic\Services\TicketService;
+use PDO;
 use Modules\Mechanic\Controllers\VehicleController;
 use Modules\Mechanic\Controllers\PartsController;
 use Modules\Mechanic\Controllers\PartController;
@@ -56,9 +59,8 @@ class MechanicProvider implements ProviderInterface
         $router->post('/service-orders/{id}/task-status', [ServiceOrderController::class, 'updateTaskStatus']);
         $router->post('/service-orders/{id}/tasks', [ServiceOrderController::class, 'addTask']);
         $router->post('/service-orders/{id}/delivery', [ServiceOrderController::class, 'registerDelivery']);
-        $router->get('/service-orders/{id}/messages', [ServiceOrderChatController::class, 'index']);
-        $router->post('/service-orders/{id}/messages', [ServiceOrderChatController::class, 'store']);
         $router->post('/service-orders/{id}/delete', [ServiceOrderController::class, 'destroy']);
+        $router->get('/service-orders/{id}/ticket', [TicketController::class, 'forOrder']);
         $router->get('/service-orders/{id}', [ServiceOrderController::class, 'show']);
         $router->post('/service-orders/{id}', [ServiceOrderController::class, 'update']);
 
@@ -74,6 +76,14 @@ class MechanicProvider implements ProviderInterface
         $router->get('/budgets/{id}/print', [BudgetController::class, 'print']);
         $router->post('/budgets/{id}/delete', [BudgetController::class, 'destroy']);
         $router->get('/budgets/{id}', [BudgetController::class, 'show']);
+
+        // Tickets (central de atendimento).
+        $router->get('/tickets/list', [TicketController::class, 'list']);
+        $router->get('/tickets', [TicketController::class, 'index']);
+        $router->post('/tickets', [TicketController::class, 'store']);
+        $router->post('/tickets/{id}/messages', [TicketController::class, 'sendMessage']);
+        $router->post('/tickets/{id}/status', [TicketController::class, 'updateStatus']);
+        $router->get('/tickets/{id}', [TicketController::class, 'show']);
 
         // Relatórios.
         $router->get('/reports', [ReportController::class, 'index']);
@@ -122,5 +132,58 @@ class MechanicProvider implements ProviderInterface
             'url' => '/reports',
             'roles' => ['admin', 'secretary', 'lead_mechanic'],
         ]);
+        $menu->add('Atendimento', [
+            'label' => 'Tickets',
+            'icon' => 'messages',
+            'url' => '/tickets',
+            'roles' => null,
+            'children' => $this->ticketMenu($container),
+        ]);
+    }
+
+    /**
+     * Submenu da aba Tickets: atalhos fixos + conversas em aberto
+     * visíveis para o usuário atual.
+     *
+     * @return array<int, array<string, string>>
+     */
+    private function ticketMenu(Container $container): array
+    {
+        $children = [
+            ['label' => 'Todos os tickets', 'url' => '/tickets'],
+            ['label' => 'Não lidos', 'url' => '/tickets?scope=unread'],
+            ['label' => 'Encerrados', 'url' => '/tickets?status=closed'],
+        ];
+
+        try {
+            /** @var Auth $auth */
+            $auth = $container->get(Auth::class);
+            if (!$auth->check()) {
+                return $children;
+            }
+
+            $service = new TicketService($container->get(PDO::class));
+            $tickets = $service->visibleTickets(
+                (int) $auth->id(),
+                $auth->hasRole(['admin']),
+                4,
+                'open'
+            );
+
+            foreach ($tickets as $ticket) {
+                $label = mb_strimwidth((string) $ticket['subject'], 0, 34, '…');
+                if ((int) ($ticket['unread'] ?? 0) > 0) {
+                    $label .= ' •';
+                }
+                $children[] = [
+                    'label' => $label,
+                    'url' => '/tickets?ticket=' . (int) $ticket['id'],
+                ];
+            }
+        } catch (\Throwable $e) {
+            // Sem banco ou tabela ainda: mantém apenas os atalhos.
+        }
+
+        return $children;
     }
 }

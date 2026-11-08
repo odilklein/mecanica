@@ -6,18 +6,21 @@ $icons = [
     'task' => 'list-check',
     'part' => 'package',
     'os_created' => 'clipboard-plus',
+    'ticket' => 'messages',
 ];
 $typeLabels = [
     'os_status' => 'Ordem de serviço',
     'task' => 'Tarefa',
     'part' => 'Pedido de peça',
     'os_created' => 'Nova ordem de serviço',
+    'ticket' => 'Ticket',
 ];
 $colors = [
     'os_status' => 'bg-label-info',
     'task' => 'bg-label-success',
     'part' => 'bg-label-warning',
     'os_created' => 'bg-label-primary',
+    'ticket' => 'bg-label-info',
 ];
 ?>
 <div class="page-header">

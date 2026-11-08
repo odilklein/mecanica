@@ -29,7 +29,11 @@
     <?php endforeach; ?>
 </head>
 <body>
-    <?php $currentPath = parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH) ?: '/'; ?>
+    <?php
+    $currentPath = parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH) ?: '/';
+    $queryString = (string) ($_SERVER['QUERY_STRING'] ?? '');
+    $currentUrl = $currentPath . ($queryString !== '' ? '?' . $queryString : '');
+    ?>
     <a class="skip-link" href="#conteudo">Pular para o conteúdo</a>
     <div class="layout-wrapper layout-content-navbar">
         <div class="layout-container">
@@ -50,20 +54,69 @@
 
                 <div class="menu-inner-shadow"></div>
 
+                <?php
+                if (!function_exists('menu_item_active')) {
+                    /** Verifica se o item (ou algum subitem) corresponde à URL atual. */
+                    function menu_item_active(array $item, string $currentPath, string $currentUrl): bool
+                    {
+                        $url = $item['url'] ?? '#';
+                        if ($url === '/') {
+                            $active = $currentPath === '/';
+                        } else {
+                            $active = $url !== '#' && str_starts_with($currentPath, $url);
+                        }
+
+                        foreach (($item['children'] ?? []) as $child) {
+                            if (menu_child_active($child, $currentUrl)) {
+                                $active = true;
+                                break;
+                            }
+                        }
+
+                        return $active;
+                    }
+
+                    function menu_child_active(array $item, string $currentUrl): bool
+                    {
+                        $url = $item['url'] ?? '#';
+                        return $url !== '#' && $url === $currentUrl;
+                    }
+                }
+                ?>
                 <ul class="menu-inner py-1">
                     <?php foreach (($menu ?? []) as $section => $items): ?>
                     <li class="menu-header small"><span class="menu-header-text"><?= e($section) ?></span></li>
                     <?php foreach ($items as $item): ?>
                     <?php
                         $url = $item['url'] ?? '#';
-                        $active = $url === '/' ? $currentPath === '/' : ($url !== '#' && str_starts_with($currentPath, $url));
+                        $children = $item['children'] ?? [];
+                        $active = menu_item_active($item, $currentPath, $currentUrl);
                     ?>
+                    <?php if ($children): ?>
+                    <li class="menu-item<?= $active ? ' active open' : '' ?>">
+                        <a href="<?= e($url !== '#' ? $url : 'javascript:void(0);') ?>" class="menu-link menu-toggle">
+                            <i class="menu-icon icon-base ti tabler-<?= e($item['icon'] ?? 'circle') ?>"></i>
+                            <div><?= e($item['label']) ?></div>
+                        </a>
+                        <ul class="menu-sub">
+                            <?php foreach ($children as $child): ?>
+                            <?php $childActive = menu_child_active($child, $currentUrl); ?>
+                            <li class="menu-item<?= $childActive ? ' active' : '' ?>">
+                                <a href="<?= e($child['url'] ?? '#') ?>" class="menu-link">
+                                    <div><?= e($child['label']) ?></div>
+                                </a>
+                            </li>
+                            <?php endforeach; ?>
+                        </ul>
+                    </li>
+                    <?php else: ?>
                     <li class="menu-item<?= $active ? ' active' : '' ?>">
                         <a href="<?= e($url) ?>" class="menu-link">
                             <i class="menu-icon icon-base ti tabler-<?= e($item['icon'] ?? 'circle') ?>"></i>
                             <div><?= e($item['label']) ?></div>
                         </a>
                     </li>
+                    <?php endif; ?>
                     <?php endforeach; ?>
                     <?php endforeach; ?>
                 </ul>

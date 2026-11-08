@@ -3,6 +3,7 @@
 // MENU — registro de itens de navegação.
 // Módulos adicionam itens; o layout renderiza
 // apenas os permitidos ao papel do usuário.
+// Suporta subitens (children) para submenus.
 // =============================================
 
 declare(strict_types=1);
@@ -17,7 +18,7 @@ class Menu
     private array $sections = [];
 
     /**
-     * @param array{label: string, icon?: string, url: string, roles?: array<string>|null} $item
+     * @param array{label: string, icon?: string, url?: string, roles?: array<string>|null, children?: array<int, array<string, mixed>>} $item
      */
     public function add(string $section, array $item): void
     {
@@ -36,9 +37,9 @@ class Menu
         foreach ($this->sections as $section => $items) {
             $visible = [];
             foreach ($items as $item) {
-                $roles = $item['roles'] ?? null;
-                if ($roles === null || $auth->hasRole($roles)) {
-                    $visible[] = $item;
+                $filtered = $this->filterItem($item, $auth);
+                if ($filtered !== null) {
+                    $visible[] = $filtered;
                 }
             }
             if ($visible) {
@@ -47,5 +48,37 @@ class Menu
         }
 
         return $result;
+    }
+
+    /**
+     * Filtra um item pelo papel do usuário, recursivamente nos subitens.
+     *
+     * @param array<string, mixed> $item
+     * @return array<string, mixed>|null
+     */
+    private function filterItem(array $item, Auth $auth): ?array
+    {
+        $roles = $item['roles'] ?? null;
+        if ($roles !== null && !$auth->hasRole($roles)) {
+            return null;
+        }
+
+        if (array_key_exists('children', $item)) {
+            $children = [];
+            foreach ($item['children'] as $child) {
+                $filtered = $this->filterItem($child, $auth);
+                if ($filtered !== null) {
+                    $children[] = $filtered;
+                }
+            }
+            $item['children'] = $children;
+
+            // Item sem url nem subitens visíveis não deve aparecer.
+            if (!$children && empty($item['url'])) {
+                return null;
+            }
+        }
+
+        return $item;
     }
 }

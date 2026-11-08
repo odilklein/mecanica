@@ -1498,3 +1498,123 @@ a:focus-visible, button:focus-visible, [tabindex]:focus-visible, .dropdown-item:
     text-overflow: ellipsis;
     white-space: nowrap;
 }
+
+/* =============================================
+   TICKETS — central de atendimento (app-chat)
+   ============================================= */
+.tickets-page .chat-message-text {
+    inline-size: fit-content;
+    max-inline-size: min(100%, 42rem);
+}
+.tickets-page .chat-message.chat-message-right .chat-message-text {
+    margin-inline-start: auto;
+}
+.tickets-page .chat-contact-info {
+    min-inline-size: 0;
+}
+
+/* A página não usa PerfectScrollbar: rolagem nativa nas duas colunas. */
+.tickets-page .app-chat-contacts,
+.tickets-page .app-chat-history {
+    block-size: 100%;
+}
+.tickets-page .app-chat-contacts {
+    display: flex;
+    flex-direction: column;
+}
+.tickets-page .app-chat-contacts .sidebar-body {
+    flex: 1 1 auto;
+    min-block-size: 0;
+    block-size: auto;
+    overflow-y: auto;
+}
+.tickets-page .app-chat .app-chat-history .chat-history-wrapper {
+    display: flex;
+    flex-direction: column;
+}
+.tickets-page .app-chat .app-chat-history .chat-history-body {
+    flex: 1 1 auto;
+    min-block-size: 0;
+    block-size: auto;
+    overflow-y: auto;
+}
+
+@media (max-width: 767.98px) {
+    .tickets-page .page-header {
+        flex-direction: row;
+        align-items: center;
+        flex-wrap: nowrap;
+        gap: 0.5rem;
+        margin-bottom: 1rem;
+    }
+    .tickets-page .page-header > div:first-child {
+        min-inline-size: 0;
+    }
+    .tickets-page .page-header h1 {
+        font-size: 1.25rem;
+        white-space: nowrap;
+    }
+    .tickets-page .page-header .page-subtitle {
+        display: none;
+    }
+    .tickets-page .page-header-actions {
+        flex: 0 0 auto;
+        flex-wrap: nowrap;
+    }
+    .tickets-page .page-header-actions .btn {
+        padding-inline: 0.875rem;
+        white-space: nowrap;
+    }
+    .tickets-page .app-chat.tickets-chat {
+        block-size: calc(100dvh - 13rem);
+        min-block-size: 24rem;
+    }
+    .tickets-page .chat-history-header {
+        padding-block: 0.75rem;
+        padding-inline: 1rem;
+    }
+    .tickets-page #ticketSubject {
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    .tickets-page #ticketSubtitle {
+        display: block;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+}
+
+@media (max-width: 575.98px) {
+    .tickets-page .chat-history-header .avatar-online,
+    .tickets-page #ticketStatusBadge {
+        display: none;
+    }
+}
+
+/* =============================================
+   PAINEL (dashboard) — gráficos e listas
+   ============================================= */
+
+/* Nome do cliente nas listas do painel (trunca sem estourar o flex) */
+.dashboard-os-name {
+    min-width: 0;
+}
+.dashboard-client-name {
+    display: block;
+    max-width: 170px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* Abas "Indicadores": mantém os alvos de toque alinhados no mobile */
+.dashboard-indicators .widget-nav-tabs {
+    overflow-x: auto;
+    overflow-y: hidden;
+    scrollbar-width: none;
+}
+.dashboard-indicators .widget-nav-tabs::-webkit-scrollbar {
+    display: none;
+}

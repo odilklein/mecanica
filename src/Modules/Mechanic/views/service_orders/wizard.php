@@ -298,12 +298,9 @@ $priorities = \Modules\Mechanic\Support\ServiceOrderStatus::PRIORITIES;
                                         <div class="form-text">Escolha uma sugestão ou use o campo manual abaixo. O preço é uma referência do catálogo.</div>
                                     </div>
                                     <div class="col-lg-4">
-                                        <label class="form-label d-flex justify-content-between align-items-center" for="osPartQty">
-                                            <span>Quantidade</span>
-                                            <span class="badge bg-label-primary" id="osPartQtyValue">1</span>
-                                        </label>
-                                        <div id="osPartQtySlider" class="mt-2 mb-2"></div>
+                                        <label class="form-label" for="osPartQty">Quantidade</label>
                                         <input type="number" class="form-control" id="osPartQty" value="1" min="1" max="99" step="1" aria-label="Quantidade">
+                                        <div class="form-text">Ajuste a quantidade antes de adicionar a peça.</div>
                                     </div>
                                 </div>
 

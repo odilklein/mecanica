@@ -8,7 +8,7 @@ use Kernel\Crud\Resource;
 use Modules\Core\Support\Notify;
 use Modules\Mechanic\Resources\ServiceOrderResource;
 use Modules\Mechanic\Support\ServiceOrderStatus;
-use Modules\Mechanic\Support\ServiceOrderChat;
+use Modules\Mechanic\Services\TicketService;
 use Psr\Http\Message\ServerRequestInterface;
 
 class ServiceOrderController extends CrudController
@@ -43,11 +43,9 @@ class ServiceOrderController extends CrudController
             'brands' => $brands,
             'pageStyles' => array_merge($resource->formStyles(), [
                 '/assets/vendor/libs/bs-stepper/bs-stepper.css',
-                '/assets/vendor/libs/nouislider/nouislider.css',
             ]),
             'pageScripts' => array_merge($resource->formScripts(), [
                 '/assets/vendor/libs/bs-stepper/bs-stepper.js',
-                '/assets/vendor/libs/nouislider/nouislider.js',
                 '/js/fipe.js',
                 '/js/os-wizard.js',
             ]),
@@ -216,6 +214,9 @@ class ServiceOrderController extends CrudController
             $this->pdo->prepare('INSERT INTO service_order_events (order_id, type, description, created_by) VALUES (:o, :t, :d, :u)')
                 ->execute([':o' => $orderId, ':t' => 'created', ':d' => 'OS criada.', ':u' => $userId]);
 
+            // Ticket de atendimento vinculado à OS (criador + responsável).
+            (new TicketService($this->pdo))->ensureForOrder($orderId);
+
             $this->pdo->commit();
 
             if ($mechanics) {
@@ -291,13 +292,6 @@ class ServiceOrderController extends CrudController
             array_diff(ServiceOrderStatus::next((string) $order['status']), ['delivered'])
         )));
 
-        $canChat = ServiceOrderChat::canParticipate(
-            $this->pdo,
-            $order,
-            (int) $this->auth->id(),
-            $this->auth->hasRole(['admin'])
-        );
-
         return $this->render('mechanic::service_orders/show', [
             'title' => 'OS #' . str_pad((string) $order['number'], 4, '0', STR_PAD_LEFT),
             'resource' => $resource,
@@ -313,9 +307,6 @@ class ServiceOrderController extends CrudController
             'mechanics' => $mechanics,
             'statuses' => ServiceOrderStatus::STATUSES,
             'statusAvailable' => $statusAvailable,
-            'canChat' => $canChat,
-            'pageStyles' => ['/assets/vendor/css/pages/app-chat.css'],
-            'pageScripts' => ['/js/os-chat.js'],
         ]);
     }
 

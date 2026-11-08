@@ -9,7 +9,8 @@
         os_status: { label: 'Ordem de serviço', icon: 'arrows-exchange', color: 'bg-label-info' },
         os_created: { label: 'Nova ordem de serviço', icon: 'clipboard-plus', color: 'bg-label-primary' },
         part: { label: 'Pedido de peça', icon: 'package', color: 'bg-label-warning' },
-        task: { label: 'Tarefa', icon: 'list-check', color: 'bg-label-success' }
+        task: { label: 'Tarefa', icon: 'list-check', color: 'bg-label-success' },
+        ticket: { label: 'Ticket', icon: 'messages', color: 'bg-label-info' }
     };
 
     function esc(value) {
