@@ -59,18 +59,25 @@
                 return;
             }
 
-            var $parent = $select.closest('.position-relative, .input-group');
-
-            if (!$parent.length) {
-                $select.wrap('<div class="position-relative"></div>');
-                $parent = $select.parent();
+            // Wrapper estável: sempre um bloco de largura total. Isso evita
+            // que o Select2 redimensione o formulário ao abrir/fechar.
+            var $wrapper = $select.closest('.select2-wrapper');
+            if (!$wrapper.length) {
+                $select.wrap('<div class="select2-wrapper"></div>');
+                $wrapper = $select.parent();
             }
+
+            // O dropdown é anexado ao body (ou ao modal/offcanvas) para não
+            // ser recortado por cards/áreas com rolagem e não interferir no
+            // layout (nem criar rolagem horizontal) do formulário.
+            var $overlay = $select.closest('.modal, .offcanvas');
+            var dropdownParent = $overlay.length ? $overlay : $('body');
 
             var isMultiple = $select.prop('multiple');
 
             var options = {
                 width: $select.data('width') || '100%',
-                dropdownParent: $parent,
+                dropdownParent: dropdownParent,
                 placeholder: $select.data('placeholder') || 'Selecione...',
                 allowClear: $select.data('allow-clear') === true && !isMultiple,
                 closeOnSelect: !isMultiple,
@@ -96,6 +103,10 @@
             }
 
             $select.select2(options);
+
+            if ($select.hasClass('form-select-sm')) {
+                $select.next('.select2-container').addClass('select2-sm');
+            }
         });
     }
 

@@ -181,13 +181,29 @@ $currentStatus = (string) ($selected['status'] ?? '');
                     </div>
                 </div>
 
+                <div class="ticket-context-wrap border-bottom px-4 py-2 <?= !empty($contextHtml) ? '' : 'd-none' ?>" id="ticketContextWrap">
+                    <?= $contextHtml ?>
+                </div>
+
                 <div class="chat-history-body flex-grow-1" id="ticketHistoryBody">
                     <ul class="list-unstyled chat-history mb-0" id="ticketMessages">
                         <?php foreach ($messages as $message): ?>
                         <?php
                             $mine = (int) $message['user_id'] === $me;
                             $color = $avatarColor($message['user_id']);
+                            $isSystem = ($message['kind'] ?? 'message') === 'system';
                         ?>
+                        <?php if ($isSystem): ?>
+                        <li class="chat-message ticket-system-message">
+                            <div class="ticket-system-card">
+                                <div class="d-flex align-items-center gap-2 mb-2 text-primary">
+                                    <i class="icon-base ti tabler-clipboard-text"></i>
+                                    <span class="fw-semibold">Resumo automático da OS</span>
+                                </div>
+                                <div class="ticket-system-content"><?= nl2br(e((string) $message['message'])) ?></div>
+                            </div>
+                        </li>
+                        <?php else: ?>
                         <li class="chat-message<?= $mine ? ' chat-message-right' : '' ?>">
                             <div class="d-flex overflow-hidden">
                                 <?php if (!$mine): ?>
@@ -218,6 +234,7 @@ $currentStatus = (string) ($selected['status'] ?? '');
                                 <?php endif; ?>
                             </div>
                         </li>
+                        <?php endif; ?>
                         <?php endforeach; ?>
                     </ul>
 
@@ -236,6 +253,17 @@ $currentStatus = (string) ($selected['status'] ?? '');
                         <input type="text" class="form-control message-input border-0 me-3 shadow-none" id="ticketInput"
                                placeholder="Digite sua mensagem..." autocomplete="off" maxlength="2000">
                         <div class="message-actions d-flex align-items-center">
+                            <?php if (!empty($ticketAudioEnabled)): ?>
+                            <button type="button" class="btn btn-icon btn-text-secondary ticket-audio-btn me-2"
+                                    data-ticket-audio
+                                    data-target="#ticketInput"
+                                    data-csrf="<?= e($csrf) ?>"
+                                    data-endpoint="/api/transcribe"
+                                    title="Gravar áudio e transcrever"
+                                    aria-label="Gravar áudio e transcrever">
+                                <i class="icon-base ti tabler-microphone"></i>
+                            </button>
+                            <?php endif; ?>
                             <button type="submit" class="btn btn-primary d-flex send-msg-btn" id="ticketSendBtn">
                                 <span class="align-middle d-md-inline-block d-none">Enviar</span>
                                 <i class="icon-base ti tabler-send icon-16px ms-md-2 ms-0"></i>

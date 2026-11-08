@@ -3,13 +3,20 @@
 // IMPORTAÇÃO — catálogo Canal da Peça
 //
 // Uso (dentro do container):
-//   php bin/import_parts.php all
+//   php bin/import_parts.php all            (veículos + produtos + sync)
 //   php bin/import_parts.php vehicles
-//   php bin/import_parts.php products
+//   php bin/import_parts.php products [paginas]
+//   php bin/import_parts.php crawl [paginas]  (varredura profunda)
+//   php bin/import_parts.php daemon [paginas] (ciclos contínuos)
+//   php bin/import_parts.php reclassify     (corrige categorias antigas)
+//   php bin/import_parts.php sync
 //
 // Respeita 1 requisição/segundo e usa cache em
 // storage/cache/canaldapeca. Dados de catálogo,
 // sem dados pessoais.
+//
+// Daemon: CDP_INTERVAL define o intervalo entre
+// ciclos em segundos (padrão 21600 = 6 horas).
 // =============================================
 
 declare(strict_types=1);
@@ -134,9 +141,9 @@ function importVehicles(CanalDaPecaClient $client, PartsCatalog $catalog, array 
     }
 }
 
-function importProducts(CanalDaPecaClient $client, PartsCatalog $catalog, array $terms, int $pages = 2): void
+function importProducts(CanalDaPecaClient $client, PartsCatalog $catalog, array $terms, int $pages = 2, ?callable $afterEachTerm = null): void
 {
-    echo "Importando produtos populares...\n";
+    echo "Importando produtos populares ({$pages} página(s) por termo)...\n";
 
     foreach ($terms as $term) {
         $imported = 0;
@@ -172,6 +179,10 @@ function importProducts(CanalDaPecaClient $client, PartsCatalog $catalog, array 
         }
 
         echo "  {$term}: {$imported} produtos\n";
+
+        if ($afterEachTerm !== null) {
+            $afterEachTerm($term);
+        }
     }
 }
 
@@ -207,51 +218,130 @@ function seedCommonParts(PDO $pdo): void
     }
 }
 
-function syncParts(PDO $pdo): int
+function syncParts(PDO $pdo, PartsCatalog $catalog): array
 {
-    $pdo->exec(
-        "INSERT INTO parts (name, brand, part_code, category, price, source, cdp_sku, is_active)
-         SELECT LEFT(COALESCE(NULLIF(p.name_simple, ''), p.name), 200),
-                LEFT(p.brand, 120),
-                LEFT(p.part_code, 80),
-                LEFT(p.category, 120),
-                (SELECT MIN(o.price) FROM cdp_offers o WHERE o.sku_id = p.sku_id AND o.price > 0),
-                'canaldapeca',
-                p.sku_id,
-                1
-           FROM cdp_products p
-         ON DUPLICATE KEY UPDATE
-            name = VALUES(name), brand = VALUES(brand), part_code = VALUES(part_code),
-            category = VALUES(category), price = VALUES(price), updated_at = NOW()"
-    );
-
-    return (int) $pdo->query('SELECT COUNT(*) FROM parts')->fetchColumn();
+    $result = $catalog->syncFromCatalog();
+    $result['total'] = (int) $pdo->query('SELECT COUNT(*) FROM parts')->fetchColumn();
+    return $result;
 }
 
-try {
-    if ($command === 'all' || $command === 'vehicles') {
-        importVehicles($client, $catalog, $popularModels);
-    }
-    if ($command === 'all' || $command === 'products') {
-        importProducts($client, $catalog, $popularTerms);
-    }
-
-    if ($command === 'all' || $command === 'products' || $command === 'parts') {
-        seedCommonParts($pdo);
-        $parts = syncParts($pdo);
-        echo "Peças na base: {$parts}\n";
+/** Garante instância única do importador (evita dois processos ao mesmo tempo). */
+function acquireLock(): void
+{
+    $dir = dirname(__DIR__) . '/storage/cache/canaldapeca';
+    if (!is_dir($dir) && !@mkdir($dir, 0775, true) && !is_dir($dir)) {
+        return;
     }
 
+    $handle = @fopen($dir . '/import.lock', 'c');
+    if ($handle === false) {
+        return;
+    }
+    if (!flock($handle, LOCK_EX | LOCK_NB)) {
+        fwrite(STDERR, "Já existe uma importação em andamento ({$dir}/import.lock).\n");
+        exit(1);
+    }
+
+    $GLOBALS['__cdp_lock'] = $handle;
+}
+
+function catalogSummary(PDO $pdo): void
+{
     $products = (int) $pdo->query('SELECT COUNT(*) FROM cdp_products')->fetchColumn();
     $offers = (int) $pdo->query('SELECT COUNT(*) FROM cdp_offers')->fetchColumn();
+    $parts = (int) $pdo->query('SELECT COUNT(*) FROM parts')->fetchColumn();
+    $classified = (int) $pdo->query('SELECT COUNT(*) FROM parts WHERE category_id IS NOT NULL')->fetchColumn();
     $makes = (int) $pdo->query('SELECT COUNT(*) FROM cdp_vehicle_makes')->fetchColumn();
     $models = (int) $pdo->query('SELECT COUNT(*) FROM cdp_vehicle_models')->fetchColumn();
     $years = (int) $pdo->query('SELECT COUNT(*) FROM cdp_vehicle_years')->fetchColumn();
 
     echo "\nResumo do catálogo:\n";
-    echo "  Produtos: {$products}\n";
-    echo "  Ofertas: {$offers}\n";
-    echo "  Marcas: {$makes} | Modelos: {$models} | Anos: {$years}\n";
+    echo "  Produtos (bruto): {$products}\n";
+    echo "  Ofertas:          {$offers}\n";
+    echo "  Peças publicadas: {$parts} ({$classified} classificadas)\n";
+    echo "  Veículos:         {$makes} marcas | {$models} modelos | {$years} anos\n";
+}
+
+function runDaemon(
+    CanalDaPecaClient $client,
+    PartsCatalog $catalog,
+    PDO $pdo,
+    array $terms,
+    int $pages,
+    int $interval
+): void {
+    do {
+        echo '[' . date('c') . "] Início do ciclo de importação\n";
+        seedCommonParts($pdo);
+
+        importProducts($client, $catalog, $terms, $pages, static function () use ($pdo, $catalog): void {
+            $result = $catalog->syncFromCatalog();
+            printf("    sync: +%d novas, %d atualizadas, %d classificadas\n",
+                $result['inserted'], $result['updated'], $result['classified']);
+        });
+
+        $result = $catalog->syncFromCatalog();
+        $parts = (int) $pdo->query('SELECT COUNT(*) FROM parts')->fetchColumn();
+
+        echo '[' . date('c') . "] Fim do ciclo: +{$result['inserted']} nova(s), "
+            . "{$result['updated']} atualizada(s), total {$parts} peça(s).\n";
+        echo "Aguardando {$interval} segundo(s) para o próximo ciclo.\n";
+        flush();
+        sleep($interval);
+    } while (true);
+}
+
+try {
+    $pages = isset($argv[2]) ? max(1, (int) $argv[2]) : null;
+
+    if ($command === 'all' || $command === 'vehicles' || $command === 'products'
+        || $command === 'crawl' || $command === 'daemon'
+    ) {
+        acquireLock();
+    }
+
+    if ($command === 'all' || $command === 'vehicles') {
+        importVehicles($client, $catalog, $popularModels);
+    }
+
+    if ($command === 'all' || $command === 'products') {
+        importProducts($client, $catalog, $popularTerms, $pages ?? 3);
+    }
+
+    if ($command === 'crawl') {
+        seedCommonParts($pdo);
+        importProducts($client, $catalog, $popularTerms, $pages ?? 8, static function (string $term) use ($catalog): void {
+            $result = $catalog->syncFromCatalog();
+            printf("    sync (%s): +%d novas, %d classificadas\n",
+                $term, $result['inserted'], $result['classified']);
+        });
+    }
+
+    if ($command === 'daemon') {
+        $interval = max(300, (int) (getenv('CDP_INTERVAL') ?: 21600));
+        runDaemon($client, $catalog, $pdo, $popularTerms, $pages ?? 8, $interval);
+        exit(0);
+    }
+
+    if ($command === 'reclassify') {
+        $changed = $catalog->reclassifyAll();
+        echo "Peças reclassificadas: {$changed}\n";
+    }
+
+    if ($command === 'sync' || $command === 'parts') {
+        seedCommonParts($pdo);
+        $result = syncParts($pdo, $catalog);
+        echo "Sincronização concluída: +{$result['inserted']} nova(s), "
+            . "{$result['updated']} atualizada(s), {$result['classified']} classificada(s).\n";
+    }
+
+    if (in_array($command, ['all', 'products', 'crawl', 'sync', 'parts', 'reclassify'], true)) {
+        seedCommonParts($pdo);
+        $result = $catalog->syncFromCatalog();
+        echo "Peças na base: {$result['inserted']} nova(s), {$result['updated']} atualizada(s).\n";
+    }
+
+    catalogSummary($pdo);
 } catch (Throwable $e) {
     fwrite(STDERR, 'Erro na importação: ' . $e->getMessage() . "\n");
     exit(1);

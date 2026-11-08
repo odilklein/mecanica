@@ -165,6 +165,17 @@
 
             messagesEl.innerHTML = '';
             messages.forEach(function (message) {
+                if (message.kind === 'system') {
+                    var summary = document.createElement('li');
+                    summary.className = 'chat-message ticket-system-message';
+                    summary.innerHTML = '<div class="ticket-system-card">'
+                        + '<div class="d-flex align-items-center gap-2 mb-2 text-primary">'
+                        + '<i class="icon-base ti tabler-clipboard-text"></i><span class="fw-semibold">Resumo automático da OS</span></div>'
+                        + '<div class="ticket-system-content">' + esc(message.message).replace(/\n/g, '<br>') + '</div></div>';
+                    messagesEl.appendChild(summary);
+                    return;
+                }
+
                 var mine = parseInt(message.user_id, 10) === currentUserId;
                 var avatar = '<div class="avatar avatar-sm"><span class="avatar-initial rounded-circle bg-label-'
                     + color(message.user_id) + '">' + esc(initials(message.user_name)) + '</span></div>';
@@ -189,8 +200,19 @@
             scrollBottom();
         }
 
-        function applyTicket(ticket, messages) {
+        function applyTicket(ticket, messages, contextHtml) {
             selectedId = parseInt(ticket.id, 10);
+
+            var contextWrap = document.getElementById('ticketContextWrap');
+            if (contextWrap) {
+                if (contextHtml) {
+                    contextWrap.innerHTML = contextHtml;
+                    contextWrap.classList.remove('d-none');
+                } else {
+                    contextWrap.innerHTML = '';
+                    contextWrap.classList.add('d-none');
+                }
+            }
 
             if (subjectEl) {
                 subjectEl.textContent = ticket.subject;
@@ -242,7 +264,7 @@
                     if (!data || !data.ticket) {
                         return;
                     }
-                    applyTicket(data.ticket, data.messages || []);
+                    applyTicket(data.ticket, data.messages || [], data.context_html || '');
                     if (updateUrl !== false && window.history && window.history.replaceState) {
                         window.history.replaceState(null, '', baseUrl + '?ticket=' + id);
                     }

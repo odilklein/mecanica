@@ -8,25 +8,49 @@ $orderId = (int) $order['id'];
 $status = (string) $order['status'];
 $priority = (string) $order['priority'];
 $taskStatuses = ['pending' => 'Pendente', 'in_progress' => 'Em execução', 'done' => 'Concluída'];
-$itemTypeLabels = ['part' => 'Peça', 'service' => 'Serviço'];
+$money = static fn (float $value): string => 'R$ ' . number_format($value, 2, ',', '.');
+$qty = static fn (float $value): string => rtrim(rtrim(number_format($value, 2, ',', '.'), '0'), ',');
+$initials = static function (string $name): string {
+    $parts = preg_split('/\s+/u', trim($name), -1, PREG_SPLIT_NO_EMPTY) ?: [];
+    return $parts
+        ? strtoupper(implode('', array_map(static fn (string $p): string => mb_substr($p, 0, 1), array_slice($parts, 0, 2))))
+        : '?';
+};
+$timeLabel = static function (?string $value): string {
+    if (!$value) {
+        return '';
+    }
+    $ts = strtotime($value);
+    if ($ts === false) {
+        return '';
+    }
+    $date = date('Y-m-d', $ts);
+    if ($date === date('Y-m-d')) {
+        return date('H:i', $ts);
+    }
+    if ($date === date('Y-m-d', strtotime('-1 day'))) {
+        return 'Ontem';
+    }
+    return date('d/m', $ts);
+};
 
-$clientInitials = '';
-if (preg_match_all('/\b\w/u', (string) ($order['client_name'] ?? ''), $m)) {
-    $clientInitials = strtoupper(implode('', array_slice($m[0], 0, 2)));
-}
-$clientInitials = $clientInitials ?: '?';
-
+$clientInitials = $initials((string) ($order['client_name'] ?? ''));
 $vehicleLabel = trim(($order['vehicle_brand'] ?? '') . ' ' . ($order['vehicle_model'] ?? ''));
-$budgetItems = $budgetItems ?? [];
+$services = $serviceItems ?? [];
+$partItems = $partItems ?? [];
+$ticket = $ticket ?? null;
+$ticketMessages = $ticketMessages ?? [];
+$me = (int) ($user['id'] ?? 0);
+$ticketStatus = (string) ($ticket['status'] ?? 'open');
+$ticketId = (int) ($ticket['id'] ?? 0);
 $eventCount = count($events);
 ?>
-<div class="page-header">
+<div class="page-header os-page-header">
     <div>
         <h1>
             <i class="icon-base ti tabler-clipboard-check"></i>
             OS #<?= str_pad((string) $order['number'], 4, '0', STR_PAD_LEFT) ?>
             <span class="badge <?= e($Status::badgeClass($status)) ?> ms-2"><?= e($Status::label($status)) ?></span>
-            <span class="badge <?= e($Status::priorityBadge($priority)) ?> ms-1"><?= e($Status::priorityLabel($priority)) ?></span>
         </h1>
         <span class="page-subtitle">
             <?= e($order['client_name'] ?: 'Cliente não informado') ?>
@@ -35,13 +59,19 @@ $eventCount = count($events);
             · Entrada <?= $order['entry_date'] ? e(date('d/m/Y', strtotime((string) $order['entry_date']))) : '—' ?>
         </span>
     </div>
-    <div class="page-header-actions">
+    <div class="page-header-actions os-header-actions">
+        <div class="os-priority-box">
+            <small class="text-body-secondary d-block">Prioridade</small>
+            <span class="badge <?= e($Status::priorityBadge($priority)) ?>"><?= e($Status::priorityLabel($priority)) ?></span>
+        </div>
         <a href="<?= e($path) ?>" class="btn btn-label-secondary">
             <i class="icon-base ti tabler-arrow-left"></i> Voltar
         </a>
-        <a href="/service-orders/<?= $orderId ?>/ticket" class="btn btn-label-info">
-            <i class="icon-base ti tabler-messages"></i> Ticket
+        <?php if ($ticket): ?>
+        <a href="/tickets?ticket=<?= $ticketId ?>" class="btn btn-label-info">
+            <i class="icon-base ti tabler-messages"></i> Central de tickets
         </a>
+        <?php endif; ?>
         <a href="/budgets/create?os_id=<?= $orderId ?>&cliente_id=<?= (int) $order['client_id'] ?>&veiculo_id=<?= (int) $order['vehicle_id'] ?>" class="btn btn-label-primary">
             <i class="icon-base ti tabler-file-plus"></i> Novo orçamento
         </a>
@@ -53,26 +83,11 @@ $eventCount = count($events);
 
 <div class="row g-6">
     <div class="col-12 col-lg-8">
-        <!-- Queixa inicial -->
+        <!-- Serviços e peças necessárias -->
         <div class="card mb-6">
-            <div class="card-body">
-                <div class="d-flex align-items-start gap-3">
-                    <span class="avatar rounded-circle bg-label-warning">
-                        <i class="icon-base ti tabler-message-2 icon-lg"></i>
-                    </span>
-                    <div class="flex-grow-1">
-                        <h6 class="mb-1">Queixa inicial</h6>
-                        <p class="mb-0 text-body"><?= $order['initial_complaint'] ? nl2br(e($order['initial_complaint'])) : 'Não informada.' ?></p>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Itens e serviços (orçamento) -->
-        <div class="card mb-6">
-            <div class="card-header d-flex justify-content-between align-items-center">
+            <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
                 <div>
-                    <h5 class="card-title m-0">Itens e serviços</h5>
+                    <h5 class="card-title m-0">Serviços e peças necessárias</h5>
                     <?php if ($budget): ?>
                     <small class="text-body-secondary">
                         Orçamento #<?= str_pad((string) $budget['number'], 4, '0', STR_PAD_LEFT) ?>
@@ -89,49 +104,101 @@ $eventCount = count($events);
                 <?php endif; ?>
             </div>
 
-            <div class="table-responsive">
-                <table class="table align-middle mb-0 responsive-card">
-                    <thead>
-                        <tr>
-                            <th>Tipo</th>
-                            <th>Item</th>
-                            <th class="text-center">Qtd</th>
-                            <th class="text-end">Unitário</th>
-                            <th class="text-end">Subtotal</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <?php foreach ($budgetItems as $item): ?>
-                        <tr>
-                            <td data-label="Tipo">
-                                <span class="badge <?= $item['type'] === 'service' ? 'bg-label-info' : 'bg-label-primary' ?>">
-                                    <?= e($itemTypeLabels[$item['type']] ?? $item['type']) ?>
-                                </span>
-                            </td>
-                            <td data-label="Item"><?= e($item['description']) ?></td>
-                            <td data-label="Qtd" class="text-center"><?= e(rtrim(rtrim(number_format((float) $item['quantity'], 2, ',', '.'), '0'), ',')) ?></td>
-                            <td data-label="Unitário" class="text-end">R$ <?= number_format((float) $item['unit_price'], 2, ',', '.') ?></td>
-                            <td data-label="Subtotal" class="text-end">R$ <?= number_format((float) $item['subtotal'], 2, ',', '.') ?></td>
-                        </tr>
+            <div class="card-body">
+                <?php if ($budget): ?>
+                <?php if ($services): ?>
+                <div class="os-subsection">
+                    <div class="os-subsection-title">
+                        <i class="icon-base ti tabler-tool"></i>
+                        <span>Serviços</span>
+                        <span class="badge bg-label-info"><?= count($services) ?></span>
+                    </div>
+                    <div class="os-service-list">
+                        <?php foreach ($services as $item): ?>
+                        <div class="os-service-row">
+                            <span class="os-service-icon"><i class="icon-base ti tabler-tool"></i></span>
+                            <div class="flex-grow-1 min-w-0">
+                                <div class="fw-medium text-heading"><?= e((string) $item['description']) ?></div>
+                                <small class="text-body-secondary">
+                                    Mão de obra · <?= e($qty((float) $item['quantity'])) ?> × <?= e($money((float) $item['unit_price'])) ?>
+                                </small>
+                            </div>
+                            <div class="text-end text-nowrap">
+                                <div class="fw-semibold"><?= e($money((float) $item['subtotal'])) ?></div>
+                            </div>
+                        </div>
                         <?php endforeach; ?>
-                        <?php if (!$budgetItems): ?>
-                        <tr class="row-empty">
-                            <td colspan="5" class="text-center text-body-secondary py-6">
-                                <?php if ($budget): ?>
-                                O orçamento ainda não possui itens.
+                    </div>
+                </div>
+                <?php endif; ?>
+
+                <?php if ($partItems): ?>
+                <div class="os-subsection">
+                    <div class="os-subsection-title">
+                        <i class="icon-base ti tabler-package"></i>
+                        <span>Peças necessárias</span>
+                        <span class="badge bg-label-primary"><?= count($partItems) ?></span>
+                    </div>
+                    <div class="os-part-grid">
+                        <?php foreach ($partItems as $item): ?>
+                        <?php
+                            $catalog = $item['catalog'] ?? null;
+                            $name = (string) ($catalog['name'] ?? $item['description'] ?? 'Peça');
+                            $brand = trim((string) ($catalog['brand'] ?? ''));
+                            $code = trim((string) ($catalog['part_code'] ?? $catalog['sku'] ?? ''));
+                            $category = trim((string) ($catalog['category'] ?? ''));
+                            $description = implode(' · ', array_filter([$brand ?: null, $code ?: null, $category ?: null]));
+                            $initialsPart = $initials($brand ?: $name);
+                        ?>
+                        <div class="os-part-card">
+                            <div class="os-part-thumb">
+                                <?php if ($catalog && !empty($catalog['image'])): ?>
+                                <img src="<?= e((string) $catalog['image']) ?>" alt="<?= e($name) ?>" loading="lazy" onerror="this.hidden=true;this.nextElementSibling.hidden=false;">
+                                <span class="avatar-initial rounded-2 bg-label-primary" hidden><?= e($initialsPart) ?></span>
                                 <?php else: ?>
-                                Crie um orçamento para calcular peças, mão de obra e total.
+                                <span class="avatar-initial rounded-2 bg-label-primary"><?= e($initialsPart) ?></span>
                                 <?php endif; ?>
-                                <div class="mt-3">
-                                    <a href="/budgets/create?os_id=<?= $orderId ?>&cliente_id=<?= (int) $order['client_id'] ?>&veiculo_id=<?= (int) $order['vehicle_id'] ?>" class="btn btn-sm btn-primary">
-                                        <i class="icon-base ti tabler-plus"></i> Criar orçamento
-                                    </a>
+                            </div>
+                            <div class="os-part-body">
+                                <div class="d-flex justify-content-between align-items-start gap-2">
+                                    <h6 class="mb-0 os-part-name" title="<?= e($name) ?>"><?= e($name) ?></h6>
+                                    <span class="badge bg-label-primary flex-shrink-0">Peça</span>
                                 </div>
-                            </td>
-                        </tr>
-                        <?php endif; ?>
-                    </tbody>
-                </table>
+                                <small class="text-body-secondary d-block os-part-desc" title="<?= e($description) ?>">
+                                    <?= $description !== '' ? e($description) : 'Peça do orçamento' ?>
+                                </small>
+                                <div class="d-flex justify-content-between align-items-end gap-2 mt-2">
+                                    <span class="small text-body-secondary">
+                                        <?= e($qty((float) $item['quantity'])) ?> × <?= e($money((float) $item['unit_price'])) ?>
+                                    </span>
+                                    <strong class="text-heading"><?= e($money((float) $item['subtotal'])) ?></strong>
+                                </div>
+                                <?php if ($catalog): ?>
+                                <a href="/parts/<?= (int) $catalog['id'] ?>" class="small d-inline-flex align-items-center gap-1 mt-2">
+                                    <i class="icon-base ti tabler-external-link"></i> Ver no catálogo
+                                </a>
+                                <?php endif; ?>
+                            </div>
+                        </div>
+                        <?php endforeach; ?>
+                    </div>
+                </div>
+                <?php endif; ?>
+
+                <?php if (!$services && !$partItems): ?>
+                <p class="text-body-secondary mb-0">O orçamento ainda não possui itens.</p>
+                <?php endif; ?>
+                <?php else: ?>
+                <div class="text-center text-body-secondary py-6">
+                    <i class="icon-base ti tabler-file-off icon-40px d-block mb-2 opacity-50"></i>
+                    Crie um orçamento para calcular peças, mão de obra e total.
+                    <div class="mt-3">
+                        <a href="/budgets/create?os_id=<?= $orderId ?>&cliente_id=<?= (int) $order['client_id'] ?>&veiculo_id=<?= (int) $order['vehicle_id'] ?>" class="btn btn-sm btn-primary">
+                            <i class="icon-base ti tabler-plus"></i> Criar orçamento
+                        </a>
+                    </div>
+                </div>
+                <?php endif; ?>
             </div>
 
             <?php if ($budget): ?>
@@ -139,56 +206,280 @@ $eventCount = count($events);
                 <div class="d-flex flex-column gap-2" style="min-width: 260px;">
                     <div class="d-flex justify-content-between">
                         <span class="w-px-100 text-heading">Peças:</span>
-                        <h6 class="mb-0">R$ <?= number_format((float) $budget['parts_total'], 2, ',', '.') ?></h6>
+                        <h6 class="mb-0"><?= e($money((float) $budget['parts_total'])) ?></h6>
                     </div>
                     <div class="d-flex justify-content-between">
                         <span class="w-px-100 text-heading">Mão de obra:</span>
-                        <h6 class="mb-0">R$ <?= number_format((float) $budget['labor_total'], 2, ',', '.') ?></h6>
+                        <h6 class="mb-0"><?= e($money((float) $budget['labor_total'])) ?></h6>
                     </div>
                     <div class="d-flex justify-content-between">
                         <span class="w-px-100 text-heading">Desconto:</span>
-                        <h6 class="mb-0">R$ <?= number_format((float) $budget['discount'], 2, ',', '.') ?></h6>
+                        <h6 class="mb-0"><?= e($money((float) $budget['discount'])) ?></h6>
                     </div>
                     <div class="d-flex justify-content-between border-top pt-2">
                         <h6 class="w-px-100 mb-0">Total:</h6>
-                        <h5 class="mb-0 text-primary">R$ <?= number_format((float) $budget['total'], 2, ',', '.') ?></h5>
+                        <h5 class="mb-0 text-primary"><?= e($money((float) $budget['total'])) ?></h5>
                     </div>
                 </div>
             </div>
             <?php endif; ?>
         </div>
 
-        <!-- Tarefas -->
-        <div class="card mb-6">
-            <div class="card-header">
-                <h5 class="card-title m-0">Tarefas</h5>
+        <!-- Tarefas + conversa do ticket -->
+        <div class="card mb-6 os-tasks-card">
+            <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+                <div>
+                    <h5 class="card-title m-0">Tarefas</h5>
+                    <small class="text-body-secondary">Modelo expandido: status, responsável, prazo e observações</small>
+                </div>
+                <div class="d-flex align-items-center gap-2">
+                    <span class="badge bg-label-secondary"><?= count($tasks) ?> tarefa(s)</span>
+                    <?php if ($ticket): ?>
+                    <a href="/tickets?ticket=<?= $ticketId ?>" class="btn btn-sm btn-label-info">
+                        <i class="icon-base ti tabler-external-link"></i> Abrir na central
+                    </a>
+                    <?php endif; ?>
+                </div>
             </div>
+
             <div class="card-body">
-                <?php foreach ($tasks as $task): ?>
-                <form method="POST" action="<?= e($path . '/' . $orderId . '/task-status') ?>" class="d-flex align-items-center gap-2 mb-3">
-                    <input type="hidden" name="csrf_token" value="<?= e($csrf) ?>">
-                    <input type="hidden" name="task_id" value="<?= (int) $task['id'] ?>">
-                    <i class="icon-base ti tabler-grip-vertical text-body-secondary"></i>
-                    <span class="flex-grow-1 <?= $task['status'] === 'done' ? 'text-decoration-line-through text-body-secondary' : '' ?>">
-                        <?= e($task['description']) ?>
-                    </span>
-                    <select class="select2 form-select form-select-sm" name="task_status" data-width="150px" data-minimum-results-for-search="Infinity" onchange="this.form.submit()">
-                        <?php foreach ($taskStatuses as $key => $label): ?>
-                        <option value="<?= e($key) ?>" <?= $task['status'] === $key ? 'selected' : '' ?>><?= e($label) ?></option>
+                <ul class="nav nav-tabs widget-nav-tabs pb-4 gap-2 gap-sm-4 mb-4 flex-wrap" role="tablist">
+                    <li class="nav-item">
+                        <a href="javascript:void(0);" class="nav-link btn active d-flex align-items-center gap-2" role="tab" data-bs-toggle="tab" data-bs-target="#osTabTasks" aria-selected="true">
+                            <i class="icon-base ti tabler-checklist"></i> Tarefas
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="javascript:void(0);" class="nav-link btn d-flex align-items-center gap-2" role="tab" data-bs-toggle="tab" data-bs-target="#osTabConversation" aria-selected="false">
+                            <i class="icon-base ti tabler-messages"></i> Conversa
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="javascript:void(0);" class="nav-link btn d-flex align-items-center gap-2" role="tab" data-bs-toggle="tab" data-bs-target="#osTabDetails" aria-selected="false">
+                            <i class="icon-base ti tabler-info-circle"></i> Detalhes
+                        </a>
+                    </li>
+                </ul>
+
+                <div class="tab-content p-0">
+                    <!-- ABA TAREFAS -->
+                    <div class="tab-pane fade show active" id="osTabTasks" role="tabpanel">
+                        <?php foreach ($tasks as $task): ?>
+                        <?php $taskTone = $task['status'] === 'done' ? 'success' : ($task['status'] === 'in_progress' ? 'primary' : 'secondary'); ?>
+                        <div class="os-task-card">
+                            <form method="POST" action="<?= e($path . '/' . $orderId . '/task-update') ?>">
+                                <input type="hidden" name="csrf_token" value="<?= e($csrf) ?>">
+                                <input type="hidden" name="task_id" value="<?= (int) $task['id'] ?>">
+                                <div class="d-flex justify-content-between align-items-center gap-2 mb-2">
+                                    <input type="text" class="form-control form-control-sm fw-semibold os-task-title" name="description"
+                                           value="<?= e((string) $task['description']) ?>" maxlength="255" required>
+                                    <span class="badge bg-label-<?= $taskTone ?> flex-shrink-0"><?= e($taskStatuses[$task['status']] ?? $task['status']) ?></span>
+                                </div>
+                                <div class="row g-2">
+                                    <div class="col-12 col-sm-4">
+                                        <label class="form-label small mb-1">Status</label>
+                                        <select class="form-select form-select-sm" name="status">
+                                            <?php foreach ($taskStatuses as $key => $label): ?>
+                                            <option value="<?= e($key) ?>" <?= $task['status'] === $key ? 'selected' : '' ?>><?= e($label) ?></option>
+                                            <?php endforeach; ?>
+                                        </select>
+                                    </div>
+                                    <div class="col-12 col-sm-4">
+                                        <label class="form-label small mb-1">Responsável</label>
+                                        <select class="form-select form-select-sm" name="assigned_to">
+                                            <option value="">Sem responsável</option>
+                                            <?php foreach ($mechanics as $mechanic): ?>
+                                            <option value="<?= (int) $mechanic['id'] ?>" <?= (int) ($task['assigned_to'] ?? 0) === (int) $mechanic['id'] ? 'selected' : '' ?>>
+                                                <?= e($mechanic['name']) ?>
+                                            </option>
+                                            <?php endforeach; ?>
+                                        </select>
+                                    </div>
+                                    <div class="col-12 col-sm-4">
+                                        <label class="form-label small mb-1">Prazo</label>
+                                        <input type="date" class="form-control form-control-sm" name="due_date"
+                                               value="<?= e((string) ($task['due_date'] ?? '')) ?>">
+                                    </div>
+                                    <div class="col-12">
+                                        <label class="form-label small mb-1">Observações</label>
+                                        <textarea class="form-control form-control-sm" name="notes" rows="2"
+                                                  placeholder="Detalhes da tarefa (opcional)"><?= e((string) ($task['notes'] ?? '')) ?></textarea>
+                                    </div>
+                                </div>
+                                <div class="d-flex justify-content-between align-items-center gap-2 mt-2">
+                                    <small class="text-body-secondary">
+                                        <?= e($task['creator_name'] ?: 'Sistema') ?>
+                                        <?php if (!empty($task['created_at'])): ?> · <?= e(date('d/m', strtotime((string) $task['created_at']))) ?><?php endif; ?>
+                                        <?php if (!empty($task['completed_at'])): ?>
+                                        · concluída <?= e(date('d/m', strtotime((string) $task['completed_at']))) ?>
+                                        <?php endif; ?>
+                                    </small>
+                                    <button type="submit" class="btn btn-sm btn-label-primary">
+                                        <i class="icon-base ti tabler-device-floppy"></i> Salvar
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
                         <?php endforeach; ?>
-                    </select>
-                </form>
-                <?php endforeach; ?>
 
-                <?php if (!$tasks): ?>
-                <p class="text-body-secondary">Nenhuma tarefa definida.</p>
-                <?php endif; ?>
+                        <?php if (!$tasks): ?>
+                        <p class="text-body-secondary">Nenhuma tarefa definida.</p>
+                        <?php endif; ?>
 
-                <form method="POST" action="<?= e($path . '/' . $orderId . '/tasks') ?>" class="input-group mt-3">
-                    <input type="hidden" name="csrf_token" value="<?= e($csrf) ?>">
-                    <input type="text" class="form-control" name="description" placeholder="Nova tarefa..." maxlength="255" required>
-                    <button type="submit" class="btn btn-outline-primary"><i class="icon-base ti tabler-plus"></i></button>
-                </form>
+                        <form method="POST" action="<?= e($path . '/' . $orderId . '/tasks') ?>" class="os-task-add mt-4">
+                            <input type="hidden" name="csrf_token" value="<?= e($csrf) ?>">
+                            <h6 class="mb-3"><i class="icon-base ti tabler-plus"></i> Nova tarefa</h6>
+                            <div class="row g-2">
+                                <div class="col-12 col-md-5">
+                                    <input type="text" class="form-control form-control-sm" name="description"
+                                           placeholder="Descrição da tarefa..." maxlength="255" required>
+                                </div>
+                                <div class="col-6 col-md-3">
+                                    <select class="form-select form-select-sm" name="assigned_to">
+                                        <option value="">Sem responsável</option>
+                                        <?php foreach ($mechanics as $mechanic): ?>
+                                        <option value="<?= (int) $mechanic['id'] ?>"><?= e($mechanic['name']) ?></option>
+                                        <?php endforeach; ?>
+                                    </select>
+                                </div>
+                                <div class="col-6 col-md-2">
+                                    <input type="date" class="form-control form-control-sm" name="due_date">
+                                </div>
+                                <div class="col-12 col-md-2">
+                                    <button type="submit" class="btn btn-sm btn-primary w-100">
+                                        <i class="icon-base ti tabler-plus"></i> Adicionar
+                                    </button>
+                                </div>
+                                <div class="col-12">
+                                    <textarea class="form-control form-control-sm" name="notes" rows="2" placeholder="Observações (opcional)"></textarea>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+
+                    <!-- ABA CONVERSA -->
+                    <div class="tab-pane fade" id="osTabConversation" role="tabpanel">
+                        <?php if ($ticket): ?>
+                        <div class="os-ticket" id="osTicket"
+                             data-ticket-id="<?= $ticketId ?>"
+                             data-send-url="/tickets/<?= $ticketId ?>/messages"
+                             data-status-url="/tickets/<?= $ticketId ?>/status"
+                             data-csrf="<?= e($csrf) ?>"
+                             data-current-user="<?= $me ?>">
+                            <div class="d-flex justify-content-between align-items-center gap-2 mb-3">
+                                <div class="d-flex align-items-center gap-2">
+                                    <span class="badge <?= $ticketStatus === 'closed' ? 'bg-label-secondary' : 'bg-label-success' ?>" id="osTicketStatusBadge">
+                                        <?= $ticketStatus === 'closed' ? 'Encerrado' : 'Em aberto' ?>
+                                    </span>
+                                    <small class="text-body-secondary"><?= e($ticket['subject'] ?? '') ?></small>
+                                </div>
+                                <button type="button" class="btn btn-sm btn-label-secondary" id="osTicketToggleStatus"
+                                        data-status="<?= e($ticketStatus) ?>">
+                                    <i class="icon-base ti <?= $ticketStatus === 'closed' ? 'tabler-lock-open' : 'tabler-lock' ?>"></i>
+                                    <?= $ticketStatus === 'closed' ? 'Reabrir' : 'Encerrar' ?>
+                                </button>
+                            </div>
+
+                            <div class="os-ticket-messages" id="osTicketMessages">
+                                <?php foreach ($ticketMessages as $message): ?>
+                                <?php
+                                    $isSystem = ($message['kind'] ?? 'message') === 'system';
+                                    $mine = (int) $message['user_id'] === $me;
+                                ?>
+                                <?php if ($isSystem): ?>
+                                <div class="ticket-system-card">
+                                    <div class="d-flex align-items-center gap-2 mb-2 text-primary">
+                                        <i class="icon-base ti tabler-clipboard-text"></i>
+                                        <span class="fw-semibold">Resumo automático da OS</span>
+                                    </div>
+                                    <div class="ticket-system-content"><?= nl2br(e((string) $message['message'])) ?></div>
+                                </div>
+                                <?php else: ?>
+                                <div class="os-ticket-message<?= $mine ? ' is-mine' : '' ?>">
+                                    <?php if (!$mine): ?>
+                                    <span class="avatar avatar-sm flex-shrink-0">
+                                        <span class="avatar-initial rounded-circle bg-label-primary"><?= e($initials((string) $message['user_name'])) ?></span>
+                                    </span>
+                                    <?php endif; ?>
+                                    <div class="os-ticket-bubble">
+                                        <div class="os-ticket-text"><?= nl2br(e((string) $message['message'])) ?></div>
+                                        <small class="text-body-secondary"><?= e($message['user_name']) ?> · <?= e($timeLabel($message['created_at'])) ?></small>
+                                    </div>
+                                </div>
+                                <?php endif; ?>
+                                <?php endforeach; ?>
+                                <?php if (!$ticketMessages): ?>
+                                <p class="text-body-secondary text-center py-6 mb-0">Nenhuma mensagem ainda. Envie a primeira.</p>
+                                <?php endif; ?>
+                            </div>
+
+                            <form class="os-ticket-composer" id="osTicketForm">
+                                <input type="hidden" name="csrf_token" value="<?= e($csrf) ?>">
+                                <input type="text" class="form-control" id="osTicketInput" maxlength="2000"
+                                       placeholder="Digite uma mensagem para a equipe..." autocomplete="off" required>
+                                <?php if (!empty($ticketAudioEnabled)): ?>
+                                <button type="button" class="btn btn-icon btn-text-secondary ticket-audio-btn"
+                                        data-ticket-audio
+                                        data-target="#osTicketInput"
+                                        data-csrf="<?= e($csrf) ?>"
+                                        data-endpoint="/api/transcribe"
+                                        title="Gravar áudio e transcrever"
+                                        aria-label="Gravar áudio e transcrever">
+                                    <i class="icon-base ti tabler-microphone"></i>
+                                </button>
+                                <?php endif; ?>
+                                <button type="submit" class="btn btn-primary" id="osTicketSendBtn">
+                                    <i class="icon-base ti tabler-send"></i>
+                                </button>
+                            </form>
+                        </div>
+                        <?php else: ?>
+                        <div class="alert alert-info mb-0">
+                            <i class="icon-base ti tabler-info-circle"></i>
+                            Você não participa do ticket desta OS.
+                        </div>
+                        <?php endif; ?>
+                    </div>
+
+                    <!-- ABA DETALHES -->
+                    <div class="tab-pane fade" id="osTabDetails" role="tabpanel">
+                        <div class="row g-4">
+                            <div class="col-12">
+                                <div class="os-detail-block">
+                                    <h6 class="mb-2"><i class="icon-base ti tabler-message-2 me-1"></i> Queixa do cliente</h6>
+                                    <p class="mb-0 text-body"><?= $order['initial_complaint'] ? nl2br(e((string) $order['initial_complaint'])) : 'Não informada.' ?></p>
+                                </div>
+                            </div>
+                            <div class="col-12">
+                                <div class="os-detail-block">
+                                    <h6 class="mb-2"><i class="icon-base ti tabler-notes me-1"></i> Observações internas</h6>
+                                    <form method="POST" action="<?= e($path . '/' . $orderId . '/internal-notes') ?>">
+                                        <input type="hidden" name="csrf_token" value="<?= e($csrf) ?>">
+                                        <textarea class="form-control" name="internal_notes" rows="3"
+                                                  placeholder="Observações visíveis apenas para a equipe..."><?= e((string) ($order['internal_notes'] ?? '')) ?></textarea>
+                                        <div class="d-flex justify-content-end mt-2">
+                                            <button type="submit" class="btn btn-sm btn-label-primary">
+                                                <i class="icon-base ti tabler-device-floppy"></i> Salvar observações
+                                            </button>
+                                        </div>
+                                    </form>
+                                </div>
+                            </div>
+                            <div class="col-12">
+                                <div class="os-detail-block">
+                                    <h6 class="mb-2"><i class="icon-base ti tabler-car me-1"></i> Veículo</h6>
+                                    <div class="d-flex flex-wrap gap-3 text-body">
+                                        <span><strong>Placa:</strong> <?= e($order['vehicle_plate'] ?: '—') ?></span>
+                                        <span><strong>Modelo:</strong> <?= e($vehicleLabel ?: '—') ?></span>
+                                        <span><strong>Ano:</strong> <?= $order['vehicle_year'] ? (int) $order['vehicle_year'] : '—' ?></span>
+                                        <span><strong>Cor:</strong> <?= e($order['vehicle_color'] ?: '—') ?></span>
+                                        <span><strong>KM:</strong> <?= $order['vehicle_km'] !== null ? number_format((int) $order['vehicle_km'], 0, ',', '.') : '—' ?></span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
 
@@ -275,6 +566,47 @@ $eventCount = count($events);
                 <p class="mb-1">Ano: <?= $order['vehicle_year'] ? (int) $order['vehicle_year'] : '—' ?> · Cor: <?= e($order['vehicle_color'] ?: '—') ?></p>
                 <p class="mb-1">KM: <?= $order['vehicle_km'] !== null ? number_format((int) $order['vehicle_km'], 0, ',', '.') : '—' ?></p>
                 <p class="mb-0">FIPE: <?= $order['vehicle_fipe_value'] !== null ? 'R$ ' . number_format((float) $order['vehicle_fipe_value'], 2, ',', '.') : '—' ?></p>
+            </div>
+        </div>
+
+        <!-- Status -->
+        <div class="card mb-6">
+            <div class="card-header">
+                <h5 class="card-title m-0">Status</h5>
+            </div>
+            <div class="card-body">
+                <form method="POST" action="<?= e($path . '/' . $orderId . '/status') ?>">
+                    <input type="hidden" name="csrf_token" value="<?= e($csrf) ?>">
+                    <div class="mb-3">
+                        <select class="select2 form-select" name="status" data-placeholder="Selecione o status">
+                            <?php foreach ($statusAvailable as $st): ?>
+                            <option value="<?= e($st) ?>" <?= $status === $st ? 'selected' : '' ?>><?= e($Status::label($st)) ?></option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+                    <button type="submit" class="btn btn-primary w-100">
+                        <i class="icon-base ti tabler-activity"></i> Atualizar status
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Diagnóstico -->
+        <div class="card mb-6">
+            <div class="card-header">
+                <h5 class="card-title m-0">Diagnóstico</h5>
+            </div>
+            <div class="card-body">
+                <form method="POST" action="<?= e($path . '/' . $orderId . '/diagnosis') ?>">
+                    <input type="hidden" name="csrf_token" value="<?= e($csrf) ?>">
+                    <div class="mb-3">
+                        <label class="form-label" for="diagnosis">Diagnóstico técnico</label>
+                        <textarea class="form-control" id="diagnosis" name="diagnosis" rows="4"><?= e($order['diagnosis'] ?? '') ?></textarea>
+                    </div>
+                    <button type="submit" class="btn btn-outline-primary w-100">
+                        <i class="icon-base ti tabler-device-floppy"></i> Salvar diagnóstico
+                    </button>
+                </form>
             </div>
         </div>
 
@@ -368,55 +700,10 @@ $eventCount = count($events);
             </div>
         </div>
 
-        <!-- Status -->
-        <div class="card mb-6">
-            <div class="card-header">
-                <h5 class="card-title m-0">Status</h5>
-            </div>
-            <div class="card-body">
-                <form method="POST" action="<?= e($path . '/' . $orderId . '/status') ?>">
-                    <input type="hidden" name="csrf_token" value="<?= e($csrf) ?>">
-                    <div class="mb-3">
-                        <select class="select2 form-select" name="status" data-placeholder="Selecione o status">
-                            <?php foreach ($statusAvailable as $st): ?>
-                            <option value="<?= e($st) ?>" <?= $status === $st ? 'selected' : '' ?>><?= e($Status::label($st)) ?></option>
-                            <?php endforeach; ?>
-                        </select>
-                    </div>
-                    <button type="submit" class="btn btn-primary w-100">
-                        <i class="icon-base ti tabler-activity"></i> Atualizar status
-                    </button>
-                </form>
-            </div>
-        </div>
-
-        <!-- Diagnóstico -->
-        <div class="card mb-6">
-            <div class="card-header">
-                <h5 class="card-title m-0">Diagnóstico</h5>
-            </div>
-            <div class="card-body">
-                <form method="POST" action="<?= e($path . '/' . $orderId . '/diagnosis') ?>">
-                    <input type="hidden" name="csrf_token" value="<?= e($csrf) ?>">
-                    <div class="mb-3">
-                        <label class="form-label" for="diagnosis">Diagnóstico técnico</label>
-                        <textarea class="form-control" id="diagnosis" name="diagnosis" rows="4"><?= e($order['diagnosis'] ?? '') ?></textarea>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label" for="internal_notes">Observações internas</label>
-                        <textarea class="form-control" id="internal_notes" name="internal_notes" rows="2"><?= e($order['internal_notes'] ?? '') ?></textarea>
-                    </div>
-                    <button type="submit" class="btn btn-outline-primary w-100">
-                        <i class="icon-base ti tabler-device-floppy"></i> Salvar diagnóstico
-                    </button>
-                </form>
-            </div>
-        </div>
-
-        <!-- Peças -->
+        <!-- Pedidos de peças -->
         <div class="card">
             <div class="card-header d-flex justify-content-between align-items-center">
-                <h5 class="card-title m-0">Peças</h5>
+                <h5 class="card-title m-0">Pedidos de peças</h5>
                 <a href="/part-orders/create?os_id=<?= $orderId ?>" class="btn btn-sm btn-label-primary">
                     <i class="icon-base ti tabler-plus"></i> Novo pedido
                 </a>

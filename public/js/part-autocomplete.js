@@ -25,12 +25,19 @@
         var price = item.price_label
             ? '<span class="badge bg-label-success ms-2">' + esc(item.price_label) + '</span>'
             : (item.is_new ? '<span class="badge bg-label-secondary ms-2">nova</span>' : '');
+        var link = item.product_url
+            ? '<a href="' + esc(item.product_url) + '" target="_blank" rel="noopener"'
+                + ' class="btn btn-icon btn-sm btn-text-primary ms-1" title="Abrir no Canal da Peça"'
+                + ' aria-label="Abrir no Canal da Peça"'
+                + ' onclick="event.stopPropagation()" onmousedown="event.stopPropagation()">'
+                + '<i class="icon-base ti tabler-external-link icon-16px"></i></a>'
+            : '';
 
         return '<div class="d-flex justify-content-between align-items-center gap-2">'
             + '<div class="text-truncate">'
             + '<span class="fw-medium">' + esc(item.name) + '</span>'
             + (meta ? '<br><small class="text-body-secondary">' + esc(meta) + '</small>' : '')
-            + '</div>' + price + '</div>';
+            + '</div><div class="d-flex align-items-center">' + price + link + '</div></div>';
     }
 
     function formatSelection(item) {
@@ -53,8 +60,8 @@
             return;
         }
 
-        var $positioned = $el.closest('.position-relative, .modal');
-        var $parent = $positioned.length ? $positioned : $('body');
+        var $overlay = $el.closest('.modal, .offcanvas');
+        var $parent = $overlay.length ? $overlay : $('body');
 
         $el.select2({
             width: '100%',

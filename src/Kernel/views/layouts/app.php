@@ -14,6 +14,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Public+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300;1,400;1,500;1,600;1,700&display=swap" rel="stylesheet">
 
     <link rel="stylesheet" href="/assets/vendor/fonts/iconify-icons.css">
+    <link rel="stylesheet" href="/assets/vendor/libs/perfect-scrollbar/perfect-scrollbar.css">
     <link rel="stylesheet" href="/assets/vendor/css/core.css">
     <link rel="stylesheet" href="/assets/css/demo.css">
     <link rel="stylesheet" href="<?= e(asset('/assets/vendor/libs/select2/select2.css')) ?>">
@@ -120,6 +121,67 @@
                     <?php endforeach; ?>
                     <?php endforeach; ?>
                 </ul>
+
+                <?php
+                // Painel do usuário fixo no rodapé da sidebar.
+                $menuUserName  = (string) ($user['name'] ?? 'Usuário');
+                $menuUserEmail = (string) ($user['email'] ?? '');
+                $menuUserRole  = roleLabel($user['role'] ?? null);
+                $menuUserInitial = strtoupper(mb_substr($menuUserName !== '' ? $menuUserName : 'U', 0, 1));
+                $menuUserIsAdmin = ($user['role'] ?? null) === 'admin';
+                ?>
+                <div class="menu-user">
+                    <div class="menu-user-card">
+                        <a href="/profile" class="menu-user-profile" title="Meus dados" aria-label="Meus dados">
+                            <span class="avatar avatar-sm avatar-online">
+                                <span class="avatar-initial rounded-circle bg-primary"><?= e($menuUserInitial) ?></span>
+                            </span>
+                        </a>
+                        <div class="menu-user-info">
+                            <span class="menu-user-name" title="<?= e($menuUserName) ?>"><?= e($menuUserName) ?></span>
+                            <span class="menu-user-email" title="<?= e($menuUserEmail) ?>"><?= e($menuUserEmail) ?></span>
+                        </div>
+                        <div class="dropdown dropup menu-user-dropdown">
+                            <button type="button" class="btn btn-icon btn-text-secondary rounded-pill menu-user-actions"
+                                    data-bs-toggle="dropdown" data-bs-display="static" aria-expanded="false" aria-label="Opções da conta">
+                                <i class="icon-base ti tabler-dots-vertical icon-md"></i>
+                            </button>
+                            <ul class="dropdown-menu dropdown-menu-end">
+                                <li class="menu-user-dropdown-header">
+                                    <span class="menu-user-dropdown-name"><?= e($menuUserName) ?></span>
+                                    <small class="menu-user-dropdown-role"><?= e($menuUserRole) ?></small>
+                                </li>
+                                <li><div class="dropdown-divider"></div></li>
+                                <li>
+                                    <a class="dropdown-item" href="/profile">
+                                        <i class="icon-base ti tabler-user me-2"></i>Meus dados
+                                    </a>
+                                </li>
+                                <li>
+                                    <a class="dropdown-item" href="/notifications">
+                                        <i class="icon-base ti tabler-bell me-2"></i>Notificações
+                                    </a>
+                                </li>
+                                <?php if ($menuUserIsAdmin): ?>
+                                <li>
+                                    <a class="dropdown-item" href="/settings">
+                                        <i class="icon-base ti tabler-settings me-2"></i>Configurações
+                                    </a>
+                                </li>
+                                <?php endif; ?>
+                                <li><div class="dropdown-divider"></div></li>
+                                <li>
+                                    <form method="POST" action="/logout">
+                                        <input type="hidden" name="csrf_token" value="<?= e($csrf) ?>">
+                                        <button type="submit" class="dropdown-item text-danger">
+                                            <i class="icon-base ti tabler-logout me-2"></i>Sair
+                                        </button>
+                                    </form>
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
             </aside>
             <!-- / Menu -->
 
@@ -133,6 +195,15 @@
                     </div>
 
                     <div class="navbar-nav-right d-flex align-items-center justify-content-end" id="navbar-collapse">
+                        <!-- Busca global (padrão Vuexy) -->
+                        <div class="navbar-nav align-items-center navbar-search">
+                            <div class="nav-item navbar-search-wrapper px-md-0 px-2 mb-0">
+                                <div class="nav-item nav-link search-toggler d-flex align-items-center px-0">
+                                    <span class="d-inline-block text-body-secondary fw-normal" id="global-search"></span>
+                                </div>
+                            </div>
+                        </div>
+
                         <ul class="navbar-nav flex-row align-items-center ms-md-auto">
                             <!-- Notificações -->
                             <li class="nav-item dropdown-notifications navbar-dropdown dropdown me-3 me-xl-2" id="notifRoot" data-csrf="<?= e($csrf) ?>">
@@ -269,6 +340,7 @@
     <script src="/assets/vendor/libs/popper/popper.js"></script>
     <script src="/assets/vendor/js/bootstrap.js"></script>
     <script src="/assets/vendor/libs/node-waves/node-waves.js"></script>
+    <script src="/assets/vendor/libs/perfect-scrollbar/perfect-scrollbar.js"></script>
     <script src="/assets/vendor/js/menu.js"></script>
     <script src="/assets/js/main.js"></script>
     <script src="<?= e(asset('/js/masks.js')) ?>"></script>
@@ -277,6 +349,46 @@
     <script src="<?= e(asset('/assets/vendor/libs/select2/select2.js')) ?>"></script>
     <script src="<?= e(asset('/js/select2-init.js')) ?>"></script>
     <script src="<?= e(asset('/js/part-autocomplete.js')) ?>"></script>
+
+    <?php
+    // Sugestões iniciais da busca global, conforme o papel do usuário.
+    $searchRole = (string) ($user['role'] ?? '');
+    $searchCanManage = in_array($searchRole, ['admin', 'secretary', 'lead_mechanic'], true);
+    $searchSuggestions = [
+        'Acesso rápido' => [
+            ['name' => 'Painel', 'icon' => 'tabler-smart-home', 'url' => '/'],
+            ['name' => 'Ordens de serviço', 'icon' => 'tabler-clipboard-list', 'url' => '/service-orders'],
+            ['name' => 'Pedidos de peças', 'icon' => 'tabler-truck', 'url' => '/part-orders'],
+            ['name' => 'Tickets', 'icon' => 'tabler-messages', 'url' => '/tickets'],
+        ],
+    ];
+    if ($searchCanManage) {
+        $searchSuggestions['Cadastros'] = [
+            ['name' => 'Clientes', 'icon' => 'tabler-users', 'url' => '/clients'],
+            ['name' => 'Veículos', 'icon' => 'tabler-car', 'url' => '/vehicles'],
+            ['name' => 'Funcionários', 'icon' => 'tabler-users-group', 'url' => '/users'],
+            ['name' => 'Peças', 'icon' => 'tabler-package', 'url' => '/parts'],
+        ];
+        $searchSuggestions['Gestão'] = [
+            ['name' => 'Orçamentos', 'icon' => 'tabler-file-text', 'url' => '/budgets'],
+            ['name' => 'Relatórios', 'icon' => 'tabler-chart-line', 'url' => '/reports'],
+        ];
+    }
+    if ($searchRole === 'admin') {
+        $searchSuggestions['Sistema'] = [
+            ['name' => 'Configurações', 'icon' => 'tabler-settings', 'url' => '/settings'],
+            ['name' => 'Auditoria', 'icon' => 'tabler-history', 'url' => '/audit'],
+        ];
+    }
+    ?>
+    <script>
+        window.globalSearchConfig = <?= json_encode([
+            'endpoint' => '/api/search',
+            'suggestions' => $searchSuggestions,
+        ], JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?>;
+    </script>
+    <script src="/assets/vendor/libs/@algolia/autocomplete-js.js"></script>
+    <script src="<?= e(asset('/js/global-search.js')) ?>"></script>
 
     <?php foreach (($pageScripts ?? []) as $script): ?>
     <script src="<?= e(asset($script)) ?>"></script>

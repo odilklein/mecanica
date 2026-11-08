@@ -93,6 +93,14 @@ if (!function_exists('record_audit')) {
     }
 }
 
+if (!function_exists('audio_transcription_enabled')) {
+    /** A transcrição por áudio (Groq) só fica disponível se a chave existir. */
+    function audio_transcription_enabled(): bool
+    {
+        return trim((string) env('GROQ_API_KEY', '')) !== '';
+    }
+}
+
 if (!function_exists('setting')) {
     /** Lê uma configuração do sistema (cache estático por request). */
     function setting(string $key, ?string $default = null): ?string

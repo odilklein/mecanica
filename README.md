@@ -260,11 +260,14 @@ Execute dentro do container (`docker compose exec app php ...`) ou com PHP CLI l
 
 | Script | Descrição | Exemplo |
 | --- | --- | --- |
+| `bin/seed_operacao.php` | **App novo (`src/`)**: simula 6 meses de operação realista (clientes, veículos, OS com ciclo de vida, orçamentos, pedidos de peças, tickets e auditoria). Idempotente. | `docker compose exec app php bin/seed_operacao.php --fresh` |
 | `scripts/seed_mocks.php` | Gera volume realista de clientes, veículos, OS, orçamentos, pedidos, notificações e auditoria. **Apaga os dados transacionais** (mantém `usuarios`). | `docker compose exec app php scripts/seed_mocks.php --yes` |
 | `scripts/sync_fipe.php` | Espelha marcas, modelos, anos e preços da API Parallelum no catálogo local. Idempotente. | `docker compose exec app php scripts/sync_fipe.php` |
 | `scripts/backfill_fipe.php` | Associa veículos antigos (texto livre) ao catálogo FIPE. | `docker compose exec app php scripts/backfill_fipe.php --com-valor` |
 
-Opções úteis do seed: `--clientes=500`, `--os=3000`, `--seed=123`.
+Opções úteis do seed novo: `--months=8`, `--os=220`, `--clean` (só remove) e
+`--fresh` (remove também o seed-demo antigo).
+Opções úteis do seed legado: `--clientes=500`, `--os=3000`, `--seed=123`.
 Opções do sync: `--limpar` recria o catálogo; `--com-valor` no backfill também busca o
 valor de referência.
 
@@ -298,6 +301,20 @@ TURNSTILE_HOSTNAMES=localhost,127.0.0.1
 ```
 
 Em produção, informe em `TURNSTILE_HOSTNAMES` apenas o domínio real.
+
+### Transcrição de áudio dos tickets (opcional)
+
+O botão de microfone nos tickets só aparece quando `GROQ_API_KEY` está configurada.
+Sem a chave, o fluxo padrão continua sendo digitação manual. A gravação é enviada
+para `POST /api/transcribe`, transcrita pela Groq (Whisper) e preenchida no campo
+de mensagem para revisão antes do envio.
+
+```env
+GROQ_API_KEY=<sua-chave>
+GROQ_TRANSCRIPTION_MODEL=whisper-large-v3-turbo
+```
+
+A chave é lida apenas no backend; nunca é exposta no HTML ou no JavaScript.
 
 ### Configurações do sistema (admin)
 

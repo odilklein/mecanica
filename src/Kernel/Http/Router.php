@@ -92,6 +92,27 @@ class Router
             $request = $request->withParsedBody($_POST);
         }
 
+        // Uploads (multipart/form-data) → objetos PSR-7.
+        if (!empty($_FILES)) {
+            $uploaded = [];
+            foreach ($_FILES as $field => $file) {
+                if (!is_array($file) || !isset($file['tmp_name']) || is_array($file['tmp_name'])) {
+                    continue;
+                }
+                if (($file['error'] ?? UPLOAD_ERR_NO_FILE) === UPLOAD_ERR_NO_FILE) {
+                    continue;
+                }
+                $uploaded[$field] = $factory->createUploadedFile(
+                    $factory->createStreamFromFile((string) $file['tmp_name'], 'rb'),
+                    (int) ($file['size'] ?? 0),
+                    (int) ($file['error'] ?? UPLOAD_ERR_OK),
+                    !empty($file['name']) ? (string) $file['name'] : null,
+                    !empty($file['type']) ? (string) $file['type'] : null
+                );
+            }
+            $request = $request->withUploadedFiles($uploaded);
+        }
+
         // Copia os headers HTTP para o request PSR-7 (o Nyholm não lê
         // automaticamente de $_SERVER ao criar via createServerRequest).
         foreach ($_SERVER as $key => $value) {

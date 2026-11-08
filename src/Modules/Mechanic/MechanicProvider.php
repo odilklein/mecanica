@@ -25,6 +25,7 @@ use PDO;
 use Modules\Mechanic\Controllers\VehicleController;
 use Modules\Mechanic\Controllers\PartsController;
 use Modules\Mechanic\Controllers\PartController;
+use Modules\Mechanic\Controllers\PartCategoryController;
 
 class MechanicProvider implements ProviderInterface
 {
@@ -33,8 +34,25 @@ class MechanicProvider implements ProviderInterface
         // Veículos (CRUD genérico + FIPE).
         crud_routes($router, '/vehicles', VehicleController::class);
 
-        // Peças (CRUD simples + autocomplete).
-        crud_routes($router, '/parts', PartController::class);
+        // Peças — CRM completo (catálogo, categorias, estoque e preços).
+        $router->get('/parts/datatable', [PartController::class, 'datatable']);
+        $router->get('/parts/export', [PartController::class, 'export']);
+        $router->get('/parts/create', [PartController::class, 'create']);
+        $router->post('/parts/bulk-delete', [PartController::class, 'bulkDelete']);
+        $router->post('/parts/sync', [PartController::class, 'sync']);
+        $router->get('/parts', [PartController::class, 'index']);
+        $router->post('/parts', [PartController::class, 'store']);
+
+        // Categorias (antes das rotas /parts/{id}).
+        $router->get('/parts/categories', [PartCategoryController::class, 'index']);
+        $router->post('/parts/categories', [PartCategoryController::class, 'store']);
+        $router->post('/parts/categories/{id}/delete', [PartCategoryController::class, 'destroy']);
+        $router->post('/parts/categories/{id}', [PartCategoryController::class, 'update']);
+
+        $router->get('/parts/{id}/edit', [PartController::class, 'edit']);
+        $router->post('/parts/{id}/delete', [PartController::class, 'destroy']);
+        $router->get('/parts/{id}', [PartController::class, 'show']);
+        $router->post('/parts/{id}', [PartController::class, 'update']);
 
         // API do catálogo FIPE (selects em cascata).
         $router->get('/api/fipe/models', [FipeController::class, 'models']);
@@ -54,9 +72,11 @@ class MechanicProvider implements ProviderInterface
         $router->get('/service-orders/{id}/edit', [ServiceOrderController::class, 'edit']);
         $router->post('/service-orders/{id}/status', [ServiceOrderController::class, 'updateStatus']);
         $router->post('/service-orders/{id}/diagnosis', [ServiceOrderController::class, 'updateDiagnosis']);
+        $router->post('/service-orders/{id}/internal-notes', [ServiceOrderController::class, 'updateInternalNotes']);
         $router->post('/service-orders/{id}/responsible/{userId}/delete', [ServiceOrderController::class, 'removeResponsible']);
         $router->post('/service-orders/{id}/responsible', [ServiceOrderController::class, 'assignResponsible']);
         $router->post('/service-orders/{id}/task-status', [ServiceOrderController::class, 'updateTaskStatus']);
+        $router->post('/service-orders/{id}/task-update', [ServiceOrderController::class, 'updateTask']);
         $router->post('/service-orders/{id}/tasks', [ServiceOrderController::class, 'addTask']);
         $router->post('/service-orders/{id}/delivery', [ServiceOrderController::class, 'registerDelivery']);
         $router->post('/service-orders/{id}/delete', [ServiceOrderController::class, 'destroy']);
@@ -107,6 +127,11 @@ class MechanicProvider implements ProviderInterface
             'icon' => 'package',
             'url' => '/parts',
             'roles' => ['admin', 'secretary', 'lead_mechanic'],
+            'children' => [
+                ['label' => 'Catálogo de peças', 'url' => '/parts'],
+                ['label' => 'Nova peça', 'url' => '/parts/create'],
+                ['label' => 'Categorias', 'url' => '/parts/categories'],
+            ],
         ]);
         $menu->add('Operações', [
             'label' => 'Ordens de serviço',

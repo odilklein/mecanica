@@ -69,7 +69,16 @@ class TicketController extends Controller
         }
 
         $messages = [];
+        $context = null;
+        $contextHtml = '';
         if ($selected) {
+            if (!empty($selected['service_order_id'])) {
+                $this->tickets->ensureOrderSummary((int) $selected['id'], (int) $selected['service_order_id']);
+                $context = $this->tickets->orderContext((int) $selected['service_order_id']);
+                if ($context) {
+                    $contextHtml = $this->view->render('mechanic::tickets/_context', ['context' => $context]);
+                }
+            }
             $messages = $this->tickets->messages((int) $selected['id']);
             $this->tickets->markRead((int) $selected['id'], $userId);
         }
@@ -92,6 +101,9 @@ class TicketController extends Controller
             'selected' => $selected,
             'selectedId' => $selectedId,
             'messages' => $messages,
+            'context' => $context,
+            'contextHtml' => $contextHtml,
+            'ticketAudioEnabled' => audio_transcription_enabled(),
             'orders' => $orders,
             'users' => $users,
             'status' => $status,
@@ -102,6 +114,7 @@ class TicketController extends Controller
             ],
             'pageScripts' => [
                 '/js/tickets.js',
+                '/js/ticket-audio.js',
             ],
         ]);
     }
@@ -158,9 +171,22 @@ class TicketController extends Controller
 
         $this->tickets->markRead((int) $ticket['id'], (int) $this->auth->id());
 
+        $context = null;
+        $contextHtml = '';
+        if (!empty($ticket['service_order_id'])) {
+            $this->tickets->ensureOrderSummary((int) $ticket['id'], (int) $ticket['service_order_id']);
+            $context = $this->tickets->orderContext((int) $ticket['service_order_id']);
+            if ($context) {
+                $contextHtml = $this->view->render('mechanic::tickets/_context', ['context' => $context]);
+            }
+        }
+
         return json_response([
             'ticket' => $ticket,
             'messages' => $this->tickets->messages((int) $ticket['id']),
+            'context' => $context,
+            'context_html' => $contextHtml,
+            'audio_enabled' => audio_transcription_enabled(),
             'current_user_id' => (int) $this->auth->id(),
             'csrf' => $this->session->csrfToken(),
         ]);

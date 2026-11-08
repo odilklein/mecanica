@@ -32,6 +32,7 @@ class ServiceOrderController extends CrudController
         $clients = $this->pdo->query('SELECT id, name, phone, city FROM clients ORDER BY name')->fetchAll();
         $vehicles = $this->pdo->query('SELECT id, client_id, plate, brand, model, year FROM vehicles ORDER BY plate')->fetchAll();
         $mechanics = $this->pdo->query("SELECT id, name, role FROM users WHERE is_active = 1 AND role IN ('lead_mechanic','mechanic') ORDER BY name")->fetchAll();
+        $ticketUsers = $this->pdo->query("SELECT id, name, role FROM users WHERE is_active = 1 ORDER BY name")->fetchAll();
         $brands = $this->pdo->query('SELECT code, name FROM fipe_brands ORDER BY name')->fetchAll();
 
         return $this->render('mechanic::service_orders/wizard', [
@@ -40,7 +41,9 @@ class ServiceOrderController extends CrudController
             'clients' => $clients,
             'vehicles' => $vehicles,
             'mechanics' => $mechanics,
+            'ticketUsers' => $ticketUsers,
             'brands' => $brands,
+            'ticketAudioEnabled' => audio_transcription_enabled(),
             'pageStyles' => array_merge($resource->formStyles(), [
                 '/assets/vendor/libs/bs-stepper/bs-stepper.css',
             ]),
@@ -48,6 +51,7 @@ class ServiceOrderController extends CrudController
                 '/assets/vendor/libs/bs-stepper/bs-stepper.js',
                 '/js/fipe.js',
                 '/js/os-wizard.js',
+                '/js/ticket-audio.js',
             ]),
         ]);
     }
@@ -162,13 +166,36 @@ class ServiceOrderController extends CrudController
             ]);
             $orderId = (int) $this->pdo->lastInsertId();
 
-            // Tarefas
+            // Tarefas (aceita string simples ou objeto expandido)
             $tasks = json_decode((string) ($body['tasks_json'] ?? '[]'), true) ?: [];
-            $taskStmt = $this->pdo->prepare('INSERT INTO service_order_tasks (order_id, description, created_by) VALUES (:o, :d, :u)');
+            $taskStmt = $this->pdo->prepare(
+                'INSERT INTO service_order_tasks (order_id, description, status, assigned_to, due_date, notes, created_by)
+                 VALUES (:o, :d, :s, :a, :due, :n, :u)'
+            );
             foreach ($tasks as $task) {
-                $desc = trim((string) $task);
+                if (is_array($task)) {
+                    $desc = trim((string) ($task['description'] ?? ''));
+                    $assignedTo = (int) ($task['assigned_to'] ?? 0) ?: null;
+                    $dueDate = trim((string) ($task['due_date'] ?? ''));
+                    $dueDate = preg_match('/^\d{4}-\d{2}-\d{2}$/', $dueDate) ? $dueDate : null;
+                    $notes = trim((string) ($task['notes'] ?? '')) ?: null;
+                } else {
+                    $desc = trim((string) $task);
+                    $assignedTo = null;
+                    $dueDate = null;
+                    $notes = null;
+                }
+
                 if ($desc !== '') {
-                    $taskStmt->execute([':o' => $orderId, ':d' => mb_substr($desc, 0, 255), ':u' => $userId]);
+                    $taskStmt->execute([
+                        ':o' => $orderId,
+                        ':d' => mb_substr($desc, 0, 255),
+                        ':s' => 'pending',
+                        ':a' => $assignedTo,
+                        ':due' => $dueDate,
+                        ':n' => $notes ? mb_substr($notes, 0, 2000) : null,
+                        ':u' => $userId,
+                    ]);
                 }
             }
 
@@ -214,13 +241,34 @@ class ServiceOrderController extends CrudController
             $this->pdo->prepare('INSERT INTO service_order_events (order_id, type, description, created_by) VALUES (:o, :t, :d, :u)')
                 ->execute([':o' => $orderId, ':t' => 'created', ':d' => 'OS criada.', ':u' => $userId]);
 
-            // Ticket de atendimento vinculado à OS (criador + responsável).
-            (new TicketService($this->pdo))->ensureForOrder($orderId);
+            // Ticket da OS: todo atendimento cria uma conversa vinculada.
+            $ticketService = new TicketService($this->pdo);
+            $ticketId = $ticketService->ensureForOrder($orderId, [
+                'subject' => clean($body['ticket_subject'] ?? ''),
+                'assigned_to' => (int) ($body['ticket_assigned_to'] ?? 0) ?: null,
+            ]);
+
+            $initialMessage = trim((string) ($body['ticket_initial_message'] ?? ''));
+            if ($initialMessage !== '') {
+                $ticketService->send($ticketId, (int) $userId, $initialMessage);
+            }
+            $ticketAssigned = (int) ($body['ticket_assigned_to'] ?? 0) ?: null;
 
             $this->pdo->commit();
 
             if ($mechanics) {
                 Notify::to($this->pdo, $mechanics, 'os_created', 'Você foi designado para a OS #' . str_pad((string) $number, 4, '0', STR_PAD_LEFT) . '.', '/service-orders/' . $orderId, $userId);
+            }
+
+            if ($ticketId && $ticketAssigned && $ticketAssigned !== (int) $userId) {
+                Notify::to(
+                    $this->pdo,
+                    [$ticketAssigned],
+                    'ticket',
+                    'Você foi designado para o ticket da OS #' . str_pad((string) $number, 4, '0', STR_PAD_LEFT) . '.',
+                    '/tickets?ticket=' . $ticketId,
+                    $userId
+                );
             }
 
             $this->session->flash('success', 'OS #' . str_pad((string) $number, 4, '0', STR_PAD_LEFT) . ' criada com sucesso.');
@@ -250,7 +298,14 @@ class ServiceOrderController extends CrudController
             return redirect($resource->path());
         }
 
-        $tasks = $this->pdo->prepare('SELECT t.*, u.name AS creator FROM service_order_tasks t LEFT JOIN users u ON u.id = t.created_by WHERE t.order_id = :id ORDER BY t.id');
+        $tasks = $this->pdo->prepare(
+            'SELECT t.*, u.name AS assigned_name, c.name AS creator_name
+               FROM service_order_tasks t
+               LEFT JOIN users u ON u.id = t.assigned_to
+               LEFT JOIN users c ON c.id = t.created_by
+              WHERE t.order_id = :id
+              ORDER BY t.id'
+        );
         $tasks->execute([':id' => (int) $id]);
 
         $responsibles = $this->pdo->prepare('SELECT r.*, u.name, u.role FROM service_order_responsibles r JOIN users u ON u.id = r.user_id WHERE r.order_id = :id ORDER BY u.name');
@@ -281,6 +336,30 @@ class ServiceOrderController extends CrudController
             $budgetItems = $itemsStmt->fetchAll();
         }
 
+        // Separa serviços das peças necessárias e enriquece as peças com o catálogo.
+        $serviceItems = [];
+        $partItems = [];
+        foreach ($budgetItems as $item) {
+            if (($item['type'] ?? '') === 'service') {
+                $serviceItems[] = $item;
+            } else {
+                $partItems[] = $item;
+            }
+        }
+        $partItems = $this->enrichPartItems($partItems);
+
+        // Ticket da OS: garante a conversa e o resumo automático.
+        $ticketService = new TicketService($this->pdo);
+        $ticketId = $ticketService->ensureForOrder((int) $id);
+        $ticket = $ticketService->find($ticketId);
+        $ticketMessages = [];
+        if ($ticket && $ticketService->canAccess($ticket, (int) $this->auth->id(), $this->auth->hasRole(['admin']))) {
+            $ticketService->markRead($ticketId, (int) $this->auth->id());
+            $ticketMessages = $ticketService->messages($ticketId);
+        } else {
+            $ticket = null;
+        }
+
         $clientOrders = $this->pdo->prepare('SELECT COUNT(*) FROM service_orders WHERE client_id = :id');
         $clientOrders->execute([':id' => (int) $order['client_id']]);
         $clientOrdersCount = (int) $clientOrders->fetchColumn();
@@ -303,11 +382,68 @@ class ServiceOrderController extends CrudController
             'delivery' => $delivery->fetch() ?: null,
             'budget' => $budget,
             'budgetItems' => $budgetItems,
+            'serviceItems' => $serviceItems,
+            'partItems' => $partItems,
+            'ticket' => $ticket,
+            'ticketMessages' => $ticketMessages,
+            'ticketAudioEnabled' => audio_transcription_enabled(),
             'clientOrdersCount' => $clientOrdersCount,
             'mechanics' => $mechanics,
             'statuses' => ServiceOrderStatus::STATUSES,
             'statusAvailable' => $statusAvailable,
+            'pageStyles' => [
+                '/assets/vendor/css/pages/app-chat.css',
+            ],
+            'pageScripts' => [
+                '/js/ticket-audio.js',
+                '/js/os-ticket.js',
+            ],
         ]);
+    }
+
+    /**
+     * Tenta associar cada peça do orçamento ao catálogo, para exibir
+     * imagem, marca, código e categoria nos cards da OS.
+     *
+     * @param array<int, array<string, mixed>> $items
+     * @return array<int, array<string, mixed>>
+     */
+    private function enrichPartItems(array $items): array
+    {
+        foreach ($items as &$item) {
+            $item['catalog'] = null;
+            $name = trim((string) ($item['description'] ?? ''));
+            if ($name === '') {
+                continue;
+            }
+
+            $words = preg_split('/\s+/u', $name, -1, PREG_SPLIT_NO_EMPTY) ?: [];
+            $prefix = implode(' ', array_slice($words, 0, 4));
+            if ($prefix === '') {
+                continue;
+            }
+
+            $stmt = $this->pdo->prepare(
+                "SELECT id, name, brand, part_code, sku, category, image, price
+                   FROM parts
+                  WHERE is_active = 1
+                    AND (LOWER(name) = LOWER(:exact) OR name LIKE :prefix)
+                  ORDER BY (LOWER(name) = LOWER(:exact2)) DESC, (image IS NULL) ASC, id ASC
+                  LIMIT 1"
+            );
+            $stmt->execute([
+                ':exact' => $name,
+                ':exact2' => $name,
+                ':prefix' => $prefix . '%',
+            ]);
+            $catalog = $stmt->fetch();
+            if ($catalog) {
+                $item['catalog'] = $catalog;
+            }
+        }
+        unset($item);
+
+        return $items;
     }
 
     // =========================================================
@@ -361,11 +497,33 @@ class ServiceOrderController extends CrudController
         }
 
         $body = $request->getParsedBody();
-        $this->pdo->prepare('UPDATE service_orders SET diagnosis = :d, internal_notes = :n WHERE id = :id')
-            ->execute([':d' => clean($body['diagnosis'] ?? ''), ':n' => clean($body['internal_notes'] ?? ''), ':id' => (int) $id]);
+        $this->pdo->prepare('UPDATE service_orders SET diagnosis = :d WHERE id = :id')
+            ->execute([':d' => clean($body['diagnosis'] ?? ''), ':id' => (int) $id]);
 
         $this->event((int) $id, 'diagnosis', 'Diagnóstico atualizado.');
         $this->session->flash('success', 'Diagnóstico salvo.');
+        return redirect($resource->path() . '/' . (int) $id);
+    }
+
+    public function updateInternalNotes(ServerRequestInterface $request, $id)
+    {
+        $resource = $this->resource();
+        if ($response = $this->guardRoles($resource->roles())) {
+            return $response;
+        }
+        if ($response = $this->guardCsrf($request, $resource->path() . '/' . (int) $id)) {
+            return $response;
+        }
+
+        $notes = trim((string) ($request->getParsedBody()['internal_notes'] ?? ''));
+        $this->pdo->prepare('UPDATE service_orders SET internal_notes = :n WHERE id = :id')
+            ->execute([':n' => $notes, ':id' => (int) $id]);
+
+        // Atualiza o resumo automático exibido no ticket.
+        (new TicketService($this->pdo))->ensureForOrder((int) $id);
+
+        $this->event((int) $id, 'diagnosis', 'Observações internas atualizadas.');
+        $this->session->flash('success', 'Observações internas salvas.');
         return redirect($resource->path() . '/' . (int) $id);
     }
 
@@ -416,11 +574,32 @@ class ServiceOrderController extends CrudController
             return $response;
         }
 
-        $desc = clean($request->getParsedBody()['description'] ?? '');
+        $body = $request->getParsedBody();
+        $desc = clean($body['description'] ?? '');
         if ($desc !== '') {
-            $this->pdo->prepare('INSERT INTO service_order_tasks (order_id, description, created_by) VALUES (:o, :d, :u)')
-                ->execute([':o' => (int) $id, ':d' => mb_substr($desc, 0, 255), ':u' => $this->auth->id()]);
+            $assignedTo = (int) ($body['assigned_to'] ?? 0) ?: null;
+            $dueDate = clean($body['due_date'] ?? '');
+            $dueDate = preg_match('/^\d{4}-\d{2}-\d{2}$/', $dueDate) ? $dueDate : null;
+            $notes = trim((string) ($body['notes'] ?? '')) ?: null;
+
+            $this->pdo->prepare(
+                'INSERT INTO service_order_tasks (order_id, description, status, assigned_to, due_date, notes, created_by)
+                 VALUES (:o, :d, :s, :a, :due, :n, :u)'
+            )->execute([
+                ':o' => (int) $id,
+                ':d' => mb_substr($desc, 0, 255),
+                ':s' => 'pending',
+                ':a' => $assignedTo,
+                ':due' => $dueDate,
+                ':n' => $notes ? mb_substr($notes, 0, 2000) : null,
+                ':u' => $this->auth->id(),
+            ]);
+
             $this->event((int) $id, 'task', 'Tarefa adicionada: ' . mb_substr($desc, 0, 120));
+
+            if ($assignedTo) {
+                Notify::to($this->pdo, [$assignedTo], 'task', 'Você recebeu uma tarefa na OS #' . (int) $id . '.', '/service-orders/' . (int) $id, $this->auth->id());
+            }
         }
 
         return redirect($resource->path() . '/' . (int) $id);
@@ -439,10 +618,79 @@ class ServiceOrderController extends CrudController
         $taskId = (int) ($request->getParsedBody()['task_id'] ?? 0);
         $status = (string) ($request->getParsedBody()['task_status'] ?? '');
         if ($taskId > 0 && in_array($status, ['pending', 'in_progress', 'done'], true)) {
-            $this->pdo->prepare('UPDATE service_order_tasks SET status = :s WHERE id = :id AND order_id = :o')
-                ->execute([':s' => $status, ':id' => $taskId, ':o' => (int) $id]);
+            $completedAt = $status === 'done' ? date('Y-m-d H:i:s') : null;
+            $completedBy = $status === 'done' ? $this->auth->id() : null;
+            $this->pdo->prepare(
+                'UPDATE service_order_tasks
+                    SET status = :s, completed_at = :ca, completed_by = :cb
+                  WHERE id = :id AND order_id = :o'
+            )->execute([
+                ':s' => $status,
+                ':ca' => $completedAt,
+                ':cb' => $completedBy,
+                ':id' => $taskId,
+                ':o' => (int) $id,
+            ]);
+
+            $labels = ['pending' => 'Pendente', 'in_progress' => 'Em execução', 'done' => 'Concluída'];
+            $this->event((int) $id, 'task', 'Tarefa atualizada para "' . ($labels[$status] ?? $status) . '".');
         }
 
+        return redirect($resource->path() . '/' . (int) $id);
+    }
+
+    public function updateTask(ServerRequestInterface $request, $id)
+    {
+        $resource = $this->resource();
+        if ($response = $this->guardRoles($resource->roles())) {
+            return $response;
+        }
+        if ($response = $this->guardCsrf($request, $resource->path() . '/' . (int) $id)) {
+            return $response;
+        }
+
+        $body = $request->getParsedBody();
+        $taskId = (int) ($body['task_id'] ?? 0);
+        if ($taskId <= 0) {
+            return redirect($resource->path() . '/' . (int) $id);
+        }
+
+        $desc = clean($body['description'] ?? '');
+        if ($desc === '') {
+            return redirect($resource->path() . '/' . (int) $id);
+        }
+
+        $status = (string) ($body['status'] ?? 'pending');
+        if (!in_array($status, ['pending', 'in_progress', 'done'], true)) {
+            $status = 'pending';
+        }
+        $assignedTo = (int) ($body['assigned_to'] ?? 0) ?: null;
+        $dueDate = clean($body['due_date'] ?? '');
+        $dueDate = preg_match('/^\d{4}-\d{2}-\d{2}$/', $dueDate) ? $dueDate : null;
+        $notes = trim((string) ($body['notes'] ?? '')) ?: null;
+
+        $completedAt = $status === 'done' ? date('Y-m-d H:i:s') : null;
+        $completedBy = $status === 'done' ? $this->auth->id() : null;
+
+        $this->pdo->prepare(
+            'UPDATE service_order_tasks
+                SET description = :d, status = :s, assigned_to = :a, due_date = :due,
+                    notes = :n, completed_at = :ca, completed_by = :cb
+              WHERE id = :id AND order_id = :o'
+        )->execute([
+            ':d' => mb_substr($desc, 0, 255),
+            ':s' => $status,
+            ':a' => $assignedTo,
+            ':due' => $dueDate,
+            ':n' => $notes ? mb_substr($notes, 0, 2000) : null,
+            ':ca' => $completedAt,
+            ':cb' => $completedBy,
+            ':id' => $taskId,
+            ':o' => (int) $id,
+        ]);
+
+        $this->event((int) $id, 'task', 'Tarefa atualizada: ' . mb_substr($desc, 0, 120));
+        $this->session->flash('success', 'Tarefa atualizada.');
         return redirect($resource->path() . '/' . (int) $id);
     }
 

@@ -3,6 +3,7 @@ $path = $resource->path();
 $clientsJson = json_encode($clients, JSON_UNESCAPED_UNICODE);
 $vehiclesJson = json_encode($vehicles ?? [], JSON_UNESCAPED_UNICODE);
 $priorities = \Modules\Mechanic\Support\ServiceOrderStatus::PRIORITIES;
+$ticketUsers = $ticketUsers ?? $mechanics;
 ?>
 <div class="page-header">
     <div>
@@ -15,9 +16,7 @@ $priorities = \Modules\Mechanic\Support\ServiceOrderStatus::PRIORITIES;
 <form method="POST" action="<?= e($path) ?>" id="formOS">
     <input type="hidden" name="csrf_token" value="<?= e($csrf) ?>">
 
-    <div class="card">
-        <div class="card-body">
-            <div class="bs-stepper vertical wizard-vertical-icons-example" id="osStepper">
+    <div class="bs-stepper vertical wizard-vertical-icons-example os-wizard-stepper" id="osStepper">
                 <div class="bs-stepper-header">
                     <div class="step" data-target="#step-cliente">
                         <button type="button" class="step-trigger">
@@ -43,8 +42,8 @@ $priorities = \Modules\Mechanic\Support\ServiceOrderStatus::PRIORITIES;
                         <button type="button" class="step-trigger">
                             <span class="bs-stepper-circle"><i class="icon-base ti tabler-tool icon-md"></i></span>
                             <span class="bs-stepper-label">
-                                <span class="bs-stepper-title">Serviço</span>
-                                <span class="bs-stepper-subtitle">Queixa, tarefas e peças</span>
+                                <span class="bs-stepper-title">Serviços</span>
+                                <span class="bs-stepper-subtitle">Prioridade e peças necessárias</span>
                             </span>
                         </button>
                     </div>
@@ -55,6 +54,16 @@ $priorities = \Modules\Mechanic\Support\ServiceOrderStatus::PRIORITIES;
                             <span class="bs-stepper-label">
                                 <span class="bs-stepper-title">Equipe</span>
                                 <span class="bs-stepper-subtitle">Mecânicos designados</span>
+                            </span>
+                        </button>
+                    </div>
+                    <div class="line"></div>
+                    <div class="step" data-target="#step-atendimento">
+                        <button type="button" class="step-trigger">
+                            <span class="bs-stepper-circle"><i class="icon-base ti tabler-clipboard-text icon-md"></i></span>
+                            <span class="bs-stepper-label">
+                                <span class="bs-stepper-title">OS</span>
+                                <span class="bs-stepper-subtitle">Queixa, observações e conversa</span>
                             </span>
                         </button>
                     </div>
@@ -78,7 +87,7 @@ $priorities = \Modules\Mechanic\Support\ServiceOrderStatus::PRIORITIES;
                             <small>Busque um cliente cadastrado ou preencha os dados de um novo.</small>
                         </div>
 
-                        <div class="row g-6">
+                        <div class="row g-4">
                             <div class="col-12">
                                 <label class="form-label" for="client_id">Cliente cadastrado</label>
                                 <select class="select2 form-select" id="client_id" name="client_id" data-placeholder="Buscar cliente por nome ou telefone" data-allow-clear="true">
@@ -154,7 +163,7 @@ $priorities = \Modules\Mechanic\Support\ServiceOrderStatus::PRIORITIES;
                             </div>
                         </div>
 
-                        <div class="d-flex justify-content-between mt-6">
+                        <div class="wizard-actions">
                             <button type="button" class="btn btn-label-secondary btn-prev" disabled>
                                 <i class="icon-base ti tabler-arrow-left icon-xs me-sm-2"></i>
                                 <span class="align-middle d-sm-inline-block d-none">Anterior</span>
@@ -173,7 +182,7 @@ $priorities = \Modules\Mechanic\Support\ServiceOrderStatus::PRIORITIES;
                             <small>Selecione um veículo do cliente ou cadastre um novo pela FIPE.</small>
                         </div>
 
-                        <div class="row g-6">
+                        <div class="row g-4">
                             <div class="col-12" id="vehicleExistingBox" hidden>
                                 <label class="form-label" for="vehicle_id">Veículo do cliente</label>
                                 <select class="select2 form-select" id="vehicle_id" name="vehicle_id" data-placeholder="Buscar veículo por placa ou modelo" data-allow-clear="true">
@@ -233,7 +242,7 @@ $priorities = \Modules\Mechanic\Support\ServiceOrderStatus::PRIORITIES;
                             </div>
                         </div>
 
-                        <div class="d-flex justify-content-between mt-6">
+                        <div class="wizard-actions">
                             <button type="button" class="btn btn-label-secondary btn-prev">
                                 <i class="icon-base ti tabler-arrow-left icon-xs me-sm-2"></i>
                                 <span class="align-middle d-sm-inline-block d-none">Anterior</span>
@@ -247,13 +256,12 @@ $priorities = \Modules\Mechanic\Support\ServiceOrderStatus::PRIORITIES;
 
                     <!-- ETAPA 3: SERVIÇO -->
                     <div id="step-servico" class="content">
-                        <div class="content-header mb-4">
-                            <h6 class="mb-0">O que precisa ser feito</h6>
-                            <small>Descreva a queixa e detalhe as tarefas e peças.</small>
-                        </div>
-
-                        <div class="row g-6">
-                            <div class="col-md-4">
+                        <div class="content-header mb-4 d-flex justify-content-between align-items-start gap-3 flex-wrap">
+                            <div>
+                                <h6 class="mb-0">Serviços e peças</h6>
+                                <small>Defina a prioridade e as peças necessárias. Queixa e observações internas ficam na etapa <strong>OS</strong>.</small>
+                            </div>
+                            <div class="os-wizard-priority">
                                 <label class="form-label" for="priority">Prioridade</label>
                                 <select class="select2 select2-priority form-select" id="priority" name="priority" data-placeholder="Selecione a prioridade">
                                     <option value=""></option>
@@ -262,51 +270,34 @@ $priorities = \Modules\Mechanic\Support\ServiceOrderStatus::PRIORITIES;
                                     <?php endforeach; ?>
                                 </select>
                             </div>
-                            <div class="col-md-8">
-                                <label class="form-label" for="initial_complaint">Queixa do cliente *</label>
-                                <div class="input-group input-group-merge input-group-merge-textarea">
-                                    <span class="input-group-text"><i class="icon-base ti tabler-message-2"></i></span>
-                                    <textarea class="form-control" id="initial_complaint" name="initial_complaint" rows="2" placeholder="Ex.: Barulho no motor ao acelerar"></textarea>
-                                </div>
-                            </div>
-                            <div class="col-12">
-                                <label class="form-label" for="internal_notes">Observações internas</label>
-                                <div class="input-group input-group-merge input-group-merge-textarea">
-                                    <span class="input-group-text"><i class="icon-base ti tabler-lock"></i></span>
-                                    <textarea class="form-control" id="internal_notes" name="internal_notes" rows="2" placeholder="Não visíveis ao cliente"></textarea>
-                                </div>
-                            </div>
                         </div>
 
-                        <!-- Peças necessárias (destaque) -->
-                        <div class="card border-primary border mb-3 mt-4">
+                        <div class="card border-primary border mb-0">
                             <div class="card-header d-flex justify-content-between align-items-center">
                                 <div class="d-flex align-items-center gap-2">
                                     <i class="icon-base ti tabler-package icon-md text-primary"></i>
                                     <div>
                                         <h6 class="mb-0">Peças necessárias</h6>
-                                        <small class="text-body-secondary">Sugestões com preço de referência</small>
+                                        <small class="text-body-secondary">Busque no catálogo ou digite uma peça manual</small>
                                     </div>
                                 </div>
                                 <span class="badge bg-label-primary" id="osPartsCount">0</span>
                             </div>
                             <div class="card-body">
                                 <div class="row g-3">
-                                    <div class="col-lg-8">
+                                    <div class="col-md-8">
                                         <label class="form-label" for="osPartSearch">Buscar peça no catálogo</label>
                                         <select class="form-select part-autocomplete" id="osPartSearch" data-placeholder="Buscar por nome, marca ou código..."></select>
-                                        <div class="form-text">Escolha uma sugestão ou use o campo manual abaixo. O preço é uma referência do catálogo.</div>
                                     </div>
-                                    <div class="col-lg-4">
+                                    <div class="col-md-4">
                                         <label class="form-label" for="osPartQty">Quantidade</label>
                                         <input type="number" class="form-control" id="osPartQty" value="1" min="1" max="99" step="1" aria-label="Quantidade">
-                                        <div class="form-text">Ajuste a quantidade antes de adicionar a peça.</div>
                                     </div>
                                 </div>
 
                                 <div class="input-group mt-3">
                                     <input type="text" class="form-control" id="osPartManual" placeholder="Ou digite uma peça manual...">
-                                    <button type="button" class="btn btn-outline-primary" id="osPartManualAdd"><i class="icon-base ti tabler-plus"></i></button>
+                                    <button type="button" class="btn btn-outline-primary" id="osPartManualAdd" aria-label="Adicionar peça manual"><i class="icon-base ti tabler-plus"></i></button>
                                 </div>
 
                                 <div class="dynamic-list mt-3" data-list="parts">
@@ -315,29 +306,9 @@ $priorities = \Modules\Mechanic\Support\ServiceOrderStatus::PRIORITIES;
                             </div>
                         </div>
 
-                        <!-- Tarefas -->
-                        <div class="card">
-                            <div class="card-header d-flex justify-content-between align-items-center">
-                                <div class="d-flex align-items-center gap-2">
-                                    <i class="icon-base ti tabler-list-check icon-md"></i>
-                                    <h6 class="mb-0">Tarefas</h6>
-                                </div>
-                            </div>
-                            <div class="card-body">
-                                <div class="dynamic-list" data-list="tasks">
-                                    <div class="dynamic-list-items"></div>
-                                    <div class="input-group mt-2">
-                                        <input class="form-control" placeholder="Digite a tarefa e pressione Enter">
-                                        <button type="button" class="btn btn-outline-primary btn-add"><i class="icon-base ti tabler-plus"></i></button>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <input type="hidden" name="tasks_json" id="tasks_json" value="[]">
                         <input type="hidden" name="parts_json" id="parts_json" value="[]">
 
-                        <div class="d-flex justify-content-between mt-6">
+                        <div class="wizard-actions">
                             <button type="button" class="btn btn-label-secondary btn-prev">
                                 <i class="icon-base ti tabler-arrow-left icon-xs me-sm-2"></i>
                                 <span class="align-middle d-sm-inline-block d-none">Anterior</span>
@@ -359,7 +330,7 @@ $priorities = \Modules\Mechanic\Support\ServiceOrderStatus::PRIORITIES;
                         <div class="row g-2">
                             <?php foreach ($mechanics as $m): ?>
                             <div class="col-md-4">
-                                <label class="card p-3 d-flex flex-row align-items-center gap-2" style="cursor:pointer">
+                                <label class="card p-3 d-flex flex-row align-items-center gap-2 mb-0" style="cursor:pointer">
                                     <input type="checkbox" name="mechanics[]" value="<?= (int) $m['id'] ?>" class="form-check-input mt-0">
                                     <span class="avatar avatar-sm"><span class="avatar-initial rounded-circle bg-label-primary"><?= e(strtoupper(substr($m['name'], 0, 1))) ?></span></span>
                                     <span>
@@ -384,7 +355,7 @@ $priorities = \Modules\Mechanic\Support\ServiceOrderStatus::PRIORITIES;
                             </div>
                         </div>
 
-                        <div class="d-flex justify-content-between mt-6">
+                        <div class="wizard-actions">
                             <button type="button" class="btn btn-label-secondary btn-prev">
                                 <i class="icon-base ti tabler-arrow-left icon-xs me-sm-2"></i>
                                 <span class="align-middle d-sm-inline-block d-none">Anterior</span>
@@ -396,30 +367,119 @@ $priorities = \Modules\Mechanic\Support\ServiceOrderStatus::PRIORITIES;
                         </div>
                     </div>
 
-                    <!-- ETAPA 5: REVISÃO -->
+                    <!-- ETAPA 5: OS -->
+                    <div id="step-atendimento" class="content">
+                        <div class="content-header mb-4">
+                            <h6 class="mb-0">OS</h6>
+                            <small>Informações da OS e conversa com a equipe. O ticket é criado automaticamente com o resumo da OS.</small>
+                        </div>
+
+                        <div class="card mb-0">
+                            <div class="card-body">
+                                <div class="row g-3">
+                                    <div class="col-md-8">
+                                        <label class="form-label" for="ticket_subject">Assunto</label>
+                                        <div class="input-group input-group-merge">
+                                            <span class="input-group-text"><i class="icon-base ti tabler-messages"></i></span>
+                                            <input type="text" class="form-control" id="ticket_subject" name="ticket_subject" maxlength="200" placeholder="Ex.: Acompanhamento do atendimento">
+                                        </div>
+                                        <div class="form-text">Em branco, usamos “OS #0000 - Cliente”.</div>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label class="form-label" for="ticket_assigned_to">Responsável</label>
+                                        <select class="select2 form-select" id="ticket_assigned_to" name="ticket_assigned_to" data-placeholder="Mesmo responsável da OS">
+                                            <option value=""></option>
+                                            <?php foreach ($ticketUsers as $u): ?>
+                                            <option value="<?= (int) $u['id'] ?>"><?= e($u['name']) ?> — <?= e(roleLabel($u['role'])) ?></option>
+                                            <?php endforeach; ?>
+                                        </select>
+                                        <div class="form-text">Em branco, usa o mecânico responsável.</div>
+                                    </div>
+
+                                    <div class="col-12 col-md-6">
+                                        <label class="form-label" for="initial_complaint">Queixa do cliente</label>
+                                        <div class="d-flex gap-2 align-items-start">
+                                            <textarea class="form-control" id="initial_complaint" name="initial_complaint" rows="3" placeholder="Ex.: Barulho no motor ao acelerar"></textarea>
+                                            <?php if (!empty($ticketAudioEnabled)): ?>
+                                            <button type="button" class="btn btn-icon btn-text-secondary ticket-audio-btn"
+                                                    data-ticket-audio data-target="#initial_complaint"
+                                                    data-csrf="<?= e($csrf) ?>" data-endpoint="/api/transcribe"
+                                                    title="Gravar áudio e transcrever" aria-label="Gravar áudio e transcrever">
+                                                <i class="icon-base ti tabler-microphone"></i>
+                                            </button>
+                                            <?php endif; ?>
+                                        </div>
+                                    </div>
+
+                                    <div class="col-12 col-md-6">
+                                        <label class="form-label" for="internal_notes">Observações internas</label>
+                                        <textarea class="form-control" id="internal_notes" name="internal_notes" rows="3" placeholder="Não visíveis ao cliente"></textarea>
+                                    </div>
+
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="wizard-actions">
+                            <button type="button" class="btn btn-label-secondary btn-prev">
+                                <i class="icon-base ti tabler-arrow-left icon-xs me-sm-2"></i>
+                                <span class="align-middle d-sm-inline-block d-none">Anterior</span>
+                            </button>
+                            <button type="button" class="btn btn-primary btn-next">
+                                <span class="align-middle d-sm-inline-block d-none me-sm-2">Próximo</span>
+                                <i class="icon-base ti tabler-arrow-right icon-xs"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- ETAPA 6: REVISÃO -->
                     <div id="step-revisao" class="content">
                         <div class="content-header mb-4">
                             <h6 class="mb-0">Revise os dados</h6>
                             <small>Confira antes de criar o atendimento.</small>
                         </div>
 
-                        <div class="card">
+                        <div class="card mb-0">
                             <div class="card-body">
-                                <div class="row g-3">
-                                    <div class="col-md-6"><small class="text-body-secondary d-block">Cliente</small><span id="reviewCliente">—</span></div>
-                                    <div class="col-md-6"><small class="text-body-secondary d-block">Veículo</small><span id="reviewVeiculo">—</span></div>
-                                    <div class="col-md-6"><small class="text-body-secondary d-block">Serviço</small><span id="reviewServico">—</span></div>
-                                    <div class="col-md-6"><small class="text-body-secondary d-block">Equipe</small><span id="reviewEquipe">—</span></div>
+                                <div class="row g-4">
+                                    <div class="col-md-6">
+                                        <small class="text-body-secondary d-block">Cliente</small>
+                                        <span class="fw-medium" id="reviewCliente">—</span>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <small class="text-body-secondary d-block">Veículo</small>
+                                        <span class="fw-medium" id="reviewVeiculo">—</span>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <small class="text-body-secondary d-block">Serviço</small>
+                                        <span class="fw-medium" id="reviewServico">—</span>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <small class="text-body-secondary d-block">Prioridade</small>
+                                        <span class="fw-medium" id="reviewPrioridade">—</span>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <small class="text-body-secondary d-block">Equipe</small>
+                                        <span class="fw-medium" id="reviewEquipe">—</span>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <small class="text-body-secondary d-block">OS</small>
+                                        <span class="fw-medium" id="reviewTicket">—</span>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <small class="text-body-secondary d-block">Peças</small>
+                                        <span class="fw-medium" id="reviewPecas">—</span>
+                                    </div>
                                 </div>
                             </div>
                         </div>
 
                         <div class="alert alert-warning mt-3 mb-0 small">
                             <i class="icon-base ti tabler-info-circle"></i>
-                            Ao confirmar, a OS é criada e os mecânicos selecionados são notificados.
+                            Ao confirmar, a OS é criada, os mecânicos selecionados são notificados e a OS é aberta.
                         </div>
 
-                        <div class="d-flex justify-content-between mt-6">
+                        <div class="wizard-actions">
                             <button type="button" class="btn btn-label-secondary btn-prev">
                                 <i class="icon-base ti tabler-arrow-left icon-xs me-sm-2"></i>
                                 <span class="align-middle d-sm-inline-block d-none">Anterior</span>
@@ -431,8 +491,6 @@ $priorities = \Modules\Mechanic\Support\ServiceOrderStatus::PRIORITIES;
                     </div>
                 </div>
             </div>
-        </div>
-    </div>
 </form>
 
 <script>

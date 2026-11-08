@@ -18,7 +18,9 @@ use Modules\Core\Controllers\ClientController;
 use Modules\Core\Controllers\DashboardController;
 use Modules\Core\Controllers\NotificationController;
 use Modules\Core\Controllers\ProfileController;
+use Modules\Core\Controllers\SearchController;
 use Modules\Core\Controllers\SettingsController;
+use Modules\Core\Controllers\TranscriptionController;
 use Modules\Core\Controllers\UserController;
 
 class CoreProvider implements ProviderInterface
@@ -48,6 +50,12 @@ class CoreProvider implements ProviderInterface
         $router->post('/notifications/read-all', [NotificationController::class, 'markAllRead']);
         $router->post('/notifications/{id}/read', [NotificationController::class, 'markRead']);
         $router->get('/api/notifications', [NotificationController::class, 'api']);
+
+        // Busca global do header.
+        $router->get('/api/search', [SearchController::class, 'api']);
+
+        // Transcrição de áudio (Groq) — feature opcional.
+        $router->post('/api/transcribe', [TranscriptionController::class, 'transcribe']);
 
         // Meu perfil.
         $router->get('/profile', [ProfileController::class, 'show']);

@@ -15,6 +15,9 @@ class PartsCatalog
 {
     private PDO $pdo;
 
+    /** @var array<string, string>|null cache slug => nome */
+    private ?array $categoryNames = null;
+
     public function __construct(PDO $pdo)
     {
         $this->pdo = $pdo;
@@ -45,6 +48,18 @@ class PartsCatalog
         }
 
         $name = (string) ($sku['name'] ?? $sku['nameSimple'] ?? 'Produto');
+
+        // A taxonomia do fornecedor vem como breadcrumb
+        // ("Autopeças > Motor > Radiador & Arrefecimento").
+        // Guardamos apenas o rótulo específico; a categoria funcional
+        // (category_id) é resolvida na sincronização com `parts`.
+        $categoryPath = implode(' > ', $categoryParts);
+        $categoryLeaf = PartCategoryResolver::leaf($categoryPath);
+        if ($categoryLeaf === '') {
+            $categorySlug = PartCategoryResolver::resolve($categoryPath . ' ' . $name);
+            $categoryLeaf = $this->categoryNames()[$categorySlug] ?? 'Diversos';
+        }
+
         $priceFlags = is_array($sku['price'] ?? null) ? $sku['price'] : [];
 
         $stmt = $this->pdo->prepare(
@@ -70,7 +85,7 @@ class PartsCatalog
             ':name' => $this->limit($name, 255),
             ':name_simple' => $this->limit((string) ($sku['nameSimple'] ?? ''), 200),
             ':description' => (string) ($sku['description'] ?? ''),
-            ':category' => $this->limit(implode(' > ', $categoryParts), 200),
+            ':category' => $this->limit($categoryLeaf, 120),
             ':applications' => $this->limit((string) ($sku['applications'] ?? ($sku['gridDescription'] ?? '')), 2000),
             ':oem_codes' => json_encode($sku['assemblerCodes'] ?? null, JSON_UNESCAPED_UNICODE),
             ':images' => json_encode($images, JSON_UNESCAPED_UNICODE),
@@ -248,6 +263,158 @@ class PartsCatalog
         $this->pdo->prepare(
             'INSERT IGNORE INTO cdp_vehicle_years (model_id, year) VALUES (?, ?)'
         )->execute([$modelId, $year]);
+    }
+
+    /**
+     * Copia o catálogo bruto (cdp_products/cdp_offers) para a tabela
+     * operacional `parts`, preservando preço de venda e dados comerciais.
+     *
+     * @return array{inserted:int, updated:int, classified:int}
+     */
+    public function syncFromCatalog(): array
+    {
+        $inserted = (int) $this->pdo->exec(
+            "INSERT INTO parts
+                (name, brand, part_code, category, price, source, cdp_sku, is_active, status, sku,
+                 description, image, applications, oem_codes, product_url, universal, by_request, by_budget,
+                 supplier, cost_price, last_synced_at)
+             SELECT LEFT(COALESCE(NULLIF(cp.name_simple, ''), cp.name), 200),
+                    LEFT(cp.brand, 120),
+                    LEFT(cp.part_code, 80),
+                    LEFT(cp.category, 120),
+                    (SELECT MIN(o.price) FROM cdp_offers o WHERE o.sku_id = cp.sku_id AND o.price > 0),
+                    'canaldapeca',
+                    cp.sku_id,
+                    1,
+                    'published',
+                    CAST(cp.sku_id AS CHAR),
+                    cp.description,
+                    JSON_UNQUOTE(JSON_EXTRACT(cp.images, '$[0]')),
+                    cp.applications,
+                    cp.oem_codes,
+                    cp.product_url,
+                    cp.universal,
+                    cp.by_request,
+                    cp.by_budget,
+                    (SELECT o.seller_name FROM cdp_offers o WHERE o.sku_id = cp.sku_id ORDER BY o.price ASC LIMIT 1),
+                    (SELECT MIN(o.price) FROM cdp_offers o WHERE o.sku_id = cp.sku_id AND o.price > 0),
+                    NOW()
+               FROM cdp_products cp
+              WHERE NOT EXISTS (SELECT 1 FROM parts p WHERE p.cdp_sku = cp.sku_id)"
+        );
+
+        $stmt = $this->pdo->prepare(
+            "UPDATE parts p
+               JOIN cdp_products cp ON cp.sku_id = p.cdp_sku
+                SET p.category = COALESCE(NULLIF(p.category, ''), cp.category),
+                    p.sku = COALESCE(NULLIF(p.sku, ''), CAST(cp.sku_id AS CHAR)),
+                    p.description = COALESCE(NULLIF(p.description, ''), cp.description),
+                    p.image = COALESCE(NULLIF(p.image, ''), JSON_UNQUOTE(JSON_EXTRACT(cp.images, '$[0]'))),
+                    p.applications = COALESCE(NULLIF(p.applications, ''), cp.applications),
+                    p.oem_codes = COALESCE(p.oem_codes, cp.oem_codes),
+                    p.product_url = COALESCE(NULLIF(p.product_url, ''), cp.product_url),
+                    p.universal = cp.universal,
+                    p.by_request = cp.by_request,
+                    p.by_budget = cp.by_budget,
+                    p.supplier = COALESCE(NULLIF(p.supplier, ''), (SELECT o.seller_name FROM cdp_offers o WHERE o.sku_id = p.cdp_sku ORDER BY o.price ASC LIMIT 1)),
+                    p.cost_price = COALESCE(p.cost_price, (SELECT MIN(o.price) FROM cdp_offers o WHERE o.sku_id = p.cdp_sku AND o.price > 0)),
+                    p.last_synced_at = NOW()
+              WHERE p.cdp_sku IS NOT NULL"
+        );
+        $stmt->execute();
+        $updated = $stmt->rowCount();
+
+        $classified = $this->classifyParts(false);
+
+        return ['inserted' => $inserted, 'updated' => $updated, 'classified' => $classified];
+    }
+
+    /**
+     * Reclassifica peças: grava o rótulo específico em `category` e
+     * aponta `category_id` para a categoria funcional do CRM.
+     *
+     * Sem `$force`, atua apenas em peças novas (sem categoria) ou que
+     * ainda guardam o breadcrumb antigo ("A > B > C"), preservando
+     * ajustes manuais já feitos pelo usuário.
+     */
+    public function classifyParts(bool $force = false): int
+    {
+        $ids = PartCategoryResolver::ids($this->pdo);
+        if (!$ids) {
+            return 0;
+        }
+        $names = $this->categoryNames();
+
+        $where = $force ? '' : "WHERE (category_id IS NULL OR category LIKE '% > %')";
+        $rows = $this->pdo->query(
+            'SELECT id, name, category, category_id FROM parts ' . $where
+        )->fetchAll() ?: [];
+
+        $update = $this->pdo->prepare(
+            'UPDATE parts SET category = :category, category_id = :category_id WHERE id = :id'
+        );
+
+        $changed = 0;
+        $this->pdo->beginTransaction();
+
+        try {
+            foreach ($rows as $row) {
+                $slug = PartCategoryResolver::resolve(
+                    (string) ($row['category'] ?? '') . ' ' . (string) ($row['name'] ?? '')
+                );
+                $leaf = PartCategoryResolver::leaf((string) ($row['category'] ?? ''));
+                if ($leaf === '') {
+                    $leaf = $names[$slug] ?? 'Diversos';
+                }
+
+                $categoryId = $ids[$slug] ?? ($ids['diversos'] ?? null);
+                if ($categoryId === null) {
+                    continue;
+                }
+
+                if ((string) ($row['category'] ?? '') === $leaf
+                    && (int) ($row['category_id'] ?? 0) === $categoryId
+                ) {
+                    continue;
+                }
+
+                $update->execute([
+                    ':category' => $this->limit($leaf, 120),
+                    ':category_id' => $categoryId,
+                    ':id' => (int) $row['id'],
+                ]);
+                $changed++;
+            }
+
+            $this->pdo->commit();
+        } catch (\Throwable $e) {
+            $this->pdo->rollBack();
+            throw $e;
+        }
+
+        return $changed;
+    }
+
+    /** Reclassifica todas as peças e normaliza o rótulo no catálogo bruto. */
+    public function reclassifyAll(): int
+    {
+        $this->pdo->exec(
+            "UPDATE cdp_products
+                SET category = TRIM(SUBSTRING_INDEX(category, ' > ', -1))
+              WHERE category LIKE '% > %'"
+        );
+
+        return $this->classifyParts(true);
+    }
+
+    /** @return array<string, string> */
+    private function categoryNames(): array
+    {
+        if ($this->categoryNames === null) {
+            $this->categoryNames = PartCategoryResolver::names($this->pdo);
+        }
+
+        return $this->categoryNames;
     }
 
     private function limit(string $value, int $length): string

@@ -1091,10 +1091,9 @@ a:focus-visible, button:focus-visible, [tabindex]:focus-visible, .dropdown-item:
     flex-direction: column;
 }
 .wizard-vertical-icons-example .content {
-    overflow-y: auto;
-    overflow-x: hidden;
-    max-height: calc(100vh - 260px);
-    padding-right: 4px;
+    overflow: visible;
+    max-height: none;
+    padding-right: 0;
 }
 .wizard-nav {
     position: sticky;
@@ -1111,6 +1110,23 @@ a:focus-visible, button:focus-visible, [tabindex]:focus-visible, .dropdown-item:
 }
 .wizard-nav .btn {
     min-width: 120px;
+}
+
+/* Navegação padronizada entre as etapas */
+.wizard-actions {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-block-start: 2rem;
+    padding-block-start: 1.25rem;
+    border-block-start: 1px solid var(--bs-border-color-translucent);
+}
+.wizard-actions .btn {
+    min-width: 7.5rem;
+}
+.wizard-actions .btn-prev {
+    margin-inline-end: auto;
 }
 
 /* Em telas pequenas o conteúdo não rola sozinho; a navegação é fixa no fim. */
@@ -1499,6 +1515,114 @@ a:focus-visible, button:focus-visible, [tabindex]:focus-visible, .dropdown-item:
     white-space: nowrap;
 }
 
+/* Select2 no padrão visual dos campos Bootstrap */
+.select2-container--default .select2-selection--single {
+    display: flex;
+    align-items: center;
+    height: calc(1.5em + 0.75rem + 2px);
+    border: 1px solid var(--bs-border-color);
+    border-radius: var(--bs-border-radius);
+    background-color: var(--bs-body-bg);
+}
+.select2-container--default .select2-selection--single .select2-selection__rendered {
+    padding-inline: 0.75rem 2rem;
+    color: var(--bs-body-color);
+    line-height: 1.5;
+}
+.select2-container--default .select2-selection--single .select2-selection__placeholder {
+    color: var(--bs-secondary-color);
+}
+.select2-container--default .select2-selection--single .select2-selection__arrow {
+    height: 100%;
+    inset-inline-end: 0.5rem;
+}
+.select2-container--default.select2-container--focus .select2-selection,
+.select2-container--default.select2-container--open .select2-selection {
+    border-width: 1px;
+    border-color: var(--bs-border-color);
+    box-shadow: 0 0 0 0.15rem rgba(var(--bs-primary-rgb), 0.15);
+}
+.select2-container--default.select2-container--focus .select2-selection--single,
+.select2-container--default.select2-container--open .select2-selection--single {
+    border-color: var(--bs-border-color);
+    box-shadow: 0 0 0 0.15rem rgba(var(--bs-primary-rgb), 0.15);
+}
+.select2-container.select2-sm .select2-selection--single {
+    height: calc(1.5em + 0.5rem + 2px);
+}
+.select2-container.select2-sm .select2-selection--single .select2-selection__rendered {
+    font-size: 0.8125rem;
+}
+/* O foco do Select2 não usa o contorno vermelho global */
+.select2-container [tabindex]:focus-visible,
+.select2-container .select2-search__field:focus-visible {
+    outline: none;
+}
+.select2-dropdown {
+    border: 1px solid var(--bs-border-color);
+    border-radius: var(--bs-border-radius);
+    background-color: var(--bs-paper-bg);
+    box-shadow: var(--bs-box-shadow);
+}
+.select2-search--dropdown {
+    padding: 0.5rem;
+}
+.select2-search--dropdown .select2-search__field {
+    padding: 0.375rem 0.5rem;
+    border: 1px solid var(--bs-border-color);
+    border-radius: var(--bs-border-radius);
+    background-color: var(--bs-body-bg);
+    color: var(--bs-body-color);
+}
+.select2-results__option {
+    padding: 0.5rem 0.75rem;
+}
+.select2-container--default .select2-results__option--highlighted[aria-selected] {
+    background-color: var(--bs-primary);
+    color: var(--bs-primary-contrast);
+}
+.select2-container--default .select2-results__option[aria-selected="true"] {
+    background-color: var(--bs-primary-bg-subtle);
+    color: var(--bs-primary-text-emphasis);
+}
+
+/* =============================================
+   FORMULÁRIOS — largura estável (anti "pulo" horizontal)
+   - O gutter do scrollbar fica sempre reservado, então abrir
+     um select/dropdown não muda a largura útil da página.
+   - Colunas e controles nunca encolhem abaixo do conteúdo.
+   - O wrapper do Select2 é sempre um bloco de 100%.
+   ============================================= */
+html {
+    /* Reserva sempre o espaço da barra de rolagem: abrir um select ou
+       dropdown não altera mais a largura útil (sem "pulo" horizontal). */
+    overflow-y: scroll;
+    scrollbar-gutter: stable;
+}
+
+.row > *,
+.input-group,
+.input-group > *,
+.form-control,
+.form-select {
+    min-width: 0;
+}
+
+.select2-wrapper {
+    display: block;
+    width: 100%;
+    min-width: 0;
+}
+
+.select2-wrapper > .select2-container {
+    max-width: 100%;
+}
+
+/* Dropdown do Select2 anexado ao body (fora de cards com rolagem). */
+body > .select2-container {
+    z-index: 1090;
+}
+
 /* =============================================
    TICKETS — central de atendimento (app-chat)
    ============================================= */
@@ -1617,4 +1741,610 @@ a:focus-visible, button:focus-visible, [tabindex]:focus-visible, .dropdown-item:
 }
 .dashboard-indicators .widget-nav-tabs::-webkit-scrollbar {
     display: none;
+}
+
+/* =============================================
+   SIDEBAR — hierarquia visual e painel do usuário
+   (layout novo: src/Kernel/views/layouts/app.php)
+   ============================================= */
+
+/* A lista de navegação rola; o painel do usuário fica fixo no rodapé. */
+#layout-menu .menu-inner {
+    flex: 1 1 auto;
+    min-block-size: 0;
+    padding-block: 0.25rem 0.75rem;
+}
+
+/* Cabeçalhos de seção: discretos, com respiro entre os grupos. */
+#layout-menu .menu-inner > .menu-header {
+    padding-block: 1.5rem 0.5rem;
+    padding-inline: 1.5rem;
+}
+#layout-menu .menu-inner > .menu-header:first-child {
+    padding-block-start: 0.5rem;
+}
+#layout-menu .menu-inner > .menu-header .menu-header-text {
+    font-size: 0.6875rem;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    color: var(--bs-secondary-color);
+}
+
+/* Itens: cantos arredondados, ícone neutro e hover suave. */
+#layout-menu.menu-vertical .menu-inner > .menu-item {
+    margin-block-start: 0.125rem;
+}
+#layout-menu.menu-vertical .menu-inner > .menu-item > .menu-link {
+    margin-inline: 0.75rem;
+    border-radius: 0.5rem;
+    transition: background-color 0.18s ease, color 0.18s ease;
+}
+#layout-menu.menu-vertical .menu-inner > .menu-item > .menu-link .menu-icon {
+    color: var(--bs-secondary-color);
+    transition: color 0.18s ease;
+}
+#layout-menu.menu-vertical .menu-inner > .menu-item:not(.active) > .menu-link:hover {
+    background-color: rgba(var(--bs-primary-rgb), 0.08);
+    color: var(--bs-primary);
+}
+#layout-menu.menu-vertical .menu-inner > .menu-item:not(.active) > .menu-link:hover .menu-icon {
+    color: var(--bs-primary);
+}
+
+/* Item ativo: fundo suave + barra lateral (em vez do bloco vermelho cheio). */
+#layout-menu.menu-vertical .menu-inner > .menu-item.active > .menu-link:not(.menu-toggle) {
+    background: rgba(var(--bs-primary-rgb), 0.1);
+    box-shadow: none;
+    color: var(--bs-primary);
+    font-weight: 600;
+}
+#layout-menu.menu-vertical .menu-inner > .menu-item.active > .menu-link:not(.menu-toggle) .menu-icon {
+    color: var(--bs-primary);
+}
+#layout-menu.menu-vertical .menu-inner > .menu-item.active > .menu-link:not(.menu-toggle)::before {
+    position: absolute;
+    content: "";
+    inset-block: 0.55rem;
+    inset-inline-start: 0;
+    inline-size: 3px;
+    border-radius: 0 3px 3px 0;
+    background-color: var(--bs-primary);
+}
+/* Pai ativo com submenu (ex.: Tickets). */
+#layout-menu.menu-vertical .menu-inner > .menu-item.active > .menu-link.menu-toggle {
+    color: var(--bs-primary);
+    font-weight: 600;
+}
+#layout-menu.menu-vertical .menu-inner > .menu-item.active > .menu-link.menu-toggle .menu-icon {
+    color: var(--bs-primary);
+}
+/* Subitens ativos. */
+#layout-menu.menu-vertical .menu-sub .menu-item.active > .menu-link {
+    color: var(--bs-primary);
+    font-weight: 600;
+}
+
+/* Marca: separador sutil em relação à navegação. */
+#layout-menu .app-brand {
+    border-block-end: 1px solid var(--bs-border-color-translucent);
+}
+
+/* ---------- Painel do usuário ---------- */
+#layout-menu .menu-user {
+    flex: 0 0 auto;
+    padding: 0.625rem 0.75rem 0.875rem;
+    border-block-start: 1px solid var(--bs-border-color-translucent);
+    background-color: var(--bs-menu-bg);
+}
+#layout-menu .menu-user .menu-user-card {
+    display: flex;
+    align-items: center;
+    gap: 0.625rem;
+    padding: 0.5rem;
+    border-radius: 0.625rem;
+    transition: background-color 0.18s ease;
+}
+#layout-menu .menu-user .menu-user-card:hover {
+    background-color: rgba(var(--bs-primary-rgb), 0.06);
+}
+#layout-menu .menu-user .menu-user-profile {
+    display: inline-flex;
+    flex: 0 0 auto;
+}
+#layout-menu .menu-user .menu-user-info {
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    min-inline-size: 0;
+    line-height: 1.25;
+}
+#layout-menu .menu-user .menu-user-name {
+    overflow: hidden;
+    color: var(--bs-heading-color);
+    font-size: 0.875rem;
+    font-weight: 600;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+#layout-menu .menu-user .menu-user-email {
+    overflow: hidden;
+    color: var(--bs-secondary-color);
+    font-size: 0.75rem;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+#layout-menu .menu-user .menu-user-actions {
+    flex: 0 0 auto;
+    inline-size: 2rem;
+    block-size: 2rem;
+    padding: 0;
+    color: var(--bs-secondary-color);
+}
+#layout-menu .menu-user .menu-user-dropdown {
+    display: flex;
+    flex: 0 0 auto;
+}
+#layout-menu .menu-user .menu-user-actions:hover,
+#layout-menu .menu-user .menu-user-actions[aria-expanded="true"] {
+    background-color: rgba(var(--bs-primary-rgb), 0.12);
+    color: var(--bs-primary);
+}
+#layout-menu .menu-user .dropdown-menu {
+    min-inline-size: 13rem;
+    margin-block-end: 0.25rem;
+}
+#layout-menu .menu-user .menu-user-dropdown-header {
+    padding: 0.625rem 1rem 0.25rem;
+}
+#layout-menu .menu-user .menu-user-dropdown-name {
+    display: block;
+    color: var(--bs-heading-color);
+    font-size: 0.875rem;
+    font-weight: 600;
+}
+#layout-menu .menu-user .menu-user-dropdown-role {
+    color: var(--bs-secondary-color);
+    font-size: 0.75rem;
+}
+
+/* Sidebar recolhida: apenas o avatar. */
+.layout-menu-collapsed:not(.layout-menu-hover) #layout-menu .menu-user .menu-user-info,
+.layout-menu-collapsed:not(.layout-menu-hover) #layout-menu .menu-user .menu-user-dropdown {
+    display: none;
+}
+.layout-menu-collapsed:not(.layout-menu-hover) #layout-menu .menu-user .menu-user-card {
+    justify-content: center;
+    padding-inline: 0;
+}
+.layout-menu-collapsed:not(.layout-menu-hover) #layout-menu .menu-user {
+    padding-inline: 0.5rem;
+}
+
+/* =========================================================
+   CRM de peças — catálogo, categorias e ficha da peça
+   ========================================================= */
+.parts-page-header .page-header-actions form {
+    display: inline-flex;
+}
+
+.datatables-products .product-name .avatar,
+.datatables-products .product-name .avatar > img,
+.datatables-products .part-thumb {
+    inline-size: 2.375rem;
+    block-size: 2.375rem;
+}
+
+.datatables-products .product-name .avatar {
+    overflow: hidden;
+}
+
+.datatables-products .product-name .part-thumb {
+    object-fit: cover;
+    display: block;
+}
+
+.datatables-products td .badge {
+    font-weight: 500;
+}
+
+.datatables-products .switch {
+    margin-block-end: 0;
+    pointer-events: none;
+}
+
+.part-image-preview {
+    min-block-size: 9.5rem;
+    overflow: hidden;
+    padding: 0.5rem;
+}
+
+.part-image-preview img {
+    max-block-size: 11rem;
+    object-fit: contain;
+}
+
+.part-show-image {
+    min-block-size: 16rem;
+    padding: 1rem;
+}
+
+.part-show-image img {
+    max-block-size: 22rem;
+    object-fit: contain;
+}
+
+.datatables-category-list .avatar-wrapper {
+    inline-size: 2.5rem;
+    block-size: 2.5rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.datatables-category-list .avatar,
+.datatables-category-list .avatar-initial {
+    inline-size: 2.5rem;
+    block-size: 2.5rem;
+}
+
+#offcanvasCategory .offcanvas-body {
+    padding: 1.5rem;
+}
+
+@media (max-width: 767.98px) {
+    .parts-page-header .page-header-actions {
+        width: 100%;
+    }
+
+    .parts-page-header .page-header-actions form,
+    .parts-page-header .page-header-actions .btn {
+        flex: 1 1 auto;
+    }
+
+    .datatables-products .product-name .avatar,
+    .datatables-products .product-name .avatar > img,
+    .datatables-products .part-thumb {
+        inline-size: 2.125rem;
+        block-size: 2.125rem;
+    }
+}
+
+/* Em telas estreitas, valor e variação do KPI empilham (evita quebra no meio do valor). */
+@media (max-width: 575.98px) {
+    .dashboard-kpi-footer {
+        flex-direction: column;
+        align-items: flex-start !important;
+        gap: 0.25rem !important;
+    }
+
+    .dashboard-indicators .widget-nav-tabs {
+        gap: 0.5rem !important;
+        margin-inline: 0 !important;
+        padding-inline: 0.25rem;
+    }
+}
+
+/* Entre 1200 e 1399px os cinco cartões do topo cabem em uma linha:
+   empilha valor/variação para não quebrar o número. */
+@media (min-width: 1200px) and (max-width: 1399.98px) {
+    .dashboard-kpi-footer {
+        flex-direction: column;
+        align-items: flex-start !important;
+        gap: 0.25rem !important;
+    }
+}
+
+.part-show-image {
+    position: relative;
+}
+
+.part-show-image .part-image-fallback {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    pointer-events: none;
+}
+
+.part-show-image .part-image-main {
+    position: relative;
+    z-index: 1;
+    background-color: var(--bs-card-bg, var(--bs-body-bg));
+}
+
+/* Impede que nomes longos de peças dominem o cálculo de largura
+   mínima do DataTables Responsive (mobile mantém nome + ações). */
+.datatables-products .product-name {
+    min-inline-size: 0;
+}
+
+.datatables-products .product-name > .d-flex.flex-column {
+    min-inline-size: 0;
+    max-inline-size: 15rem;
+}
+
+.datatables-products .product-name a.text-heading {
+    display: block;
+    max-inline-size: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+@media (max-width: 767.98px) {
+    .datatables-products .product-name .avatar-wrapper {
+        display: none;
+    }
+
+    .datatables-products .product-name > .d-flex.flex-column {
+        max-inline-size: 7rem;
+    }
+}
+
+/* =========================================================
+   Sidebar — barra de rolagem estilo Vuexy (PerfectScrollbar)
+   ========================================================= */
+#layout-menu .menu-inner {
+    overflow-x: hidden;
+}
+
+#layout-menu .menu-inner.ps {
+    position: relative;
+}
+
+#layout-menu .menu-inner .menu-link {
+    min-inline-size: 0;
+}
+
+#layout-menu .menu-inner .menu-link > div:not(.badge) {
+    flex: 1 1 auto;
+    min-inline-size: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* Rail fino e discreto, no tom do menu do Vuexy. */
+#layout-menu .ps__rail-y {
+    inline-size: 0.25rem;
+    background-color: transparent;
+}
+
+#layout-menu .ps__thumb-y {
+    inline-size: 0.25rem;
+    border-radius: 0.25rem;
+    background-color: rgba(var(--bs-secondary-rgb), 0.45);
+}
+
+#layout-menu .ps__rail-y:hover > .ps__thumb-y,
+#layout-menu .ps__rail-y:focus > .ps__thumb-y,
+#layout-menu .ps__rail-y.ps--clicking > .ps__thumb-y {
+    inline-size: 0.375rem;
+    background-color: rgba(var(--bs-secondary-rgb), 0.7);
+}
+
+/* =============================================
+   OS — serviços, peças em cards, tarefas e ticket
+   ============================================= */
+.min-w-0 { min-width: 0; }
+
+.os-header-actions { align-items: center; }
+.os-priority-box {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 2px;
+    min-width: 104px;
+    padding: 0.35rem 0.75rem;
+    border: 1px solid var(--border-color);
+    border-radius: 0.5rem;
+    background: var(--card-bg);
+}
+.os-priority-box small {
+    font-size: 0.65rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    line-height: 1;
+}
+.os-priority-box .badge { font-size: 0.75rem; }
+
+.os-subsection + .os-subsection { margin-top: 1.5rem; }
+.os-subsection-title {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 0.75rem;
+    font-weight: 600;
+    color: var(--bs-heading-color);
+}
+.os-subsection-title .badge { font-size: 0.65rem; }
+
+.os-service-list { display: flex; flex-direction: column; gap: 0.5rem; }
+.os-service-row {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.75rem;
+    border: 1px solid var(--border-color);
+    border-radius: 0.65rem;
+    background: var(--bs-body-bg);
+}
+[data-bs-theme="dark"] .os-service-row { background: var(--bs-secondary-bg); }
+.os-service-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    width: 38px;
+    height: 38px;
+    border-radius: 0.5rem;
+    background: var(--bs-info-bg-subtle);
+    color: var(--bs-info);
+}
+
+.os-part-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.875rem;
+}
+.os-part-card {
+    display: flex;
+    gap: 0.875rem;
+    padding: 0.875rem;
+    border: 1px solid var(--border-color);
+    border-radius: 0.75rem;
+    background: var(--bs-body-bg);
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+[data-bs-theme="dark"] .os-part-card { background: var(--bs-secondary-bg); }
+.os-part-card:hover {
+    border-color: var(--bs-primary-border-subtle);
+    box-shadow: var(--shadow-sm);
+}
+.os-part-thumb {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    width: 56px;
+    height: 56px;
+    overflow: hidden;
+    border-radius: 0.6rem;
+    background: var(--bs-primary-bg-subtle);
+    color: var(--bs-primary);
+    font-weight: 600;
+}
+.os-part-thumb img { width: 100%; height: 100%; object-fit: cover; }
+.os-part-body { flex: 1; min-width: 0; }
+.os-part-name {
+    overflow: hidden;
+    font-size: 0.9rem;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.os-part-desc {
+    overflow: hidden;
+    font-size: 0.72rem;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+@media (max-width: 767.98px) {
+    .os-part-grid { grid-template-columns: 1fr; }
+}
+
+.os-task-card {
+    margin-bottom: 0.75rem;
+    padding: 1rem;
+    border: 1px solid var(--border-color);
+    border-radius: 0.75rem;
+    background: var(--bs-body-bg);
+}
+[data-bs-theme="dark"] .os-task-card { background: var(--bs-secondary-bg); }
+.os-task-card .os-task-title {
+    padding-left: 0;
+    border: 0;
+    background: transparent;
+    box-shadow: none;
+}
+.os-task-card .os-task-title:focus { box-shadow: none; }
+.os-task-add {
+    padding: 1rem;
+    border: 1px dashed var(--border-color);
+    border-radius: 0.75rem;
+    background: var(--bs-body-bg);
+}
+[data-bs-theme="dark"] .os-task-add { background: var(--bs-secondary-bg); }
+
+.os-ticket { overflow: hidden; border: 1px solid var(--border-color); border-radius: 0.75rem; }
+.os-ticket-messages {
+    height: 360px;
+    overflow-y: auto;
+    padding: 1rem;
+    background: var(--bs-body-bg);
+}
+[data-bs-theme="dark"] .os-ticket-messages { background: var(--bs-secondary-bg); }
+.os-ticket-message { display: flex; align-items: flex-start; gap: 0.65rem; margin-bottom: 1rem; }
+.os-ticket-message.is-mine { flex-direction: row-reverse; }
+.os-ticket-bubble {
+    max-width: 78%;
+    padding: 0.6rem 0.8rem;
+    border: 1px solid var(--border-color);
+    border-radius: 0.65rem;
+    background: var(--bs-body-bg);
+}
+[data-bs-theme="dark"] .os-ticket-bubble { background: var(--bs-tertiary-bg); }
+.os-ticket-message.is-mine .os-ticket-bubble {
+    border-color: var(--bs-primary-border-subtle);
+    background: var(--bs-primary-bg-subtle);
+}
+.os-ticket-bubble small { display: block; margin-top: 0.25rem; font-size: 0.68rem; }
+.os-ticket-composer {
+    display: flex;
+    gap: 0.5rem;
+    padding: 0.75rem;
+    border-top: 1px solid var(--border-color);
+    background: var(--card-bg);
+}
+.os-ticket-composer .form-control { flex: 1; }
+
+.os-detail-block {
+    padding: 1rem;
+    border: 1px solid var(--border-color);
+    border-radius: 0.75rem;
+    background: var(--bs-body-bg);
+}
+[data-bs-theme="dark"] .os-detail-block { background: var(--bs-secondary-bg); }
+
+.ticket-system-message { display: flex; justify-content: center; }
+.ticket-system-card {
+    width: 100%;
+    max-width: 760px;
+    padding: 1rem 1.15rem;
+    border: 1px solid var(--bs-primary-border-subtle);
+    border-radius: 0.75rem;
+    background: var(--bs-primary-bg-subtle);
+}
+.ticket-system-content { font-size: 0.86rem; line-height: 1.55; color: var(--bs-body-color); }
+
+.ticket-os-context { font-size: 0.82rem; }
+.ticket-context-wrap { background: var(--bs-body-bg); }
+
+.ticket-audio-btn.is-recording {
+    color: var(--bs-danger) !important;
+    animation: ticket-audio-pulse 1.2s infinite;
+}
+.ticket-audio-btn.is-transcribing { opacity: 0.6; pointer-events: none; }
+@keyframes ticket-audio-pulse {
+    0% { box-shadow: 0 0 0 0 rgba(var(--bs-danger-rgb), 0.45); }
+    70% { box-shadow: 0 0 0 8px rgba(var(--bs-danger-rgb), 0); }
+    100% { box-shadow: 0 0 0 0 rgba(var(--bs-danger-rgb), 0); }
+}
+
+/* Prioridade no topo direito do passo de serviço do wizard */
+.os-wizard-priority {
+    min-width: 220px;
+    max-width: 100%;
+}
+.os-wizard-priority .select2-container {
+    width: 100% !important;
+}
+@media (max-width: 575.98px) {
+    .os-wizard-priority { min-width: 160px; }
+}
+
+/* O stepper não tem fundo próprio: sobra só o card da OS. */
+.os-wizard-stepper {
+    background-color: transparent !important;
+    border-radius: 0;
+}
+
+/* Mobile: o cabeçalho do stepper não se parece com um card separado. */
+@media (max-width: 767.98px) {
+    .os-wizard-stepper .bs-stepper-header {
+        border-block-end: 0;
+        padding-block-end: 0;
+        margin-block-end: 0.5rem;
+    }
 }

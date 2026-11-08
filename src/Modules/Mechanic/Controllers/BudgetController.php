@@ -6,6 +6,7 @@ namespace Modules\Mechanic\Controllers;
 use Kernel\Crud\CrudController;
 use Kernel\Crud\Resource;
 use Modules\Mechanic\Resources\BudgetResource;
+use Modules\Mechanic\Services\TicketService;
 use Modules\Mechanic\Support\BudgetStatus;
 use Psr\Http\Message\ServerRequestInterface;
 
@@ -117,6 +118,10 @@ class BudgetController extends CrudController
             }
 
             $this->recalcBudget($id);
+            if ($serviceOrderId) {
+                // Mantém o resumo automático do ticket da OS atualizado.
+                (new TicketService($this->pdo))->ensureForOrder((int) $serviceOrderId);
+            }
             record_audit($this->pdo, $this->auth->id(), 'budgets', $id, $isNew ? 'create' : 'update');
             $this->pdo->commit();
 

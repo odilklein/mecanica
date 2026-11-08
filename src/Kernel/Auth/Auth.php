@@ -34,6 +34,7 @@ class Auth
             $this->session->regenerate();
             $this->session->set('auth_user_id', (int) $user['id']);
             $this->session->set('auth_user_name', (string) $user['name']);
+            $this->session->set('auth_user_email', (string) $user['email']);
             $this->session->set('auth_user_role', (string) $user['role']);
             return true;
         }
@@ -46,15 +47,32 @@ class Auth
         return $this->session->has('auth_user_id');
     }
 
-    /** @return array{id: int, name: string, role: string}|null */
+    /** @return array{id: int, name: string, email: string, role: string}|null */
     public function user(): ?array
     {
         if (!$this->check()) {
             return null;
         }
+
+        // Sessões criadas antes da inclusão do e-mail buscam o dado uma vez
+        // e passam a carregá-lo na sessão (evita consulta a cada request).
+        $email = $this->session->get('auth_user_email');
+        if ($email === null) {
+            $email = '';
+            try {
+                $stmt = $this->pdo->prepare('SELECT email FROM users WHERE id = :id');
+                $stmt->execute([':id' => (int) $this->session->get('auth_user_id')]);
+                $email = (string) ($stmt->fetchColumn() ?: '');
+            } catch (\Throwable $e) {
+                // Sem banco disponível: o painel segue sem e-mail.
+            }
+            $this->session->set('auth_user_email', $email);
+        }
+
         return [
             'id' => (int) $this->session->get('auth_user_id'),
             'name' => (string) $this->session->get('auth_user_name'),
+            'email' => (string) $email,
             'role' => (string) $this->session->get('auth_user_role'),
         ];
     }
@@ -92,6 +110,7 @@ class Auth
     {
         $this->session->remove('auth_user_id');
         $this->session->remove('auth_user_name');
+        $this->session->remove('auth_user_email');
         $this->session->remove('auth_user_role');
     }
 }

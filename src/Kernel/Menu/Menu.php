@@ -14,6 +14,20 @@ use Kernel\Auth\Auth;
 
 class Menu
 {
+    /**
+     * Ordem preferencial das seções na sidebar. Módulos podem registrar
+     * seções em qualquer momento; a exibição segue esta ordem. Seções
+     * desconhecidas aparecem depois, preservando a ordem de registro.
+     */
+    private const SECTION_ORDER = [
+        'Principal' => 10,
+        'Cadastros' => 20,
+        'Operações' => 30,
+        'Documentos' => 40,
+        'Atendimento' => 50,
+        'Sistema' => 90,
+    ];
+
     /** @var array<string, array<int, array<string, mixed>>> */
     private array $sections = [];
 
@@ -46,6 +60,12 @@ class Menu
                 $result[$section] = $visible;
             }
         }
+
+        // Ordena as seções conforme a hierarquia visual definida acima.
+        // A ordenação do PHP é estável: empates mantêm a ordem de registro.
+        uksort($result, static function (string $a, string $b): int {
+            return (self::SECTION_ORDER[$a] ?? 999) <=> (self::SECTION_ORDER[$b] ?? 999);
+        });
 
         return $result;
     }

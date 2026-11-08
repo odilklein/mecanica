@@ -30,28 +30,42 @@ $select = static function (string $name, string $label, string $icon, array $opt
 </div>
 
 <div class="row justify-content-center">
-    <div class="col-lg-10">
-        <div class="card">
-            <div class="card-body p-4">
-                <form method="POST" action="<?= e($action) ?>">
-                    <input type="hidden" name="csrf_token" value="<?= e($csrf) ?>">
+    <div class="col-xl-10">
+        <form method="POST" action="<?= e($action) ?>">
+            <input type="hidden" name="csrf_token" value="<?= e($csrf) ?>">
 
-                    <?php if (!empty($errors['_form'])): ?>
-                    <div class="alert alert-danger" role="alert"><?= e($errors['_form']) ?></div>
-                    <?php endif; ?>
+            <?php if (!empty($errors['_form'])): ?>
+            <div class="alert alert-danger" role="alert"><?= e($errors['_form']) ?></div>
+            <?php endif; ?>
 
+            <!-- Cliente e veículo -->
+            <div class="card mb-4">
+                <div class="card-body">
                     <div class="panel-header">
-                        <i class="icon-base ti tabler-clipboard-list"></i>
+                        <i class="icon-base ti tabler-user"></i>
                         <div>
-                            <h3 class="panel-title"><?= e($isEdit ? 'Editar OS' : 'Nova OS') ?></h3>
-                            <p class="panel-subtitle">Os campos com * são obrigatórios</p>
+                            <h3 class="panel-title">Cliente e veículo</h3>
+                            <p class="panel-subtitle">Vincule o atendimento ao cliente e ao veículo</p>
                         </div>
                     </div>
-
                     <div class="row g-3">
                         <?= $select('client_id', 'Cliente', 'user', $opts['client_id'] ?? [], $old['client_id'] ?? '', 'col-md-6', true) ?>
                         <?= $select('vehicle_id', 'Veículo', 'car', $opts['vehicle_id'] ?? [], $old['vehicle_id'] ?? '', 'col-md-6') ?>
+                    </div>
+                </div>
+            </div>
 
+            <!-- Atendimento -->
+            <div class="card mb-4">
+                <div class="card-body">
+                    <div class="panel-header">
+                        <i class="icon-base ti tabler-activity"></i>
+                        <div>
+                            <h3 class="panel-title">Atendimento</h3>
+                            <p class="panel-subtitle">Prioridade, etapa atual e responsável</p>
+                        </div>
+                    </div>
+                    <div class="row g-3">
                         <?= $select('priority', 'Prioridade', 'flag', $opts['priority'] ?? [], $old['priority'] ?? 'normal', 'col-md-4', true) ?>
                         <?= $select('status', 'Status', 'activity', $opts['status'] ?? [], $old['status'] ?? 'received', 'col-md-4', true) ?>
                         <div class="col-md-4">
@@ -61,9 +75,22 @@ $select = static function (string $name, string $label, string $icon, array $opt
                                 <input type="date" class="form-control" id="entry_date" name="entry_date" value="<?= e($old['entry_date'] ?? date('Y-m-d')) ?>">
                             </div>
                         </div>
+                        <?= $select('lead_mechanic_id', 'Mecânico responsável', 'user-check', $opts['lead_mechanic_id'] ?? [], $old['lead_mechanic_id'] ?? '', 'col-md-6') ?>
+                    </div>
+                </div>
+            </div>
 
-                        <?= $select('lead_mechanic_id', 'Responsável', 'user-check', $opts['lead_mechanic_id'] ?? [], $old['lead_mechanic_id'] ?? '', 'col-md-6') ?>
-
+            <!-- Descrição -->
+            <div class="card mb-4">
+                <div class="card-body">
+                    <div class="panel-header">
+                        <i class="icon-base ti tabler-message-2"></i>
+                        <div>
+                            <h3 class="panel-title">Descrição do serviço</h3>
+                            <p class="panel-subtitle">Queixa inicial e diagnóstico técnico</p>
+                        </div>
+                    </div>
+                    <div class="row g-3">
                         <div class="col-12">
                             <label class="form-label" for="initial_complaint">Queixa inicial</label>
                             <div class="input-group input-group-merge input-group-merge-textarea">
@@ -78,14 +105,14 @@ $select = static function (string $name, string $label, string $icon, array $opt
                                 <textarea class="form-control" id="diagnosis" name="diagnosis" rows="3"><?= e($old['diagnosis'] ?? '') ?></textarea>
                             </div>
                         </div>
-
-                        <div class="col-12 d-flex justify-content-end gap-2 mt-3">
-                            <a href="<?= e($path) ?>" class="btn btn-outline-secondary">Cancelar</a>
-                            <button type="submit" class="btn btn-primary"><i class="icon-base ti tabler-device-floppy"></i> Salvar</button>
-                        </div>
                     </div>
-                </form>
+                </div>
             </div>
-        </div>
+
+            <div class="d-flex justify-content-end gap-2">
+                <a href="<?= e($path) ?>" class="btn btn-outline-secondary">Cancelar</a>
+                <button type="submit" class="btn btn-primary"><i class="icon-base ti tabler-device-floppy"></i> Salvar</button>
+            </div>
+        </form>
     </div>
 </div>

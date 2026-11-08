@@ -48,7 +48,22 @@
             var info = document.createElement('div');
             info.className = 'catalog-info small text-body-secondary mt-1';
             info.textContent = infoText;
-            if (infoText) {
+
+            if (meta.product_url) {
+                var catalogLink = document.createElement('a');
+                catalogLink.href = meta.product_url;
+                catalogLink.target = '_blank';
+                catalogLink.rel = 'noopener';
+                catalogLink.className = 'ms-2 text-primary text-decoration-none';
+                catalogLink.title = 'Abrir no Canal da Peça';
+                catalogLink.innerHTML = '<i class="icon-base ti tabler-external-link"></i> Canal da Peça';
+                if (info.textContent !== '') {
+                    info.appendChild(document.createTextNode(' · '));
+                }
+                info.appendChild(catalogLink);
+            }
+
+            if (info.textContent !== '') {
                 tdDesc.appendChild(info);
             }
 
@@ -78,6 +93,7 @@
             // Metadados do catálogo (não são exibidos diretamente).
             tr.dataset.sku = meta.sku || '';
             tr.dataset.unitPrice = meta.price != null ? String(meta.price) : (meta.unit_price != null ? String(meta.unit_price) : '');
+            tr.dataset.productUrl = meta.product_url || meta.url || '';
             tr.dataset.catalogNotes = meta.catalog_notes || [meta.brand, meta.part_code, meta.category].filter(Boolean).join(' · ');
 
             body.appendChild(tr);
@@ -112,7 +128,7 @@
                     sku: tr.dataset.sku || null,
                     unit_price: tr.dataset.unitPrice !== '' ? parseFloat(tr.dataset.unitPrice) : null,
                     supplier: null,
-                    product_url: null,
+                    product_url: tr.dataset.productUrl || null,
                     catalog_notes: tr.dataset.catalogNotes || null
                 });
             });
@@ -161,6 +177,7 @@
                     sku: item.sku,
                     unit_price: item.unit_price,
                     price: item.unit_price,
+                    product_url: item.product_url,
                     catalog_notes: item.catalog_notes
                 });
             });

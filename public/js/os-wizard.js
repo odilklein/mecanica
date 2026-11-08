@@ -29,6 +29,15 @@
         var vehicleBox = document.getElementById('vehicleExistingBox');
         var newVehicleFields = document.getElementById('newVehicleFields');
 
+        // Etapa Atendimento (ticket)
+        var $ticketAssigned = $('#ticket_assigned_to');
+        var createTicket = document.getElementById('create_ticket');
+        var ticketFields = document.getElementById('ticketFields');
+        var ticketDisabledHint = document.getElementById('ticketDisabledHint');
+        var ticketMessage = document.getElementById('ticket_initial_message');
+        var complaint = document.getElementById('initial_complaint');
+        var ticketMessageTouched = false;
+
         function setVehicleOptions(list) {
             $vehicle.empty();
             $vehicle.append(new Option('', '', false, false));
@@ -78,6 +87,60 @@
 
         $client.on('change', updateClientState);
 
+        // ----- Etapa Atendimento: estado do ticket -----
+        function syncTicketState() {
+            var enabled = createTicket ? createTicket.checked : true;
+
+            if (ticketFields) {
+                ticketFields.hidden = !enabled;
+                ticketFields.querySelectorAll('input, select, textarea').forEach(function (el) {
+                    el.disabled = !enabled;
+                });
+            }
+            if (ticketDisabledHint) {
+                ticketDisabledHint.hidden = enabled;
+            }
+            updateReview();
+        }
+
+        function syncTicketMessage() {
+            if (ticketMessage && !ticketMessageTouched) {
+                ticketMessage.value = complaint ? complaint.value : '';
+            }
+            updateReview();
+        }
+
+        function syncTicketAssignee() {
+            if (!$ticketAssigned.length || $ticketAssigned.val()) {
+                return;
+            }
+            var lead = $lead.val();
+            if (lead) {
+                $ticketAssigned.val(lead).trigger('change.select2');
+            }
+        }
+
+        if (createTicket) {
+            createTicket.addEventListener('change', syncTicketState);
+        }
+        if (complaint) {
+            complaint.addEventListener('input', syncTicketMessage);
+        }
+        if (ticketMessage) {
+            ticketMessage.addEventListener('input', function () {
+                ticketMessageTouched = true;
+                updateReview();
+            });
+        }
+        $lead.on('change', function () {
+            syncTicketAssignee();
+            updateReview();
+        });
+
+        syncTicketState();
+        syncTicketMessage();
+        syncTicketAssignee();
+
         $vehicle.on('change', function () {
             var hasVehicle = !!($vehicle.val() || '');
             if (newVehicleFields) {
@@ -106,61 +169,7 @@
             });
         });
 
-        // Tarefas
-        (function () {
-            var box = document.querySelector('[data-list="tasks"]');
-            if (!box) {
-                return;
-            }
-
-            var input = box.querySelector('input.form-control');
-            var addBtn = box.querySelector('.btn-add');
-            var items = box.querySelector('.dynamic-list-items');
-            var target = document.getElementById('tasks_json');
-
-            function syncTasks() {
-                var list = Array.prototype.map.call(items.children, function (row) {
-                    return row.querySelector('.item-text').textContent;
-                });
-                if (target) {
-                    target.value = JSON.stringify(list);
-                }
-            }
-
-            function addTask(text) {
-                text = (text || '').trim();
-                if (!text) {
-                    return;
-                }
-
-                var row = document.createElement('div');
-                row.className = 'd-flex align-items-center gap-2 mb-2';
-                row.innerHTML = '<i class="icon-base ti tabler-grip-vertical text-body-secondary"></i>'
-                    + '<span class="item-text flex-grow-1"></span>'
-                    + '<button type="button" class="btn btn-sm btn-icon btn-text-danger"><i class="icon-base ti tabler-x"></i></button>';
-                row.querySelector('.item-text').textContent = text;
-                row.querySelector('button').addEventListener('click', function () {
-                    row.remove();
-                    syncTasks();
-                });
-                items.appendChild(row);
-                input.value = '';
-                input.focus();
-                syncTasks();
-            }
-
-            addBtn.addEventListener('click', function () {
-                addTask(input.value);
-            });
-            input.addEventListener('keydown', function (e) {
-                if (e.key === 'Enter') {
-                    e.preventDefault();
-                    addTask(input.value);
-                }
-            });
-        })();
-
-        // Peças (autocomplete com preço + quantidade)
+        // Peças necessárias (cards no estilo do catálogo)
         (function () {
             var box = document.querySelector('[data-list="parts"]');
             if (!box) {
@@ -172,6 +181,19 @@
             var qtyInput = document.getElementById('osPartQty');
             var countEl = document.getElementById('osPartsCount');
 
+            function initials(name) {
+                return (String(name || '').match(/\b\w/g) || [])
+                    .slice(0, 2)
+                    .map(function (part) { return part.toUpperCase(); })
+                    .join('') || '?';
+            }
+
+            function money(value) {
+                return 'R$ ' + Number(value).toFixed(2)
+                    .replace('.', ',')
+                    .replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+            }
+
             function syncParts() {
                 var list = Array.prototype.map.call(items.children, function (row) {
                     var qty = row.querySelector('.item-qty');
@@ -181,7 +203,7 @@
                         sku: row.dataset.sku || null,
                         unit_price: row.dataset.unitPrice !== '' ? parseFloat(row.dataset.unitPrice) : null,
                         supplier: null,
-                        product_url: null,
+                        product_url: row.dataset.productUrl || null,
                         catalog_notes: row.dataset.catalogNotes || null
                     };
                 });
@@ -191,6 +213,7 @@
                 if (countEl) {
                     countEl.textContent = String(items.children.length);
                 }
+                updateReview();
             }
 
             function addPartRow(text, quantity, meta) {
@@ -200,30 +223,87 @@
                     return;
                 }
 
+                var qty = Math.max(1, parseInt(quantity, 10) || 1);
                 var row = document.createElement('div');
-                row.className = 'd-flex align-items-start gap-2 mb-2';
-                row.innerHTML = '<i class="icon-base ti tabler-grip-vertical text-body-secondary mt-1"></i>'
-                    + '<div class="flex-grow-1"><span class="item-text d-block"></span><div class="catalog-info small text-body-secondary"></div></div>'
-                    + '<input type="number" class="form-control form-control-sm item-qty" min="1" step="1" value="1" style="max-width: 90px; min-width: 72px;" aria-label="Quantidade">'
-                    + '<button type="button" class="btn btn-sm btn-icon btn-text-danger"><i class="icon-base ti tabler-x"></i></button>';
+                row.className = 'os-part-card os-wizard-part';
+                row.innerHTML = '<div class="os-part-thumb"></div>'
+                    + '<div class="os-part-body">'
+                    + '<div class="d-flex justify-content-between align-items-start gap-2">'
+                    + '<div class="min-w-0"><div class="os-part-name item-text"></div>'
+                    + '<small class="os-part-desc catalog-info text-body-secondary d-block"></small></div>'
+                    + '<button type="button" class="btn btn-sm btn-icon btn-text-danger item-remove" title="Remover peça">'
+                    + '<i class="icon-base ti tabler-x"></i></button>'
+                    + '</div>'
+                    + '<div class="d-flex justify-content-between align-items-center gap-2 mt-2">'
+                    + '<div class="d-flex align-items-center gap-1"><span class="small text-body-secondary">Qtd</span>'
+                    + '<input type="number" class="form-control form-control-sm item-qty" min="1" step="1" value="' + qty + '" style="max-width: 76px;" aria-label="Quantidade"></div>'
+                    + '<span class="fw-semibold item-price text-nowrap"></span>'
+                    + '</div></div>';
+
+                var thumb = row.querySelector('.os-part-thumb');
+                if (meta.image) {
+                    var img = document.createElement('img');
+                    img.src = meta.image;
+                    img.alt = text;
+                    img.loading = 'lazy';
+                    img.onerror = function () {
+                        this.hidden = true;
+                        var fallback = document.createElement('span');
+                        fallback.className = 'avatar-initial rounded-2 bg-label-primary';
+                        fallback.textContent = initials(text);
+                        thumb.appendChild(fallback);
+                    };
+                    thumb.appendChild(img);
+                } else {
+                    var badge = document.createElement('span');
+                    badge.className = 'avatar-initial rounded-2 bg-label-primary';
+                    badge.textContent = initials(text);
+                    thumb.appendChild(badge);
+                }
 
                 row.querySelector('.item-text').textContent = text;
-                row.querySelector('.item-qty').value = Math.max(1, parseInt(quantity, 10) || 1);
 
-                var metaParts = [meta.brand, meta.part_code, meta.price_label]
-                    .filter(function (value) { return value !== undefined && value !== null && value !== ''; });
-                row.querySelector('.catalog-info').textContent = metaParts.join(' · ');
+                var info = row.querySelector('.catalog-info');
+                var metaParts = [meta.brand, meta.part_code, meta.category].filter(Boolean);
+                info.textContent = metaParts.length
+                    ? metaParts.join(' · ')
+                    : (meta.name ? 'Peça do catálogo' : 'Peça manual');
+
+                if (meta.product_url) {
+                    var link = document.createElement('a');
+                    link.href = meta.product_url;
+                    link.target = '_blank';
+                    link.rel = 'noopener';
+                    link.className = 'ms-1 text-primary text-decoration-none';
+                    link.title = 'Abrir no Canal da Peça';
+                    link.innerHTML = '<i class="icon-base ti tabler-external-link"></i>';
+                    info.appendChild(link);
+                }
 
                 row.dataset.sku = meta.sku || '';
                 row.dataset.unitPrice = meta.price != null ? String(meta.price) : '';
-                row.dataset.catalogNotes = meta.catalog_notes || [meta.brand, meta.part_code, meta.category]
-                    .filter(Boolean).join(' · ');
+                row.dataset.productUrl = meta.product_url || meta.url || '';
+                row.dataset.catalogNotes = metaParts.join(' · ');
 
-                row.querySelector('.item-qty').addEventListener('input', syncParts);
-                row.querySelector('button').addEventListener('click', function () {
+                var priceEl = row.querySelector('.item-price');
+                var qtyEl = row.querySelector('.item-qty');
+
+                function refreshPrice() {
+                    var unit = meta.price != null ? Number(meta.price) : null;
+                    var currentQty = Math.max(1, parseInt(qtyEl.value, 10) || 1);
+                    priceEl.textContent = unit != null ? money(unit * currentQty) : '—';
+                }
+
+                qtyEl.addEventListener('input', function () {
+                    refreshPrice();
+                    syncParts();
+                });
+                row.querySelector('.item-remove').addEventListener('click', function () {
                     row.remove();
                     syncParts();
                 });
+
+                refreshPrice();
                 items.appendChild(row);
                 syncParts();
             }
@@ -319,6 +399,33 @@
                     el('reviewEquipe').textContent = '—';
                 }
             }
+
+            if (el('reviewPrioridade')) {
+                var priorityText = $('#priority').find('option:selected').text().trim();
+                el('reviewPrioridade').textContent = priorityText || '—';
+            }
+
+            if (el('reviewTicket')) {
+                var ticketEnabled = createTicket ? createTicket.checked : true;
+                if (!ticketEnabled) {
+                    el('reviewTicket').textContent = 'Sem OS';
+                } else {
+                    var assigned = $ticketAssigned.find('option:selected').text().trim();
+                    if (!assigned) {
+                        assigned = $lead.find('option:selected').text().trim();
+                    }
+                    el('reviewTicket').textContent = 'OS será criada' + (assigned ? ' · ' + assigned : '');
+                }
+            }
+
+            if (el('reviewPecas')) {
+                var partsBox = document.querySelector('[data-list="parts"] .dynamic-list-items');
+                var partsCount = partsBox ? partsBox.children.length : 0;
+                el('reviewPecas').textContent = partsCount
+                    ? partsCount + (partsCount === 1 ? ' peça' : ' peças')
+                    : 'Nenhuma';
+            }
+
         }
     }
 
