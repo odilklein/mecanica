@@ -1,7 +1,7 @@
 <?php
 $path = $resource->path();
-$clientsJson = json_encode($clients, JSON_UNESCAPED_UNICODE);
-$vehiclesJson = json_encode($vehicles ?? [], JSON_UNESCAPED_UNICODE);
+$clientsJson = json_encode($clients, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT);
+$vehiclesJson = json_encode($vehicles ?? [], JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT);
 $priorities = \Modules\Mechanic\Support\ServiceOrderStatus::PRIORITIES;
 $ticketUsers = $ticketUsers ?? $mechanics;
 ?>

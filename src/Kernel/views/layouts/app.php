@@ -1,9 +1,24 @@
+<?php
+$ticketsOpenPref = (string) ($_COOKIE['mecanica_tickets_open'] ?? '1');
+?>
 <!DOCTYPE html>
 <html lang="pt-BR" class="layout-navbar-fixed layout-menu-fixed layout-compact" dir="ltr" data-skin="default" data-bs-theme="light" data-assets-path="/assets/" data-template="vertical-menu-template">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
     <meta name="theme-color" content="<?= e(setting('theme_color', '#b8270f')) ?>">
+    <script>
+        // Evita o "flash" da seção de Tickets aberta antes do JS aplicar a preferência.
+        (function () {
+            try {
+                var saved = localStorage.getItem('mecanica-tickets-open');
+                var hasCookie = document.cookie.indexOf('mecanica_tickets_open=') !== -1;
+                if (!hasCookie && saved === '0') {
+                    document.documentElement.classList.add('tickets-collapsed');
+                }
+            } catch (e) {}
+        })();
+    </script>
     <title><?= e(setting('seo_title', 'Mecânica')) ?><?= !empty($title) ? ' | ' . e($title) : '' ?></title>
     <meta name="description" content="<?= e(setting('seo_description', '')) ?>">
     <meta name="keywords" content="<?= e(setting('seo_keywords', '')) ?>">
@@ -94,17 +109,33 @@
                         $active = menu_item_active($item, $currentPath, $currentUrl);
                     ?>
                     <?php if ($children): ?>
-                    <li class="menu-item<?= $active ? ' active open' : '' ?>">
+                    <?php
+                    $isOpen = $active || !empty($item['open']);
+                    if (($item['menu_key'] ?? '') === 'tickets' && $ticketsOpenPref === '0') {
+                        $isOpen = false;
+                    }
+                    ?>
+                    <li class="menu-item<?= $active ? ' active' : '' ?><?= $isOpen ? ' open' : '' ?>"<?= !empty($item['menu_key']) ? ' data-menu-key="' . e($item['menu_key']) . '"' : '' ?>>
                         <a href="<?= e($url !== '#' ? $url : 'javascript:void(0);') ?>" class="menu-link menu-toggle">
                             <i class="menu-icon icon-base ti tabler-<?= e($item['icon'] ?? 'circle') ?>"></i>
                             <div><?= e($item['label']) ?></div>
                         </a>
                         <ul class="menu-sub">
                             <?php foreach ($children as $child): ?>
-                            <?php $childActive = menu_child_active($child, $currentUrl); ?>
-                            <li class="menu-item<?= $childActive ? ' active' : '' ?>">
+                            <?php
+                                $childActive = menu_child_active($child, $currentUrl);
+                                $childClass = trim((string) ($child['class'] ?? ''));
+                                $isTicket = $childClass === 'menu-ticket';
+                            ?>
+                            <li class="menu-item<?= $childClass !== '' ? ' ' . e($childClass) : '' ?><?= $childActive ? ' active' : '' ?>">
                                 <a href="<?= e($child['url'] ?? '#') ?>" class="menu-link">
-                                    <div><?= e($child['label']) ?></div>
+                                    <div class="<?= $isTicket ? 'menu-ticket-title' : '' ?>"><?= e($child['label']) ?></div>
+                                    <?php if (!empty($child['meta'])): ?>
+                                    <small class="menu-ticket-meta"><?= e($child['meta']) ?></small>
+                                    <?php endif; ?>
+                                    <?php if (!empty($child['unread'])): ?>
+                                    <span class="menu-ticket-dot" title="<?= (int) $child['unread'] ?> não lida(s)"></span>
+                                    <?php endif; ?>
                                 </a>
                             </li>
                             <?php endforeach; ?>
@@ -344,6 +375,7 @@
     <script src="/assets/vendor/js/menu.js"></script>
     <script src="/assets/js/main.js"></script>
     <script src="<?= e(asset('/js/masks.js')) ?>"></script>
+    <script src="<?= e(asset('/js/safe-url.js')) ?>"></script>
     <script src="<?= e(asset('/js/viacep.js')) ?>"></script>
     <script src="<?= e(asset('/js/notifications.js')) ?>"></script>
     <script src="<?= e(asset('/assets/vendor/libs/select2/select2.js')) ?>"></script>
@@ -410,6 +442,74 @@
                 new bootstrap.Toast(t, { delay: 5000 }).show();
             }
         });
+
+        // Mantém o topo da sidebar (seção de tickets) visível; o menu
+        // continua rolável para alcançar o item ativo.
+        window.addEventListener('load', function () {
+            var menuInner = document.querySelector('#layout-menu .menu-inner');
+            if (menuInner) {
+                menuInner.scrollTop = 0;
+            }
+        });
+
+        // Persiste o estado aberto/fechado da seção de Tickets.
+        (function () {
+            var KEY = 'mecanica-tickets-open';
+            var COOKIE = 'mecanica_tickets_open';
+            var item = document.querySelector('#layout-menu [data-menu-key="tickets"]');
+            if (!item) {
+                return;
+            }
+
+            function setCookie(open) {
+                document.cookie = COOKIE + '=' + (open ? '1' : '0')
+                    + '; path=/; max-age=31536000; SameSite=Lax';
+            }
+
+            function persist(open) {
+                try {
+                    localStorage.setItem(KEY, open ? '1' : '0');
+                } catch (e) {
+                    // Armazenamento indisponível: mantém o padrão.
+                }
+                setCookie(open);
+            }
+
+            try {
+                var hasCookie = document.cookie.indexOf(COOKIE + '=') !== -1;
+                if (!hasCookie) {
+                    var saved = localStorage.getItem(KEY);
+                    if (saved === '0') {
+                        item.classList.remove('open');
+                    } else if (saved === '1') {
+                        item.classList.add('open');
+                    }
+                    setCookie(saved === '0' ? false : true);
+                }
+
+                // Grava imediatamente no clique (antes da animação do menu).
+                var toggleLink = item.querySelector('.menu-toggle');
+                if (toggleLink) {
+                    toggleLink.addEventListener('click', function () {
+                        persist(!item.classList.contains('open'));
+                    });
+                }
+
+                // E confirma o estado final depois da animação (inclusive fechamento por accordion).
+                var saveTimer = null;
+                var observer = new MutationObserver(function () {
+                    window.clearTimeout(saveTimer);
+                    saveTimer = window.setTimeout(function () {
+                        persist(item.classList.contains('open'));
+                    }, 350);
+                });
+                observer.observe(item, { attributes: true, attributeFilter: ['class'] });
+            } catch (e) {
+                // Sem armazenamento, mantém o padrão do servidor.
+            }
+
+            document.documentElement.classList.remove('tickets-collapsed');
+        })();
     </script>
 </body>
 </html>

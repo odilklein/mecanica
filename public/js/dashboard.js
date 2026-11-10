@@ -65,7 +65,8 @@
             return null;
         }
 
-        const values = data.ordersByDay.values;
+        const series = data.openOrdersByDay || data.ordersByDay;
+        const values = series.values;
         return mount(element, {
             chart: {
                 height: 75,
@@ -96,7 +97,7 @@
             series: [{ name: 'OS', data: values }],
             legend: { show: false },
             xaxis: {
-                categories: data.ordersByDay.labels,
+                categories: series.labels,
                 axisBorder: { show: false },
                 axisTicks: { show: false },
                 labels: { show: false }
@@ -352,7 +353,7 @@
             ordered: c.primary,
             on_the_way: c.warning,
             received: c.success,
-            cancelled: c.danger
+            cancelled: c.heading
         };
         const colors = parts.keys.map(function (key) {
             return colorByKey[key] || c.secondary;
@@ -456,12 +457,12 @@
 
         return mount(element, {
             chart: {
-                height: 230,
+                height: 200,
                 type: 'area',
                 toolbar: { show: false }
             },
             markers: { strokeColor: 'transparent' },
-            series: [{ name: 'OS abertas', data: data.ordersByWeek.values }],
+            series: [{ name: 'Novas OS', data: data.ordersByWeek.values }],
             dataLabels: { enabled: false },
             grid: {
                 show: false,
@@ -496,7 +497,7 @@
                 x: { show: false },
                 y: {
                     formatter: function (value) {
-                        return intFmt.format(Number(value)) + ' OS';
+                        return intFmt.format(Number(value)) + ' nova(s) OS';
                     }
                 }
             }

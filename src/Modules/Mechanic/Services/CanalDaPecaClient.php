@@ -23,7 +23,10 @@ class CanalDaPecaClient
     public function __construct(?string $cacheDir = null)
     {
         $this->cacheDir = $cacheDir ?: (dirname(__DIR__, 4) . '/storage/cache/canaldapeca');
-        if (!is_dir($this->cacheDir) && !@mkdir($this->cacheDir, 0775, true) && !is_dir($this->cacheDir)) {
+        if (!is_dir($this->cacheDir)) {
+            @mkdir($this->cacheDir, 0775, true);
+        }
+        if (!is_dir($this->cacheDir) || !is_writable($this->cacheDir)) {
             $this->cacheDir = sys_get_temp_dir() . '/canaldapeca';
             @mkdir($this->cacheDir, 0775, true);
         }

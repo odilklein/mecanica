@@ -33,6 +33,13 @@
         </div>
     </div>
 
+    <?php if (!empty($turnstileEnabled)): ?>
+    <div class="mb-6">
+        <div class="cf-turnstile" data-sitekey="<?= e($turnstileSiteKey ?? '') ?>" data-action="login"></div>
+        <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
+    </div>
+    <?php endif; ?>
+
     <div class="mb-6">
         <button class="btn btn-primary d-grid w-100" type="submit">Entrar</button>
     </div>

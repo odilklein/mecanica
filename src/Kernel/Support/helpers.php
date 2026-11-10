@@ -75,6 +75,11 @@ if (!function_exists('record_audit')) {
     /** Grava uma ação na trilha de auditoria (nunca quebra a ação principal). */
     function record_audit(\PDO $pdo, ?int $userId, string $entity, ?int $entityId, string $action, array $data = []): void
     {
+        // Nunca persiste credenciais/tokens no log de auditoria.
+        foreach (['password', 'password_confirmation', 'current_password', 'remember_token', 'csrf_token', 'token', 'secret', 'api_key'] as $sensitive) {
+            unset($data[$sensitive]);
+        }
+
         try {
             $stmt = $pdo->prepare(
                 'INSERT INTO audit_logs (user_id, entity, entity_id, action, data)

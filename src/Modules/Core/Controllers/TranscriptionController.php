@@ -32,7 +32,7 @@ class TranscriptionController extends Controller
 
         $body = $request->getParsedBody();
         if (!$this->session->verifyCsrf($body['csrf_token'] ?? null)) {
-            return json_response(['error' => 'csrf'], 419);
+            return json_response(['error' => 'csrf'], 403);
         }
 
         $apiKey = trim((string) env('GROQ_API_KEY', ''));

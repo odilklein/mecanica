@@ -25,8 +25,9 @@
         var price = item.price_label
             ? '<span class="badge bg-label-success ms-2">' + esc(item.price_label) + '</span>'
             : (item.is_new ? '<span class="badge bg-label-secondary ms-2">nova</span>' : '');
-        var link = item.product_url
-            ? '<a href="' + esc(item.product_url) + '" target="_blank" rel="noopener"'
+        var productUrl = window.safeUrl ? window.safeUrl(item.product_url) : '';
+        var link = productUrl
+            ? '<a href="' + esc(productUrl) + '" target="_blank" rel="noopener"'
                 + ' class="btn btn-icon btn-sm btn-text-primary ms-1" title="Abrir no Canal da Peça"'
                 + ' aria-label="Abrir no Canal da Peça"'
                 + ' onclick="event.stopPropagation()" onmousedown="event.stopPropagation()">'

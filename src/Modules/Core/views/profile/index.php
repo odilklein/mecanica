@@ -53,18 +53,25 @@
 
                         <div class="col-12"><hr></div>
 
-                        <div class="col-md-6">
+                        <div class="col-md-4">
+                            <label class="form-label" for="current_password">Senha atual</label>
+                            <div class="input-group input-group-merge">
+                                <span class="input-group-text"><i class="icon-base ti tabler-key"></i></span>
+                                <input type="password" class="form-control" id="current_password" name="current_password" placeholder="Obrigatória para trocar" autocomplete="current-password">
+                            </div>
+                        </div>
+                        <div class="col-md-4">
                             <label class="form-label" for="password">Nova senha</label>
                             <div class="input-group input-group-merge">
                                 <span class="input-group-text"><i class="icon-base ti tabler-lock"></i></span>
-                                <input type="password" class="form-control" id="password" name="password" placeholder="Deixe em branco para manter" minlength="8">
+                                <input type="password" class="form-control" id="password" name="password" placeholder="Deixe em branco para manter" minlength="8" autocomplete="new-password">
                             </div>
                         </div>
-                        <div class="col-md-6">
+                        <div class="col-md-4">
                             <label class="form-label" for="password_confirmation">Confirmar nova senha</label>
                             <div class="input-group input-group-merge">
                                 <span class="input-group-text"><i class="icon-base ti tabler-shield-check"></i></span>
-                                <input type="password" class="form-control" id="password_confirmation" name="password_confirmation" placeholder="Repita a nova senha">
+                                <input type="password" class="form-control" id="password_confirmation" name="password_confirmation" placeholder="Repita a nova senha" autocomplete="new-password">
                             </div>
                         </div>
 

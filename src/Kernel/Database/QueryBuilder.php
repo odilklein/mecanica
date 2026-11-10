@@ -12,6 +12,8 @@ use PDO;
 
 class QueryBuilder
 {
+    private const ALLOWED_OPERATORS = ['=', '!=', '<>', '>', '<', '>=', '<=', 'LIKE'];
+
     private PDO $pdo;
     private string $table;
     private array $where = [];
@@ -23,12 +25,27 @@ class QueryBuilder
     public function __construct(PDO $pdo, string $table)
     {
         $this->pdo = $pdo;
-        $this->table = $table;
+        $this->table = self::identifier($table);
+    }
+
+    /** Valida nomes de tabela/coluna usados na montagem do SQL. */
+    private static function identifier(string $name): string
+    {
+        if (!preg_match('/^[A-Za-z_][A-Za-z0-9_.]*$/', $name)) {
+            throw new \InvalidArgumentException('Identificador SQL inválido.');
+        }
+        return $name;
     }
 
     public function where(string $column, string $operator, mixed $value): self
     {
-        $param = ':' . $column . '_' . count($this->where);
+        $column = self::identifier($column);
+        $operator = strtoupper(trim($operator));
+        if (!in_array($operator, self::ALLOWED_OPERATORS, true)) {
+            throw new \InvalidArgumentException('Operador SQL inválido.');
+        }
+
+        $param = ':w' . count($this->where) . '_' . preg_replace('/\W+/', '_', $column);
         $this->where[] = "{$column} {$operator} {$param}";
         $this->params[$param] = $value;
         return $this;
@@ -41,6 +58,7 @@ class QueryBuilder
 
     public function orderBy(string $column, string $direction = 'asc'): self
     {
+        $column = self::identifier($column);
         $direction = strtoupper($direction) === 'DESC' ? 'DESC' : 'ASC';
         $this->orderBy[] = "{$column} {$direction}";
         return $this;
@@ -83,6 +101,9 @@ class QueryBuilder
     public function insert(array $data): int
     {
         $columns = array_keys($data);
+        foreach ($columns as $column) {
+            self::identifier((string) $column);
+        }
         $placeholders = array_map(static fn ($c) => ":{$c}", $columns);
 
         $sql = sprintf(
@@ -99,6 +120,10 @@ class QueryBuilder
 
     public function update(int $id, array $data, string $primaryKey = 'id'): bool
     {
+        $primaryKey = self::identifier($primaryKey);
+        foreach (array_keys($data) as $column) {
+            self::identifier((string) $column);
+        }
         $set = implode(', ', array_map(static fn ($c) => "{$c} = :{$c}", array_keys($data)));
         $sql = "UPDATE {$this->table} SET {$set} WHERE {$primaryKey} = :__id";
 
@@ -110,6 +135,7 @@ class QueryBuilder
 
     public function delete(int $id, string $primaryKey = 'id'): bool
     {
+        $primaryKey = self::identifier($primaryKey);
         $stmt = $this->pdo->prepare("DELETE FROM {$this->table} WHERE {$primaryKey} = :id");
         $stmt->execute([':id' => $id]);
         return $stmt->rowCount() > 0;

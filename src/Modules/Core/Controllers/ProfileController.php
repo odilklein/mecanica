@@ -50,6 +50,7 @@ class ProfileController extends Controller
         $email = strtolower(clean($body['email'] ?? ''));
         $password = (string) ($body['password'] ?? '');
         $confirm = (string) ($body['password_confirmation'] ?? '');
+        $currentPassword = (string) ($body['current_password'] ?? '');
 
         if ($name === '' || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
             $this->session->flash('error', 'Informe um nome e um e-mail válidos.');
@@ -72,6 +73,13 @@ class ProfileController extends Controller
                 $this->session->flash('error', 'A confirmação da senha não confere.');
                 return redirect('/profile');
             }
+
+            $hashStmt = $this->pdo->prepare('SELECT password FROM users WHERE id = :id');
+            $hashStmt->execute([':id' => $this->auth->id()]);
+            if (!password_verify($currentPassword, (string) $hashStmt->fetchColumn())) {
+                $this->session->flash('error', 'Informe a senha atual correta para alterar a senha.');
+                return redirect('/profile');
+            }
         }
 
         if ($password !== '') {
@@ -83,6 +91,7 @@ class ProfileController extends Controller
         }
 
         $this->session->set('auth_user_name', $name);
+        $this->session->set('auth_user_email', $email);
         record_audit($this->pdo, $this->auth->id(), 'users', $this->auth->id(), 'update', ['self' => true]);
         $this->session->flash('success', 'Dados atualizados com sucesso.');
         return redirect('/profile');

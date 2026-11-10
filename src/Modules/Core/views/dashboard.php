@@ -71,15 +71,36 @@ $weekBadge = $kpis['previous_week'] > 0
     ? $percent((float) $kpis['week_delta'])
     : ($kpis['week_orders'] > 0 ? 'novos' : 'sem novos');
 $weekBadgeTone = $kpis['previous_week'] > 0 ? $weekTone : 'info';
+$canCreateOrder = $canCreateOrder ?? false;
+
+$openSeries = $chartData['openOrdersByDay']['values'] ?? [];
+$openFirst = $openSeries[0] ?? 0;
+$openLast = $openSeries ? $openSeries[count($openSeries) - 1] : 0;
+$openDelta = (int) $openLast - (int) $openFirst;
+$openDeltaLabel = $openDelta === 0
+    ? 'estável em 7 dias'
+    : (($openDelta > 0 ? '+' : '') . $openDelta . ' em 7 dias');
+$openDeltaTone = $openDelta > 0 ? 'warning' : ($openDelta < 0 ? 'success' : 'secondary');
+
+$revenue6m = $canSeeFinancials ? array_sum($chartData['revenueByMonth']['values'] ?? []) : 0.0;
+$ticketHasBase = (float) ($kpis['ticket_previous'] ?? 0) > 0;
+$ticketBadge = $ticketHasBase
+    ? $percent((float) $kpis['ticket_delta'])
+    : ((float) $kpis['ticket_avg'] > 0 ? 'novo' : 'sem dados');
+$ticketBadgeTone = $ticketHasBase ? $ticketTone : 'info';
 ?>
 
 <div class="page-header">
     <div>
         <h1><i class="icon-base ti tabler-layout-dashboard"></i>Painel</h1>
-        <span class="page-subtitle">Acompanhe o trabalho da oficina em tempo real</span>
+        <span class="page-subtitle"><?= $canCreateOrder ? 'Acompanhe o trabalho da oficina em tempo real' : 'Acompanhe as suas OS em tempo real' ?></span>
     </div>
     <div class="page-header-actions">
+        <?php if ($canCreateOrder): ?>
         <a href="/service-orders/create" class="btn btn-primary"><i class="icon-base ti tabler-clipboard-plus"></i> Novo atendimento</a>
+        <?php else: ?>
+        <a href="/service-orders" class="btn btn-outline-primary"><i class="icon-base ti tabler-clipboard-list"></i> Ver minhas OS</a>
+        <?php endif; ?>
     </div>
 </div>
 
@@ -88,32 +109,33 @@ $weekBadgeTone = $kpis['previous_week'] > 0 ? $weekTone : 'info';
     <div class="col-xxl-2 col-xl-2 col-lg-3 col-md-3 col-6">
         <div class="card h-100">
             <div class="card-header pb-3">
-                <h5 class="card-title mb-1">OS abertas</h5>
+                <h5 class="card-title mb-1"><?= $canCreateOrder ? 'OS abertas' : 'Minhas OS abertas' ?></h5>
                 <p class="card-subtitle">Em andamento agora</p>
             </div>
             <div class="card-body">
+                <small class="text-body-secondary d-block mb-1">Últimos 7 dias</small>
                 <div id="ordersLastWeek"></div>
                 <div class="d-flex justify-content-between align-items-center gap-3 dashboard-kpi-footer">
                     <h4 class="mb-0"><?= (int) $kpis['open_orders'] ?></h4>
-                    <small class="text-body-secondary text-nowrap" title="<?= (int) $kpis['week_orders'] ?> OS abertas nos últimos 7 dias">+<?= (int) $kpis['week_orders'] ?> na semana</small>
+                    <small class="text-<?= e($openDeltaTone) ?> text-nowrap" title="Variação de OS abertas nos últimos 7 dias"><?= e($openDeltaLabel) ?></small>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Faturamento aprovado (área dos últimos 6 meses) -->
     <?php if ($canSeeFinancials): ?>
+    <!-- Faturamento aprovado (área dos últimos 6 meses) -->
     <div class="col-xxl-2 col-xl-2 col-lg-3 col-md-3 col-6">
         <div class="card h-100">
             <div class="card-header pb-0">
                 <h5 class="card-title mb-1">Faturamento</h5>
-                <p class="card-subtitle">Orçamentos aprovados</p>
+                <p class="card-subtitle">Aprovados nos últimos 6 meses</p>
             </div>
             <div id="revenueLastMonths"></div>
             <div class="card-body pt-0">
                 <div class="d-flex flex-column align-items-start mt-3 gap-1">
-                    <h4 class="mb-0" title="<?= e($money((float) $kpis['approved_revenue'])) ?>"><?= e($shortMoney((float) $kpis['approved_revenue'])) ?></h4>
-                    <small class="text-success" title="Taxa de aprovação dos orçamentos: aprovados ÷ decididos"><?= number_format((float) $kpis['approval_rate'], 0, ',', '.') ?>% de aprovação</small>
+                    <h4 class="mb-0" title="<?= e($money($revenue6m) . ' nos últimos 6 meses · histórico: ' . $money((float) $kpis['approved_revenue'])) ?>"><?= e($shortMoney($revenue6m)) ?></h4>
+                    <small class="text-success" title="Taxa histórica de aprovação: aprovados ÷ decididos"><?= number_format((float) $kpis['approval_rate'], 0, ',', '.') ?>% de aprovação histórica</small>
                 </div>
             </div>
         </div>
@@ -125,10 +147,10 @@ $weekBadgeTone = $kpis['previous_week'] > 0 ? $weekTone : 'info';
             <div class="card-body">
                 <div class="badge p-2 bg-label-danger mb-3 rounded"><i class="icon-base ti tabler-cash-banknote icon-28px"></i></div>
                 <h5 class="card-title mb-1">Ticket médio</h5>
-                <p class="card-subtitle">Orçamento aprovado</p>
-                <p class="text-heading mb-3 mt-1" title="<?= e($money((float) $kpis['ticket_avg'])) ?>"><?= e($shortMoney((float) $kpis['ticket_avg'])) ?></p>
+                <p class="card-subtitle">Média aprovada no mês</p>
+                <p class="text-heading mb-3 mt-1" title="<?= e($money((float) $kpis['ticket_avg']) . ' este mês · média histórica: ' . $money((float) $kpis['ticket_all_time'])) ?>"><?= e($shortMoney((float) $kpis['ticket_avg'])) ?></p>
                 <div>
-                    <span class="badge bg-label-<?= $ticketTone ?>" title="Comparado à média geral dos orçamentos"><?= e($percent((float) $kpis['ticket_delta'])) ?></span>
+                    <span class="badge bg-label-<?= e($ticketBadgeTone) ?>" title="Comparado à média do mês anterior"><?= e($ticketBadge) ?></span>
                 </div>
             </div>
         </div>
@@ -170,7 +192,7 @@ $weekBadgeTone = $kpis['previous_week'] > 0 ? $weekTone : 'info';
         <div class="card h-100">
             <div class="card-body">
                 <div class="badge p-2 bg-label-warning mb-3 rounded"><i class="icon-base ti tabler-package icon-28px"></i></div>
-                <h5 class="card-title mb-1">Peças pendentes</h5>
+                <h5 class="card-title mb-1"><?= $canCreateOrder ? 'Peças pendentes' : 'Minhas peças pendentes' ?></h5>
                 <p class="card-subtitle">Pedidos em aberto</p>
                 <p class="text-heading mb-3 mt-1"><?= (int) $kpis['pending_parts'] ?></p>
                 <div>
@@ -184,17 +206,17 @@ $weekBadgeTone = $kpis['previous_week'] > 0 ? $weekTone : 'info';
     <div class="col-xxl-4 col-xl-4 col-lg-12 col-md-6 col-sm-8 col-12 mb-md-0 order-xxl-0 order-2">
         <div class="card pb-xxl-3">
             <div class="card-body row">
-                <div class="d-flex flex-column col-4">
+                <div class="d-flex flex-column col-5">
                     <div class="card-title mb-auto">
-                        <h5 class="mb-2 text-nowrap">Atendimentos</h5>
-                        <p class="mb-0">Últimos 7 dias</p>
+                        <h5 class="mb-2"><?= $canCreateOrder ? 'Atendimentos' : 'Meus atendimentos' ?></h5>
+                        <p class="mb-0">7 dias</p>
                     </div>
                     <div class="mt-auto pt-3">
                         <h3 class="card-title mb-1"><?= (int) $kpis['week_orders'] ?></h3>
                         <span class="badge bg-label-<?= $weekBadgeTone ?>"><?= e($weekBadge) ?></span>
                     </div>
                 </div>
-                <div id="weekOrders" class="col-8"></div>
+                <div id="weekOrders" class="col-7"></div>
             </div>
         </div>
     </div>
@@ -256,7 +278,7 @@ $weekBadgeTone = $kpis['previous_week'] > 0 ? $weekTone : 'info';
         <div class="card h-100">
             <div class="card-header d-flex justify-content-between pb-4">
                 <div class="card-title mb-0">
-                    <h5 class="mb-1">Pedidos de peças</h5>
+                    <h5 class="mb-1"><?= $canCreateOrder ? 'Pedidos de peças' : 'Meus pedidos de peças' ?></h5>
                     <p class="card-subtitle"><?= (int) $totalParts ?> pedidos registrados</p>
                 </div>
                 <div class="dropdown">
@@ -265,7 +287,9 @@ $weekBadgeTone = $kpis['previous_week'] > 0 ? $weekTone : 'info';
                     </button>
                     <div class="dropdown-menu dropdown-menu-end" aria-labelledby="partsMenu">
                         <a class="dropdown-item" href="/part-orders">Ver pedidos</a>
+                        <?php if ($canManageParts ?? false): ?>
                         <a class="dropdown-item" href="/parts">Catálogo de peças</a>
+                        <?php endif; ?>
                     </div>
                 </div>
             </div>
@@ -282,8 +306,8 @@ $weekBadgeTone = $kpis['previous_week'] > 0 ? $weekTone : 'info';
         <div class="card h-100">
             <div class="card-header d-flex justify-content-between">
                 <div class="card-title mb-0">
-                    <h5 class="mb-1"><?= $canSeeFinancials ? 'Orçamentos por cliente' : 'OS por cliente' ?></h5>
-                    <p class="card-subtitle"><?= $canSeeFinancials ? 'Volume emitido (exceto cancelados)' : 'Atendimentos registrados' ?></p>
+                    <h5 class="mb-1"><?= $canSeeFinancials ? 'Orçamentos por cliente' : 'Minhas OS por cliente' ?></h5>
+                    <p class="card-subtitle"><?= $canSeeFinancials ? 'Volume aprovado por cliente' : 'Atendimentos registrados' ?></p>
                 </div>
                 <div class="dropdown">
                     <button class="btn btn-text-secondary btn-icon rounded-pill text-body-secondary border-0 me-n1" type="button" id="clientsMenu" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
@@ -311,8 +335,8 @@ $weekBadgeTone = $kpis['previous_week'] > 0 ? $weekTone : 'info';
                                 <small class="text-body dashboard-client-name" title="<?= e((string) $client['name']) ?>"><?= e((string) $client['name']) ?></small>
                             </div>
                             <div>
-                                <p class="text-success fw-medium mb-0 d-flex align-items-center gap-1" title="<?= $canSeeFinancials ? (int) $client['budgets'] . ' orçamento(s)' : 'Participação nas OS' ?>">
-                                    <i class="icon-base ti tabler-chevron-up"></i>
+                                <p class="text-primary fw-medium mb-0 d-flex align-items-center gap-1" title="<?= $canSeeFinancials ? (int) $client['budgets'] . ' orçamento(s) aprovado(s)' : 'Participação nas OS' ?>">
+                                    <i class="icon-base ti tabler-chart-pie"></i>
                                     <?= number_format((float) $client['share'], 1, ',', '.') ?>%
                                 </p>
                             </div>
@@ -331,7 +355,7 @@ $weekBadgeTone = $kpis['previous_week'] > 0 ? $weekTone : 'info';
     <div class="col-12 col-md-6 col-xxl-4">
         <div class="card h-100">
             <div class="card-header d-flex justify-content-between">
-                <h5 class="mb-0 card-title">Status da oficina</h5>
+                <h5 class="mb-0 card-title"><?= $canCreateOrder ? 'Status da oficina' : 'Status das minhas OS' ?></h5>
                 <div class="dropdown">
                     <button class="btn btn-text-secondary rounded-pill text-body-secondary border-0 p-2 me-n1" type="button" id="workshopMenu" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
                         <i class="icon-base ti tabler-dots-vertical icon-md text-body-secondary"></i>
@@ -352,6 +376,10 @@ $weekBadgeTone = $kpis['previous_week'] > 0 ? $weekTone : 'info';
                         </div>
                         <h6 class="mb-0 text-success text-nowrap"><?= (int) $kpis['ready_orders'] ?> prontas</h6>
                     </div>
+                </div>
+                <div class="d-flex justify-content-between align-items-center mt-3 mb-1">
+                    <small class="text-body-secondary">Novas OS por semana</small>
+                    <small class="text-body-secondary">Últimas 8 semanas</small>
                 </div>
                 <div id="workshopArea"></div>
                 <div class="d-flex justify-content-between mb-3">
@@ -375,7 +403,7 @@ $weekBadgeTone = $kpis['previous_week'] > 0 ? $weekTone : 'info';
         <div class="card h-100">
             <div class="card-header d-flex justify-content-between">
                 <div class="card-title mb-0">
-                    <h5 class="mb-1">OS em andamento</h5>
+                    <h5 class="mb-1"><?= $canCreateOrder ? 'OS em andamento' : 'Minhas OS em andamento' ?></h5>
                     <p class="card-subtitle">Andamento por etapa</p>
                 </div>
                 <div class="dropdown">
@@ -384,7 +412,9 @@ $weekBadgeTone = $kpis['previous_week'] > 0 ? $weekTone : 'info';
                     </button>
                     <div class="dropdown-menu dropdown-menu-end" aria-labelledby="ordersMenu">
                         <a class="dropdown-item" href="/service-orders">Ver todas</a>
+                        <?php if ($canCreateOrder): ?>
                         <a class="dropdown-item" href="/service-orders/create">Nova OS</a>
+                        <?php endif; ?>
                     </div>
                 </div>
             </div>

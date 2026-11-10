@@ -7,6 +7,7 @@ use Kernel\Crud\CrudController;
 use Kernel\Crud\Resource;
 use Modules\Core\Support\Notify;
 use Modules\Mechanic\Resources\ServiceOrderResource;
+use Modules\Mechanic\Support\OrderAccess;
 use Modules\Mechanic\Support\ServiceOrderStatus;
 use Modules\Mechanic\Services\TicketService;
 use Psr\Http\Message\ServerRequestInterface;
@@ -25,12 +26,12 @@ class ServiceOrderController extends CrudController
     public function create(ServerRequestInterface $request)
     {
         $resource = $this->resource();
-        if ($response = $this->guardRoles($resource->roles())) {
+        if ($response = $this->guardRoles(['admin', 'secretary', 'lead_mechanic'])) {
             return $response;
         }
 
-        $clients = $this->pdo->query('SELECT id, name, phone, city FROM clients ORDER BY name')->fetchAll();
-        $vehicles = $this->pdo->query('SELECT id, client_id, plate, brand, model, year FROM vehicles ORDER BY plate')->fetchAll();
+        $clients = $this->pdo->query('SELECT id, name, phone, city FROM clients WHERE is_active = 1 ORDER BY name')->fetchAll();
+        $vehicles = $this->pdo->query('SELECT id, client_id, plate, brand, model, year FROM vehicles WHERE is_active = 1 ORDER BY plate')->fetchAll();
         $mechanics = $this->pdo->query("SELECT id, name, role FROM users WHERE is_active = 1 AND role IN ('lead_mechanic','mechanic') ORDER BY name")->fetchAll();
         $ticketUsers = $this->pdo->query("SELECT id, name, role FROM users WHERE is_active = 1 ORDER BY name")->fetchAll();
         $brands = $this->pdo->query('SELECT code, name FROM fipe_brands ORDER BY name')->fetchAll();
@@ -59,7 +60,7 @@ class ServiceOrderController extends CrudController
     public function store(ServerRequestInterface $request)
     {
         $resource = $this->resource();
-        if ($response = $this->guardRoles($resource->roles())) {
+        if ($response = $this->guardRoles(['admin', 'secretary', 'lead_mechanic'])) {
             return $response;
         }
         if ($response = $this->guardCsrf($request, $resource->path())) {
@@ -94,6 +95,12 @@ class ServiceOrderController extends CrudController
                     ':s' => strtoupper(clean($body['client_state'] ?? '')),
                 ]);
                 $clientId = (int) $this->pdo->lastInsertId();
+            }
+
+            $clientCheck = $this->pdo->prepare('SELECT 1 FROM clients WHERE id = ? AND is_active = 1');
+            $clientCheck->execute([$clientId]);
+            if (!$clientCheck->fetchColumn()) {
+                throw new \RuntimeException('Cliente inativo ou não encontrado.');
             }
 
             // Veículo: existente ou novo
@@ -142,8 +149,21 @@ class ServiceOrderController extends CrudController
                 $vehicleId = (int) $this->pdo->lastInsertId();
             }
 
+            $vehicleCheck = $this->pdo->prepare(
+                'SELECT 1 FROM vehicles WHERE id = ? AND client_id = ? AND is_active = 1'
+            );
+            $vehicleCheck->execute([$vehicleId, $clientId]);
+            if (!$vehicleCheck->fetchColumn()) {
+                throw new \RuntimeException('Veículo inválido ou inativo para o cliente selecionado.');
+            }
+
             $mechanics = array_values(array_filter(array_map('intval', (array) ($body['mechanics'] ?? []))));
             $lead = (int) ($body['lead_mechanic_id'] ?? 0) ?: ($mechanics[0] ?? null);
+
+            $priority = clean($body['priority'] ?? 'normal');
+            if (!isset(ServiceOrderStatus::PRIORITIES[$priority])) {
+                $priority = 'normal';
+            }
 
             // OS
             $number = (int) $this->pdo->query('SELECT COALESCE(MAX(number), 0) + 1 FROM service_orders')->fetchColumn();
@@ -156,7 +176,7 @@ class ServiceOrderController extends CrudController
                 ':cl' => $clientId,
                 ':ve' => $vehicleId,
                 ':st' => 'received',
-                ':pr' => clean($body['priority'] ?? 'normal'),
+                ':pr' => $priority,
                 ':ic' => clean($body['initial_complaint'] ?? ''),
                 ':inotes' => clean($body['internal_notes'] ?? ''),
                 ':diag' => clean($body['diagnosis'] ?? ''),
@@ -201,6 +221,10 @@ class ServiceOrderController extends CrudController
 
             // Peças → pedido de peças com itens
             $parts = json_decode((string) ($body['parts_json'] ?? '[]'), true) ?: [];
+            $parts = array_values(array_filter($parts, static function ($part): bool {
+                $desc = is_array($part) ? (string) ($part['description'] ?? '') : (string) $part;
+                return trim($desc) !== '';
+            }));
             if ($parts) {
                 $this->pdo->prepare("INSERT INTO part_orders (service_order_id, status, created_by) VALUES (:o, 'requested', :u)")
                     ->execute([':o' => $orderId, ':u' => $userId]);
@@ -256,8 +280,29 @@ class ServiceOrderController extends CrudController
 
             $this->pdo->commit();
 
-            if ($mechanics) {
-                Notify::to($this->pdo, $mechanics, 'os_created', 'Você foi designado para a OS #' . str_pad((string) $number, 4, '0', STR_PAD_LEFT) . '.', '/service-orders/' . $orderId, $userId);
+            $notifyMechanics = array_values(array_filter(
+                $mechanics,
+                static fn ($uid): bool => (int) $uid !== (int) $userId
+            ));
+            if ($notifyMechanics) {
+                Notify::to($this->pdo, $notifyMechanics, 'os_created', 'Você foi designado para a OS #' . str_pad((string) $number, 4, '0', STR_PAD_LEFT) . '.', '/service-orders/' . $orderId, $userId);
+            }
+
+            if ($parts) {
+                $partRecipients = array_values(array_unique(array_filter(
+                    array_merge($mechanics, [$lead]),
+                    static fn ($uid): bool => (int) $uid > 0 && (int) $uid !== (int) $userId
+                )));
+                if ($partRecipients) {
+                    Notify::to(
+                        $this->pdo,
+                        $partRecipients,
+                        'part',
+                        'OS #' . str_pad((string) $number, 4, '0', STR_PAD_LEFT) . ' tem ' . count($parts) . ' peça(s) solicitada(s).',
+                        '/service-orders/' . $orderId,
+                        $userId
+                    );
+                }
             }
 
             if ($ticketId && $ticketAssigned && $ticketAssigned !== (int) $userId) {
@@ -282,6 +327,42 @@ class ServiceOrderController extends CrudController
     }
 
     // =========================================================
+    // LISTAGEM / ACESSO
+    // =========================================================
+
+    /** DataTables: mecânicos veem apenas as OS em que participam. */
+    public function datatable(ServerRequestInterface $request)
+    {
+        $resource = $this->resource();
+        if (!$this->auth->check()) {
+            return json_response(['error' => 'unauthorized'], 401);
+        }
+        if ($resource->roles() && !$this->auth->hasRole($resource->roles())) {
+            return json_response(['error' => 'forbidden'], 403);
+        }
+
+        $scopeUserId = OrderAccess::isMechanicOnly($this->auth) ? (int) $this->auth->id() : null;
+        $data = [];
+        foreach ($resource->paginate($this->pdo, 1, 10000, '', $scopeUserId)['items'] as $row) {
+            $row = $resource->datatableRow($row);
+            unset($row['password'], $row['remember_token']);
+            $data[] = $row;
+        }
+
+        return json_response(['data' => $data]);
+    }
+
+    /** Bloqueia o acesso de mecânicos a OS em que não participam. */
+    private function guardOrderAccess(array $order): ?\Psr\Http\Message\ResponseInterface
+    {
+        if (OrderAccess::canAccess($this->pdo, $this->auth, $order)) {
+            return null;
+        }
+        $this->session->flash('error', 'Você não tem acesso a esta ordem de serviço.');
+        return redirect('/service-orders');
+    }
+
+    // =========================================================
     // DETALHES
     // =========================================================
 
@@ -296,6 +377,10 @@ class ServiceOrderController extends CrudController
         if (!$order) {
             $this->session->flash('error', 'Ordem de serviço não encontrada.');
             return redirect($resource->path());
+        }
+
+        if ($response = $this->guardOrderAccess($order)) {
+            return $response;
         }
 
         $tasks = $this->pdo->prepare(
@@ -391,6 +476,7 @@ class ServiceOrderController extends CrudController
             'mechanics' => $mechanics,
             'statuses' => ServiceOrderStatus::STATUSES,
             'statusAvailable' => $statusAvailable,
+            'canManage' => $this->auth->hasRole(['admin', 'secretary', 'lead_mechanic']),
             'pageStyles' => [
                 '/assets/vendor/css/pages/app-chat.css',
             ],
@@ -447,16 +533,89 @@ class ServiceOrderController extends CrudController
     }
 
     // =========================================================
+    // EDIÇÃO / EXCLUSÃO
+    // =========================================================
+
+    public function edit(ServerRequestInterface $request, $id)
+    {
+        if ($response = $this->guardRoles(['admin', 'secretary', 'lead_mechanic'])) {
+            return $response;
+        }
+        $order = $this->findOrder((int) $id);
+        if (!$order) {
+            $this->session->flash('error', 'Ordem de serviço não encontrada.');
+            return redirect('/service-orders');
+        }
+        if ($response = $this->guardOrderAccess($order)) {
+            return $response;
+        }
+        return parent::edit($request, $id);
+    }
+
+    public function update(ServerRequestInterface $request, $id)
+    {
+        if ($response = $this->guardRoles(['admin', 'secretary', 'lead_mechanic'])) {
+            return $response;
+        }
+        $order = $this->findOrder((int) $id);
+        if (!$order) {
+            $this->session->flash('error', 'Ordem de serviço não encontrada.');
+            return redirect('/service-orders');
+        }
+        if ($response = $this->guardOrderAccess($order)) {
+            return $response;
+        }
+
+        $body = $request->getParsedBody();
+        $clientId = (int) ($body['client_id'] ?? 0);
+        $vehicleId = (int) ($body['vehicle_id'] ?? 0);
+        if ($vehicleId > 0) {
+            $vehicleCheck = $this->pdo->prepare(
+                'SELECT 1 FROM vehicles WHERE id = ? AND client_id = ? AND is_active = 1'
+            );
+            $vehicleCheck->execute([$vehicleId, $clientId]);
+            if (!$vehicleCheck->fetchColumn()) {
+                $this->session->flash('error', 'Veículo inválido ou inativo para o cliente selecionado.');
+                return redirect('/service-orders/' . (int) $id . '/edit');
+            }
+        }
+
+        return parent::update($request, $id);
+    }
+
+    /** OS não é excluída: o fluxo correto é cancelar (status). */
+    public function destroy(ServerRequestInterface $request, $id)
+    {
+        $order = $this->findOrder((int) $id);
+        if ($order && !OrderAccess::canAccess($this->pdo, $this->auth, $order)) {
+            $this->session->flash('error', 'Você não tem acesso a esta ordem de serviço.');
+            return redirect('/service-orders');
+        }
+        $this->session->flash('error', 'Não é possível excluir uma OS. Use o status "Cancelada".');
+        return redirect('/service-orders/' . (int) $id);
+    }
+
+    // =========================================================
     // AÇÕES
     // =========================================================
 
     public function updateStatus(ServerRequestInterface $request, $id)
     {
         $resource = $this->resource();
-        if ($response = $this->guardRoles($resource->roles())) {
+        if ($response = $this->guardRoles(['admin', 'secretary', 'lead_mechanic'])) {
             return $response;
         }
         if ($response = $this->guardCsrf($request, $resource->path() . '/' . (int) $id)) {
+            return $response;
+        }
+
+        $order = $this->findOrder((int) $id);
+        if (!$order) {
+            $this->session->flash('error', 'Ordem de serviço não encontrada.');
+            return redirect($resource->path());
+        }
+
+        if ($response = $this->guardOrderAccess($order)) {
             return $response;
         }
 
@@ -466,20 +625,41 @@ class ServiceOrderController extends CrudController
             return redirect($resource->path() . '/' . (int) $id);
         }
 
+        if ((string) ($order['status'] ?? '') === $status) {
+            $this->session->flash('success', 'O status já é "' . ServiceOrderStatus::label($status) . '".');
+            return redirect($resource->path() . '/' . (int) $id);
+        }
+
+        // Respeita o fluxo definido (a UI já usa ServiceOrderStatus::next).
+        // "Entregue" é concluído exclusivamente pelo registro de entrega.
+        $allowed = array_values(array_diff(
+            array_merge([(string) $order['status']], ServiceOrderStatus::next((string) $order['status'])),
+            ['delivered']
+        ));
+        if (!in_array($status, $allowed, true)) {
+            $this->session->flash('error', 'Transição de status inválida.');
+            return redirect($resource->path() . '/' . (int) $id);
+        }
+
         $completion = $status === 'delivered' ? date('Y-m-d') : null;
         $this->pdo->prepare('UPDATE service_orders SET status = :s, completion_date = :c WHERE id = :id')
             ->execute([':s' => $status, ':c' => $completion, ':id' => (int) $id]);
 
         $this->event((int) $id, 'status', 'Status alterado para "' . ServiceOrderStatus::label($status) . '".');
 
-        $order = $this->findOrder((int) $id);
-        if ($order) {
-            $recipients = array_filter([
-                (int) ($order['lead_mechanic_id'] ?? 0),
-                (int) ($order['created_by'] ?? 0),
-                (int) ($this->auth->id() ?? 0),
-            ]);
-            Notify::to($this->pdo, $recipients, 'os_status', 'OS #' . str_pad((string) $order['number'], 4, '0', STR_PAD_LEFT) . ' mudou para "' . ServiceOrderStatus::label($status) . '".', '/service-orders/' . (int) $id, $this->auth->id());
+        $recipients = array_values(array_filter(
+            $this->orderParticipants((int) $id, $order),
+            fn (int $uid): bool => $uid !== (int) $this->auth->id()
+        ));
+        if ($recipients) {
+            Notify::to(
+                $this->pdo,
+                $recipients,
+                'os_status',
+                'OS #' . str_pad((string) $order['number'], 4, '0', STR_PAD_LEFT) . ' mudou para "' . ServiceOrderStatus::label($status) . '".',
+                '/service-orders/' . (int) $id,
+                $this->auth->id()
+            );
         }
 
         $this->session->flash('success', 'Status atualizado para "' . ServiceOrderStatus::label($status) . '".');
@@ -493,6 +673,15 @@ class ServiceOrderController extends CrudController
             return $response;
         }
         if ($response = $this->guardCsrf($request, $resource->path() . '/' . (int) $id)) {
+            return $response;
+        }
+
+        $order = $this->findOrder((int) $id);
+        if (!$order) {
+            $this->session->flash('error', 'Ordem de serviço não encontrada.');
+            return redirect($resource->path());
+        }
+        if ($response = $this->guardOrderAccess($order)) {
             return $response;
         }
 
@@ -512,6 +701,15 @@ class ServiceOrderController extends CrudController
             return $response;
         }
         if ($response = $this->guardCsrf($request, $resource->path() . '/' . (int) $id)) {
+            return $response;
+        }
+
+        $order = $this->findOrder((int) $id);
+        if (!$order) {
+            $this->session->flash('error', 'Ordem de serviço não encontrada.');
+            return redirect($resource->path());
+        }
+        if ($response = $this->guardOrderAccess($order)) {
             return $response;
         }
 
@@ -537,12 +735,35 @@ class ServiceOrderController extends CrudController
             return $response;
         }
 
+        $order = $this->findOrder((int) $id);
+        if (!$order) {
+            $this->session->flash('error', 'Ordem de serviço não encontrada.');
+            return redirect($resource->path());
+        }
+
         $userId = (int) ($request->getParsedBody()['user_id'] ?? 0);
         if ($userId > 0) {
+            $exists = $this->pdo->prepare('SELECT 1 FROM service_order_responsibles WHERE order_id = ? AND user_id = ?');
+            $exists->execute([(int) $id, $userId]);
+            if ($exists->fetchColumn()) {
+                $this->session->flash('success', 'Mecânico já está designado para esta OS.');
+                return redirect($resource->path() . '/' . (int) $id);
+            }
+
             $this->pdo->prepare('INSERT IGNORE INTO service_order_responsibles (order_id, user_id) VALUES (:o, :u)')
                 ->execute([':o' => (int) $id, ':u' => $userId]);
             $this->event((int) $id, 'responsible', 'Mecânico designado.');
-            Notify::to($this->pdo, [$userId], 'os_created', 'Você foi designado para uma OS.', '/service-orders/' . (int) $id, $this->auth->id());
+
+            if ($userId !== (int) $this->auth->id()) {
+                Notify::to(
+                    $this->pdo,
+                    [$userId],
+                    'os_responsible',
+                    'Você foi designado para a OS #' . str_pad((string) $order['number'], 4, '0', STR_PAD_LEFT) . '.',
+                    '/service-orders/' . (int) $id,
+                    $this->auth->id()
+                );
+            }
         }
 
         return redirect($resource->path() . '/' . (int) $id);
@@ -574,6 +795,15 @@ class ServiceOrderController extends CrudController
             return $response;
         }
 
+        $order = $this->findOrder((int) $id);
+        if (!$order) {
+            $this->session->flash('error', 'Ordem de serviço não encontrada.');
+            return redirect($resource->path());
+        }
+        if ($response = $this->guardOrderAccess($order)) {
+            return $response;
+        }
+
         $body = $request->getParsedBody();
         $desc = clean($body['description'] ?? '');
         if ($desc !== '') {
@@ -597,8 +827,15 @@ class ServiceOrderController extends CrudController
 
             $this->event((int) $id, 'task', 'Tarefa adicionada: ' . mb_substr($desc, 0, 120));
 
-            if ($assignedTo) {
-                Notify::to($this->pdo, [$assignedTo], 'task', 'Você recebeu uma tarefa na OS #' . (int) $id . '.', '/service-orders/' . (int) $id, $this->auth->id());
+            if ($assignedTo && $assignedTo !== (int) $this->auth->id()) {
+                Notify::to(
+                    $this->pdo,
+                    [$assignedTo],
+                    'task',
+                    'Você recebeu uma tarefa na OS #' . str_pad((string) $order['number'], 4, '0', STR_PAD_LEFT) . ': ' . mb_substr($desc, 0, 120) . '.',
+                    '/service-orders/' . (int) $id,
+                    $this->auth->id()
+                );
             }
         }
 
@@ -615,9 +852,27 @@ class ServiceOrderController extends CrudController
             return $response;
         }
 
+        $order = $this->findOrder((int) $id);
+        if (!$order) {
+            $this->session->flash('error', 'Ordem de serviço não encontrada.');
+            return redirect($resource->path());
+        }
+        if ($response = $this->guardOrderAccess($order)) {
+            return $response;
+        }
+
         $taskId = (int) ($request->getParsedBody()['task_id'] ?? 0);
         $status = (string) ($request->getParsedBody()['task_status'] ?? '');
         if ($taskId > 0 && in_array($status, ['pending', 'in_progress', 'done'], true)) {
+            $taskStmt = $this->pdo->prepare('SELECT assigned_to, status FROM service_order_tasks WHERE id = ? AND order_id = ?');
+            $taskStmt->execute([$taskId, (int) $id]);
+            $task = $taskStmt->fetch();
+            if (!$task) {
+                return redirect($resource->path() . '/' . (int) $id);
+            }
+
+            $previousStatus = (string) ($task['status'] ?? 'pending');
+
             $completedAt = $status === 'done' ? date('Y-m-d H:i:s') : null;
             $completedBy = $status === 'done' ? $this->auth->id() : null;
             $this->pdo->prepare(
@@ -634,6 +889,19 @@ class ServiceOrderController extends CrudController
 
             $labels = ['pending' => 'Pendente', 'in_progress' => 'Em execução', 'done' => 'Concluída'];
             $this->event((int) $id, 'task', 'Tarefa atualizada para "' . ($labels[$status] ?? $status) . '".');
+
+            $assignedTo = (int) ($task['assigned_to'] ?? 0);
+            if ($order && $previousStatus !== $status && $assignedTo > 0 && $assignedTo !== (int) $this->auth->id()) {
+                Notify::to(
+                    $this->pdo,
+                    [$assignedTo],
+                    'task',
+                    'Tarefa da OS #' . str_pad((string) $order['number'], 4, '0', STR_PAD_LEFT)
+                        . ' mudou para "' . ($labels[$status] ?? $status) . '".',
+                    '/service-orders/' . (int) $id,
+                    $this->auth->id()
+                );
+            }
         }
 
         return redirect($resource->path() . '/' . (int) $id);
@@ -649,11 +917,24 @@ class ServiceOrderController extends CrudController
             return $response;
         }
 
+        $order = $this->findOrder((int) $id);
+        if (!$order) {
+            $this->session->flash('error', 'Ordem de serviço não encontrada.');
+            return redirect($resource->path());
+        }
+        if ($response = $this->guardOrderAccess($order)) {
+            return $response;
+        }
+
         $body = $request->getParsedBody();
         $taskId = (int) ($body['task_id'] ?? 0);
         if ($taskId <= 0) {
             return redirect($resource->path() . '/' . (int) $id);
         }
+
+        $taskStmt = $this->pdo->prepare('SELECT assigned_to FROM service_order_tasks WHERE id = ? AND order_id = ?');
+        $taskStmt->execute([$taskId, (int) $id]);
+        $oldAssigned = (int) ($taskStmt->fetchColumn() ?: 0);
 
         $desc = clean($body['description'] ?? '');
         if ($desc === '') {
@@ -690,6 +971,18 @@ class ServiceOrderController extends CrudController
         ]);
 
         $this->event((int) $id, 'task', 'Tarefa atualizada: ' . mb_substr($desc, 0, 120));
+
+        if ($assignedTo && $assignedTo !== $oldAssigned && $assignedTo !== (int) $this->auth->id()) {
+            Notify::to(
+                $this->pdo,
+                [$assignedTo],
+                'task',
+                'Você recebeu uma tarefa na OS #' . str_pad((string) $order['number'], 4, '0', STR_PAD_LEFT) . ': ' . mb_substr($desc, 0, 120) . '.',
+                '/service-orders/' . (int) $id,
+                $this->auth->id()
+            );
+        }
+
         $this->session->flash('success', 'Tarefa atualizada.');
         return redirect($resource->path() . '/' . (int) $id);
     }
@@ -701,6 +994,15 @@ class ServiceOrderController extends CrudController
             return $response;
         }
         if ($response = $this->guardCsrf($request, $resource->path() . '/' . (int) $id)) {
+            return $response;
+        }
+
+        $order = $this->findOrder((int) $id);
+        if (!$order) {
+            $this->session->flash('error', 'Ordem de serviço não encontrada.');
+            return redirect($resource->path());
+        }
+        if ($response = $this->guardOrderAccess($order)) {
             return $response;
         }
 
@@ -717,8 +1019,53 @@ class ServiceOrderController extends CrudController
         ]);
 
         $this->event((int) $id, 'delivery', 'Entrega/retirada registrada.');
+
+        // A entrega/retirada conclui o atendimento.
+        if ((string) ($order['status'] ?? '') !== 'delivered') {
+            $this->pdo->prepare('UPDATE service_orders SET status = :s, completion_date = :c WHERE id = :id')
+                ->execute([':s' => 'delivered', ':c' => date('Y-m-d'), ':id' => (int) $id]);
+            $this->event((int) $id, 'status', 'Status alterado para "Entregue".');
+
+            $recipients = array_values(array_filter(
+                $this->orderParticipants((int) $id, $order),
+                fn (int $uid): bool => $uid !== (int) $this->auth->id()
+            ));
+            if ($recipients) {
+                Notify::to(
+                    $this->pdo,
+                    $recipients,
+                    'os_status',
+                    'OS #' . str_pad((string) $order['number'], 4, '0', STR_PAD_LEFT) . ' foi entregue.',
+                    '/service-orders/' . (int) $id,
+                    $this->auth->id()
+                );
+            }
+        }
+
         $this->session->flash('success', 'Entrega registrada.');
         return redirect($resource->path() . '/' . (int) $id);
+    }
+
+    /**
+     * IDs dos participantes da OS (criador, responsável e mecânicos designados).
+     *
+     * @param array<string, mixed> $order
+     * @return int[]
+     */
+    private function orderParticipants(int $orderId, array $order): array
+    {
+        $ids = [
+            (int) ($order['created_by'] ?? 0),
+            (int) ($order['lead_mechanic_id'] ?? 0),
+        ];
+
+        $stmt = $this->pdo->prepare('SELECT user_id FROM service_order_responsibles WHERE order_id = ?');
+        $stmt->execute([$orderId]);
+        foreach ($stmt->fetchAll(\PDO::FETCH_COLUMN) as $userId) {
+            $ids[] = (int) $userId;
+        }
+
+        return array_values(array_unique(array_filter($ids, static fn (int $uid): bool => $uid > 0)));
     }
 
     private function event(int $orderId, string $type, string $description): void

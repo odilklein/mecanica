@@ -98,9 +98,18 @@ class VehicleResource extends Resource
             ['title' => 'Ano', 'data' => 'year', 'render' => 'text', 'priority' => 6],
             ['title' => 'Cor', 'data' => 'color', 'render' => 'text', 'priority' => 7],
             ['title' => 'KM', 'data' => 'current_km', 'render' => 'number', 'priority' => 8],
+            [
+                'title' => 'Situação',
+                'data' => 'status',
+                'render' => 'badge',
+                'badge' => [
+                    1 => ['label' => 'Ativo', 'class' => 'bg-label-success'],
+                    0 => ['label' => 'Inativo', 'class' => 'bg-label-secondary'],
+                ],
+                'priority' => 4,
+            ],
             $this->dtActionsColumn([
                 ['label' => 'Editar', 'icon' => 'pencil', 'href' => $this->path() . '/{id}/edit', 'primary' => true],
-                ['label' => 'Excluir', 'icon' => 'trash', 'delete' => true],
             ]),
         ];
     }
@@ -108,13 +117,14 @@ class VehicleResource extends Resource
     public function datatableRow(array $row): array
     {
         $row['vehicle_label'] = trim(($row['brand'] ?? '') . ' ' . ($row['model'] ?? ''));
+        $row['status'] = (int) ($row['is_active'] ?? 1);
         return $row;
     }
 
     public function fillable(): array
     {
         return [
-            'client_id', 'plate', 'brand', 'model', 'year', 'color',
+            'client_id', 'plate', 'brand', 'model', 'year', 'color', 'is_active',
             'fipe_brand_code', 'fipe_model_code', 'fipe_year_code', 'fipe_year', 'fipe_value', 'fipe_reference',
         ];
     }
@@ -125,7 +135,7 @@ class VehicleResource extends Resource
         $options = ['fipe_brand_code' => $fipe->brandOptions()];
 
         $clients = [];
-        foreach ($pdo->query('SELECT id, name FROM clients ORDER BY name')->fetchAll() as $row) {
+        foreach ($pdo->query('SELECT id, name FROM clients WHERE is_active = 1 ORDER BY name')->fetchAll() as $row) {
             $clients[(int) $row['id']] = $row['name'];
         }
         $options['client_id'] = $clients;
@@ -190,6 +200,7 @@ class VehicleResource extends Resource
             ['name' => 'fipe_year_code', 'label' => 'Ano (FIPE)', 'type' => 'select', 'col' => 'col-md-3'],
             ['name' => 'fipe_value', 'label' => 'Valor FIPE', 'type' => 'text', 'col' => 'col-md-3'],
             ['name' => 'color', 'label' => 'Cor', 'type' => 'text', 'max' => 30, 'col' => 'col-md-4'],
+            ['name' => 'is_active', 'label' => 'Veículo ativo', 'type' => 'boolean', 'icon' => 'toggle-right', 'default' => 1, 'col' => 'col-md-6'],
         ];
     }
 }

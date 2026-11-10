@@ -49,6 +49,8 @@ abstract class CrudController extends Controller
                 'subtitle' => $resource->datatableSubtitle(),
                 'cardTitle' => $resource->labels()['plural'],
                 'newLabel' => $resource->datatableNewLabel(),
+                'canCreate' => !$resource->createRoles() || $this->auth->hasRole($resource->createRoles()),
+                'userRole' => $this->auth->role(),
                 'columns' => $resource->datatableColumns(),
                 'order' => $resource->datatableOrder(),
                 'filters' => $resource->datatableFilters(),
@@ -93,7 +95,7 @@ abstract class CrudController extends Controller
     public function create(ServerRequestInterface $request)
     {
         $resource = $this->resource();
-        if ($response = $this->guardRoles($resource->roles())) {
+        if ($response = $this->guardRoles($resource->createRoles())) {
             return $response;
         }
 
@@ -103,7 +105,7 @@ abstract class CrudController extends Controller
     public function store(ServerRequestInterface $request)
     {
         $resource = $this->resource();
-        if ($response = $this->guardRoles($resource->roles())) {
+        if ($response = $this->guardRoles($resource->createRoles())) {
             return $response;
         }
         if ($response = $this->guardCsrf($request, $resource->path())) {

@@ -4,6 +4,9 @@ $isEdit = $record !== null;
 $action = $isEdit ? $path . '/' . (int) $record['id'] : $path;
 $opts = $selectOptions ?? [];
 $items = $items ?? [];
+$canManageStatus = $canManageStatus ?? true;
+$canManageSuppliers = $canManageSuppliers ?? false;
+$currentStatus = (string) ($old['status'] ?? 'requested');
 
 $select = static function (string $name, string $label, string $icon, array $options, $value, string $col): string {
     $html = '<div class="' . e($col) . '"><label class="form-label" for="' . e($name) . '">' . e($label) . '</label>';
@@ -43,12 +46,34 @@ $select = static function (string $name, string $label, string $icon, array $opt
 
                     <div class="row g-3">
                         <?= $select('service_order_id', 'Ordem de serviço *', 'clipboard-list', $opts['service_order_id'] ?? [], $old['service_order_id'] ?? '', 'col-md-6') ?>
-                        <?= $select('status', 'Status', 'activity', $opts['status'] ?? [], $old['status'] ?? 'requested', 'col-md-6') ?>
+
+                        <?php if ($canManageStatus): ?>
+                            <?= $select('status', 'Status', 'activity', $opts['status'] ?? [], $currentStatus, 'col-md-6') ?>
+                        <?php else: ?>
+                            <div class="col-md-6">
+                                <label class="form-label" for="statusReadonly">Status</label>
+                                <div class="input-group input-group-merge">
+                                    <span class="input-group-text"><i class="icon-base ti tabler-activity"></i></span>
+                                    <input type="text" class="form-control" id="statusReadonly" value="Solicitado" readonly>
+                                </div>
+                                <input type="hidden" name="status" value="requested">
+                                <div class="form-text">O mecânico apenas solicita a peça; o andamento é atualizado pela gestão.</div>
+                            </div>
+                        <?php endif; ?>
 
                         <div class="col-md-8">
                             <label class="form-label" for="supplier">Fornecedor</label>
-                            <div class="input-group input-group-merge"><span class="input-group-text"><i class="icon-base ti tabler-building-store"></i></span>
-                                <input type="text" class="form-control" id="supplier" name="supplier" value="<?= e($old['supplier'] ?? '') ?>" maxlength="120" placeholder="Ex.: Auto Peças Silva"></div>
+                            <select class="select2 form-select" id="supplier" name="supplier" data-placeholder="Selecione o fornecedor">
+                                <option value=""></option>
+                                <?php foreach (($opts['supplier'] ?? []) as $supplierValue => $supplierLabel): ?>
+                                    <option value="<?= e((string) $supplierValue) ?>" <?= ((string) ($old['supplier'] ?? '') === (string) $supplierValue) ? 'selected' : '' ?>><?= e($supplierLabel) ?></option>
+                                <?php endforeach; ?>
+                            </select>
+                            <?php if ($canManageSuppliers): ?>
+                                <div class="form-text">
+                                    Não encontrou? <a href="/suppliers/create" target="_blank" rel="noopener">Cadastre um novo fornecedor</a>.
+                                </div>
+                            <?php endif; ?>
                         </div>
                         <div class="col-md-4">
                             <label class="form-label" for="expected_date">Previsão de entrega</label>
@@ -58,46 +83,35 @@ $select = static function (string $name, string $label, string $icon, array $opt
 
                         <div class="col-12">
                             <div class="card border mb-3">
-                                <div class="card-body py-3">
-                                    <div class="row g-2 align-items-end">
-                                        <div class="col-md-9">
+                                <div class="card-header d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <h6 class="mb-0">Peças do pedido</h6>
+                                        <small class="text-body-secondary">Busque no catálogo ou digite uma peça manual</small>
+                                    </div>
+                                    <span class="badge bg-label-primary" id="partOrderItemsCount">0</span>
+                                </div>
+                                <div class="card-body">
+                                    <div class="row g-3">
+                                        <div class="col-md-8">
                                             <label class="form-label" for="partOrderSearch">Buscar peça no catálogo</label>
-                                            <select class="form-select part-autocomplete" id="partOrderSearch" data-placeholder="Digite nome, marca ou código..."></select>
+                                            <select class="form-select part-autocomplete" id="partOrderSearch" data-placeholder="Buscar por nome, marca ou código..."></select>
                                         </div>
-                                        <div class="col-md-3">
+                                        <div class="col-md-4">
                                             <label class="form-label" for="partOrderSearchQty">Quantidade</label>
-                                            <input type="number" class="form-control" id="partOrderSearchQty" value="1" min="1" step="1">
+                                            <input type="number" class="form-control" id="partOrderSearchQty" value="1" min="1" max="99" step="1" aria-label="Quantidade">
                                         </div>
                                     </div>
-                                    <div class="form-text">Escolha uma sugestão. Para uma peça que não está na lista, use “Adicionar item”.</div>
+
+                                    <div class="input-group mt-3">
+                                        <input type="text" class="form-control" id="partOrderManual" placeholder="Ou digite uma peça manual...">
+                                        <button type="button" class="btn btn-outline-primary" id="partOrderManualAdd" aria-label="Adicionar peça manual"><i class="icon-base ti tabler-plus"></i></button>
+                                    </div>
+
+                                    <div class="dynamic-list mt-3" data-list="part-order-items">
+                                        <div class="dynamic-list-items" id="partOrderItems"></div>
+                                    </div>
                                 </div>
                             </div>
-
-                            <div class="d-flex justify-content-between align-items-center mb-2">
-                                <label class="form-label mb-0">Itens do pedido</label>
-                                <button type="button" class="btn btn-sm btn-label-primary" id="addPartItem">
-                                    <i class="icon-base ti tabler-plus"></i> Adicionar item
-                                </button>
-                            </div>
-
-                            <div class="table-responsive border rounded">
-                                <table class="table align-middle mb-0 responsive-card">
-                                    <thead>
-                                        <tr>
-                                            <th>Descrição da peça</th>
-                                            <th style="width: 130px;">Quantidade</th>
-                                            <th style="width: 48px;"></th>
-                                        </tr>
-                                    </thead>
-                                    <tbody id="partOrderItems"></tbody>
-                                </table>
-                            </div>
-                            <div class="form-text">Digite a descrição e pressione <kbd>Enter</kbd> para adicionar outra linha.</div>
-                        </div>
-
-                        <div class="col-12">
-                            <label class="form-label" for="notes">Observações</label>
-                            <textarea class="form-control" id="notes" name="notes" rows="2"><?= e($old['notes'] ?? '') ?></textarea>
                         </div>
 
                         <div class="col-12 d-flex justify-content-end gap-2 mt-3">

@@ -34,6 +34,11 @@ class ServiceOrderResource extends Resource
         return ['admin', 'secretary', 'lead_mechanic', 'mechanic'];
     }
 
+    public function createRoles(): array
+    {
+        return ['admin', 'secretary', 'lead_mechanic'];
+    }
+
     public function formView(): string
     {
         return 'mechanic::service_orders/form';
@@ -90,8 +95,7 @@ class ServiceOrderResource extends Resource
             ['title' => 'Entrada', 'data' => 'entry_date', 'render' => 'date', 'priority' => 7],
             $this->dtActionsColumn([
                 ['label' => 'Detalhes', 'icon' => 'eye', 'href' => $this->path() . '/{id}'],
-                ['label' => 'Editar', 'icon' => 'pencil', 'href' => $this->path() . '/{id}/edit', 'primary' => true],
-                ['label' => 'Excluir', 'icon' => 'trash', 'delete' => true],
+                ['label' => 'Editar', 'icon' => 'pencil', 'href' => $this->path() . '/{id}/edit', 'primary' => true, 'roles' => ['admin', 'secretary', 'lead_mechanic']],
             ]),
         ];
     }
@@ -115,7 +119,7 @@ class ServiceOrderResource extends Resource
     }
 
     /** Listagem com JOIN em cliente/veículo. */
-    public function paginate(PDO $pdo, int $page, int $perPage, string $search): array
+    public function paginate(PDO $pdo, int $page, int $perPage, string $search, ?int $scopeUserId = null): array
     {
         $page = max(1, $page);
         $params = [];
@@ -124,6 +128,15 @@ class ServiceOrderResource extends Resource
         if ($search !== '') {
             $where = '(so.number LIKE :s OR c.name LIKE :s OR v.plate LIKE :s OR v.model LIKE :s)';
             $params[':s'] = '%' . $search . '%';
+        }
+
+        if ($scopeUserId !== null) {
+            $where .= " AND (so.created_by = :scope_uid_created OR so.lead_mechanic_id = :scope_uid_lead
+                OR EXISTS (SELECT 1 FROM service_order_responsibles sr
+                            WHERE sr.order_id = so.id AND sr.user_id = :scope_uid_resp))";
+            $params[':scope_uid_created'] = $scopeUserId;
+            $params[':scope_uid_lead'] = $scopeUserId;
+            $params[':scope_uid_resp'] = $scopeUserId;
         }
 
         $from = 'FROM service_orders so
@@ -156,12 +169,22 @@ class ServiceOrderResource extends Resource
     public function selectOptions(PDO $pdo, array $data = []): array
     {
         $clients = [];
-        foreach ($pdo->query('SELECT id, name FROM clients ORDER BY name')->fetchAll() as $row) {
+        foreach ($pdo->query('SELECT id, name FROM clients WHERE is_active = 1 ORDER BY name')->fetchAll() as $row) {
             $clients[(int) $row['id']] = $row['name'];
         }
 
+        $clientId = (int) ($data['client_id'] ?? 0);
         $vehicles = [];
-        foreach ($pdo->query("SELECT id, plate, model FROM vehicles WHERE is_active = 1 ORDER BY plate")->fetchAll() as $row) {
+        $vehicleSql = 'SELECT id, plate, model FROM vehicles WHERE is_active = 1';
+        $vehicleParams = [];
+        if ($clientId > 0) {
+            $vehicleSql .= ' AND client_id = :cid';
+            $vehicleParams[':cid'] = $clientId;
+        }
+        $vehicleSql .= ' ORDER BY plate';
+        $vehicleStmt = $pdo->prepare($vehicleSql);
+        $vehicleStmt->execute($vehicleParams);
+        foreach ($vehicleStmt->fetchAll() as $row) {
             $vehicles[(int) $row['id']] = trim(($row['plate'] ?? '') . ' - ' . ($row['model'] ?? ''));
         }
 

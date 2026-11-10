@@ -73,9 +73,9 @@ class PartController extends CrudController
         }
 
         $rows = $this->pdo->query(
-            "SELECT p.*, c.name AS category_name, c.icon AS category_icon, c.color AS category_color,
-                    (SELECT COUNT(*) FROM cdp_offers o WHERE o.sku_id = p.cdp_sku) AS offers_count,
-                    (SELECT MIN(o.price) FROM cdp_offers o WHERE o.sku_id = p.cdp_sku AND o.price > 0) AS best_offer
+            "SELECT p.id, p.name, p.brand, p.part_code, p.sku, p.cdp_sku, p.category,
+                    p.stock, p.min_stock, p.price, p.cost_price, p.image, p.product_url, p.status,
+                    c.name AS category_name, c.icon AS category_icon, c.color AS category_color
                FROM parts p
                LEFT JOIN part_categories c ON c.id = p.category_id
               ORDER BY p.name ASC"
@@ -174,6 +174,8 @@ class PartController extends CrudController
             return $this->renderForm(null, $data, $errors, 422);
         }
 
+        $this->registerSupplier((string) ($data['supplier'] ?? ''));
+
         $data['is_active'] = ($data['status'] ?? 'published') === 'published' ? 1 : 0;
         $data['created_by'] = $this->auth->id();
         $data['source'] = 'manual';
@@ -262,6 +264,8 @@ class PartController extends CrudController
         if ($errors) {
             return $this->renderForm($record, array_merge($record, $data), $errors, 422);
         }
+
+        $this->registerSupplier((string) ($data['supplier'] ?? ''));
 
         $data['is_active'] = ($data['status'] ?? 'published') === 'published' ? 1 : 0;
 
@@ -399,6 +403,23 @@ class PartController extends CrudController
         )->fetchAll() ?: [];
     }
 
+    /** @return array<string, string> nome => nome (com valor legado preservado). */
+    private function supplierOptions(string $current): array
+    {
+        $suppliers = [];
+        try {
+            foreach ($this->pdo->query('SELECT name FROM suppliers WHERE is_active = 1 ORDER BY name')->fetchAll() as $row) {
+                $suppliers[(string) $row['name']] = (string) $row['name'];
+            }
+        } catch (\Throwable $e) {
+            // Tabela ainda não migrada: mantém apenas o valor atual.
+        }
+        if ($current !== '' && !isset($suppliers[$current])) {
+            $suppliers[$current] = $current . ' (legado)';
+        }
+        return $suppliers;
+    }
+
     private function find(int $id): ?array
     {
         $stmt = $this->pdo->prepare(
@@ -473,6 +494,15 @@ class PartController extends CrudController
             return mb_substr(clean($body[$key] ?? ''), 0, $max);
         };
 
+        $url = static function (string $key) use ($body): ?string {
+            $value = mb_substr(trim((string) ($body[$key] ?? '')), 0, 500);
+            if ($value === '' || !filter_var($value, FILTER_VALIDATE_URL)) {
+                return null;
+            }
+            $scheme = strtolower((string) parse_url($value, PHP_URL_SCHEME));
+            return in_array($scheme, ['http', 'https'], true) ? $value : null;
+        };
+
         $name = $text('name', 200);
         if ($name === '') {
             $errors['name'] = 'Informe o nome da peça.';
@@ -483,7 +513,10 @@ class PartController extends CrudController
         $data['sku'] = $text('sku', 80) ?: null;
         $data['barcode'] = $text('barcode', 80) ?: null;
         $data['description'] = clean($body['description'] ?? '') ?: null;
-        $data['image'] = mb_substr(clean($body['image'] ?? ''), 0, 500) ?: null;
+        $data['image'] = $url('image');
+        if ($data['image'] === null && trim((string) ($body['image'] ?? '')) !== '') {
+            $errors['image'] = 'Informe uma URL de imagem http(s) válida.';
+        }
         $data['tags'] = $text('tags', 255) ?: null;
         $data['applications'] = clean($body['applications'] ?? '') ?: null;
         $data['notes'] = clean($body['notes'] ?? '') ?: null;
@@ -510,8 +543,8 @@ class PartController extends CrudController
         $data['min_stock'] = max(0, (int) ($body['min_stock'] ?? 0));
         $data['location'] = $text('location', 80) ?: null;
         $data['supplier'] = $text('supplier', 160) ?: null;
-        $data['supplier_url'] = mb_substr(clean($body['supplier_url'] ?? ''), 0, 500) ?: null;
-        $data['product_url'] = mb_substr(clean($body['product_url'] ?? ''), 0, 500) ?: null;
+        $data['supplier_url'] = $url('supplier_url');
+        $data['product_url'] = $url('product_url');
         $data['universal'] = !empty($body['universal']) ? 1 : 0;
         $data['by_request'] = !empty($body['by_request']) ? 1 : 0;
         $data['by_budget'] = !empty($body['by_budget']) ? 1 : 0;
@@ -538,6 +571,21 @@ class PartController extends CrudController
         }
 
         return [$data, $errors];
+    }
+
+    /** Cadastra automaticamente um fornecedor digitado (nome novo). */
+    private function registerSupplier(string $name): void
+    {
+        $name = trim($name);
+        if ($name === '') {
+            return;
+        }
+        try {
+            $this->pdo->prepare('INSERT IGNORE INTO suppliers (name) VALUES (:name)')
+                ->execute([':name' => mb_substr($name, 0, 160)]);
+        } catch (\Throwable $e) {
+            error_log('Part supplier: ' . $e->getMessage());
+        }
     }
 
     private function money(mixed $value): ?float
@@ -584,6 +632,7 @@ class PartController extends CrudController
             'old' => $part,
             'errors' => $errors,
             'categories' => $this->categoryOptions(),
+            'suppliers' => $this->supplierOptions((string) ($part['supplier'] ?? '')),
             'offers' => $offers,
             'movements' => $movements,
             'statuses' => self::STATUSES,

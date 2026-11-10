@@ -4,6 +4,7 @@ $action = $isEdit ? '/parts/' . (int) $record['id'] : '/parts';
 $old = $old ?? [];
 $errors = $errors ?? [];
 $categories = $categories ?? [];
+$suppliers = $suppliers ?? [];
 $statuses = $statuses ?? [];
 $offers = $offers ?? [];
 $movements = $movements ?? [];
@@ -103,7 +104,7 @@ $margin = ((float) ($old['price'] ?? 0)) > 0
                         <div class="col-md-4">
                             <div class="part-image-preview border rounded-3 d-flex align-items-center justify-content-center bg-label-secondary" data-image-preview>
                                 <?php if ($image !== ''): ?>
-                                <img src="<?= e($image) ?>" alt="Prévia da peça" class="img-fluid rounded-2">
+                                <img src="<?= e($image) ?>" alt="Prévia da peça" class="img-fluid rounded-2" loading="lazy" referrerpolicy="no-referrer">
                                 <?php else: ?>
                                 <span class="text-body-secondary small">Sem imagem</span>
                                 <?php endif; ?>
@@ -272,7 +273,15 @@ $margin = ((float) ($old['price'] ?? 0)) > 0
                     </div>
                     <div class="mb-4">
                         <label class="form-label" for="partSupplier">Fornecedor</label>
-                        <input type="text" class="form-control" id="partSupplier" name="supplier" maxlength="160" value="<?= e($val('supplier')) ?>" placeholder="Ex.: Auto Peças Silva">
+                        <select class="select2 form-select" id="partSupplier" name="supplier" data-placeholder="Selecione o fornecedor">
+                            <option value=""></option>
+                            <?php foreach ($suppliers as $supplierValue => $supplierLabel): ?>
+                            <option value="<?= e((string) $supplierValue) ?>" <?= ((string) $val('supplier') === (string) $supplierValue) ? 'selected' : '' ?>><?= e($supplierLabel) ?></option>
+                            <?php endforeach; ?>
+                        </select>
+                        <div class="form-text">
+                            Não encontrou? <a href="/suppliers/create" target="_blank" rel="noopener">Cadastre um novo fornecedor</a>.
+                        </div>
                     </div>
                     <div class="mb-4">
                         <label class="form-label" for="partSupplierUrl">Site do fornecedor</label>

@@ -44,6 +44,12 @@ abstract class Resource
         return ['admin'];
     }
 
+    /** Papéis que podem criar registros (padrão: os mesmos do recurso). */
+    public function createRoles(): array
+    {
+        return $this->roles();
+    }
+
     /** Ícone Tabler do recurso (para cabeçalhos). */
     public function icon(): string
     {

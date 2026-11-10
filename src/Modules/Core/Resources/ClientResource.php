@@ -78,10 +78,19 @@ class ClientResource extends Resource
             ],
             ['title' => 'E-mail', 'data' => 'email', 'render' => 'text', 'priority' => 5],
             ['title' => 'Cidade', 'data' => 'location', 'render' => 'text', 'priority' => 6],
+            [
+                'title' => 'Situação',
+                'data' => 'status',
+                'render' => 'badge',
+                'badge' => [
+                    1 => ['label' => 'Ativo', 'class' => 'bg-label-success'],
+                    0 => ['label' => 'Inativo', 'class' => 'bg-label-secondary'],
+                ],
+                'priority' => 4,
+            ],
             $this->dtActionsColumn([
                 ['label' => 'Detalhes', 'icon' => 'eye', 'href' => $this->path() . '/{id}'],
                 ['label' => 'Editar', 'icon' => 'pencil', 'href' => $this->path() . '/{id}/edit', 'primary' => true],
-                ['label' => 'Excluir', 'icon' => 'trash', 'delete' => true],
             ]),
         ];
     }
@@ -89,6 +98,7 @@ class ClientResource extends Resource
     public function datatableRow(array $row): array
     {
         $row['location'] = trim(($row['city'] ?? '') . (($row['state'] ?? '') ? '/' . $row['state'] : ''));
+        $row['status'] = (int) ($row['is_active'] ?? 1);
         return $row;
     }
 
@@ -104,6 +114,7 @@ class ClientResource extends Resource
             ['name' => 'neighborhood', 'label' => 'Bairro', 'type' => 'text', 'icon' => 'building-community', 'max' => 80, 'col' => 'col-md-4', 'placeholder' => 'Centro'],
             ['name' => 'city', 'label' => 'Cidade', 'type' => 'text', 'icon' => 'building', 'max' => 80, 'col' => 'col-md-6', 'placeholder' => 'São Paulo'],
             ['name' => 'state', 'label' => 'UF', 'type' => 'text', 'icon' => 'map', 'max' => 2, 'col' => 'col-md-2', 'placeholder' => 'SP'],
+            ['name' => 'is_active', 'label' => 'Cliente ativo', 'type' => 'boolean', 'icon' => 'toggle-right', 'default' => 1, 'col' => 'col-md-6'],
         ];
     }
 }

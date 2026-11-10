@@ -70,7 +70,7 @@ class TicketService
                        (SELECT m.created_at FROM ticket_messages m WHERE m.ticket_id = t.id ORDER BY m.id DESC LIMIT 1) AS last_message_at,
                        (SELECT COUNT(*) FROM ticket_messages m
                          WHERE m.ticket_id = t.id AND m.user_id <> :uid_read
-                           AND (r.last_read_at IS NULL OR m.created_at > r.last_read_at)) AS unread
+                           AND (r.last_read_message_id IS NULL OR m.id > r.last_read_message_id)) AS unread
                   FROM tickets t
                   LEFT JOIN service_orders so ON so.id = t.service_order_id
                   LEFT JOIN clients c ON c.id = so.client_id
@@ -162,6 +162,46 @@ class TicketService
         );
         $stmt->execute([(int) $order['id'], $userId]);
         return (bool) $stmt->fetchColumn();
+    }
+
+    /**
+     * IDs dos participantes do ticket: criador/responsável do ticket,
+     * criador/responsável da OS e mecânicos designados.
+     *
+     * @return int[]
+     */
+    public function participants(int $ticketId): array
+    {
+        $stmt = $this->pdo->prepare(
+            'SELECT t.created_by, t.assigned_to, t.service_order_id,
+                    so.created_by AS os_created_by, so.lead_mechanic_id
+               FROM tickets t
+               LEFT JOIN service_orders so ON so.id = t.service_order_id
+              WHERE t.id = ?'
+        );
+        $stmt->execute([$ticketId]);
+        $row = $stmt->fetch();
+        if (!$row) {
+            return [];
+        }
+
+        $ids = [
+            (int) ($row['created_by'] ?? 0),
+            (int) ($row['assigned_to'] ?? 0),
+            (int) ($row['os_created_by'] ?? 0),
+            (int) ($row['lead_mechanic_id'] ?? 0),
+        ];
+
+        $orderId = (int) ($row['service_order_id'] ?? 0);
+        if ($orderId > 0) {
+            $resp = $this->pdo->prepare('SELECT user_id FROM service_order_responsibles WHERE order_id = ?');
+            $resp->execute([$orderId]);
+            foreach ($resp->fetchAll(PDO::FETCH_COLUMN) as $userId) {
+                $ids[] = (int) $userId;
+            }
+        }
+
+        return array_values(array_unique(array_filter($ids, static fn (int $uid): bool => $uid > 0)));
     }
 
     /**
@@ -330,7 +370,8 @@ class TicketService
 
         // Pedidos de peças já registrados (fornecedor/status).
         $partOrders = $this->pdo->prepare(
-            'SELECT po.supplier, po.status, COUNT(i.id) AS items
+            'SELECT po.supplier, po.status,
+                    GROUP_CONCAT(CONCAT(i.description, " ×", i.quantity) SEPARATOR ", ") AS items
                FROM part_orders po
                LEFT JOIN part_order_items i ON i.part_order_id = po.id
               WHERE po.service_order_id = ?
@@ -349,7 +390,7 @@ class TicketService
             foreach ($orders as $po) {
                 $lines[] = '• ' . ($po['supplier'] ?: 'Sem fornecedor') . ' · '
                     . ($statusLabels[$po['status']] ?? $po['status'])
-                    . ' · ' . (int) $po['items'] . ' item(ns)';
+                    . ($po['items'] ? ' · ' . $po['items'] : ' · sem itens');
             }
         }
 
@@ -472,9 +513,12 @@ class TicketService
     public function markRead(int $ticketId, int $userId): void
     {
         $this->pdo->prepare(
-            'INSERT INTO ticket_reads (ticket_id, user_id, last_read_at) VALUES (?, ?, NOW())
-             ON DUPLICATE KEY UPDATE last_read_at = NOW()'
-        )->execute([$ticketId, $userId]);
+            'INSERT INTO ticket_reads (ticket_id, user_id, last_read_at, last_read_message_id)
+             VALUES (?, ?, NOW(), (SELECT COALESCE(MAX(id), 0) FROM ticket_messages WHERE ticket_id = ?))
+             ON DUPLICATE KEY UPDATE
+                last_read_at = NOW(),
+                last_read_message_id = GREATEST(COALESCE(last_read_message_id, 0), VALUES(last_read_message_id))'
+        )->execute([$ticketId, $userId, $ticketId]);
     }
 
     public function updateStatus(int $ticketId, string $status): void

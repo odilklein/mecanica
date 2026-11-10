@@ -25,6 +25,7 @@ use PDO;
 use Modules\Mechanic\Controllers\VehicleController;
 use Modules\Mechanic\Controllers\PartsController;
 use Modules\Mechanic\Controllers\PartController;
+use Modules\Mechanic\Controllers\SupplierController;
 use Modules\Mechanic\Controllers\PartCategoryController;
 
 class MechanicProvider implements ProviderInterface
@@ -87,6 +88,9 @@ class MechanicProvider implements ProviderInterface
         // Pedidos de peças (CRUD genérico).
         crud_routes($router, '/part-orders', PartOrderController::class);
 
+        // Fornecedores de peças.
+        crud_routes($router, '/suppliers', SupplierController::class);
+
         // Orçamentos (específicas antes da genérica).
         $router->get('/budgets/datatable', [BudgetController::class, 'datatable']);
         $router->get('/budgets', [BudgetController::class, 'index']);
@@ -95,6 +99,7 @@ class MechanicProvider implements ProviderInterface
         $router->get('/budgets/{id}/edit', [BudgetController::class, 'edit']);
         $router->get('/budgets/{id}/print', [BudgetController::class, 'print']);
         $router->post('/budgets/{id}/delete', [BudgetController::class, 'destroy']);
+        $router->post('/budgets/{id}/status', [BudgetController::class, 'updateStatus']);
         $router->get('/budgets/{id}', [BudgetController::class, 'show']);
 
         // Tickets (central de atendimento).
@@ -103,6 +108,7 @@ class MechanicProvider implements ProviderInterface
         $router->post('/tickets', [TicketController::class, 'store']);
         $router->post('/tickets/{id}/messages', [TicketController::class, 'sendMessage']);
         $router->post('/tickets/{id}/status', [TicketController::class, 'updateStatus']);
+        $router->post('/tickets/{id}/assign', [TicketController::class, 'assign']);
         $router->get('/tickets/{id}', [TicketController::class, 'show']);
 
         // Relatórios.
@@ -131,6 +137,7 @@ class MechanicProvider implements ProviderInterface
                 ['label' => 'Catálogo de peças', 'url' => '/parts'],
                 ['label' => 'Nova peça', 'url' => '/parts/create'],
                 ['label' => 'Categorias', 'url' => '/parts/categories'],
+                ['label' => 'Fornecedores', 'url' => '/suppliers'],
             ],
         ]);
         $menu->add('Operações', [
@@ -162,51 +169,67 @@ class MechanicProvider implements ProviderInterface
             'icon' => 'messages',
             'url' => '/tickets',
             'roles' => null,
+            'open' => true,
+            'menu_key' => 'tickets',
             'children' => $this->ticketMenu($container),
         ]);
     }
 
     /**
-     * Submenu da aba Tickets: atalhos fixos + conversas em aberto
-     * visíveis para o usuário atual.
+     * Submenu da aba Tickets: até 6 conversas em aberto visíveis para o
+     * usuário atual, no estilo de histórico de chat. Quando há mais,
+     * exibe o atalho "Ver todos os tickets".
      *
-     * @return array<int, array<string, string>>
+     * @return array<int, array<string, mixed>>
      */
     private function ticketMenu(Container $container): array
     {
-        $children = [
-            ['label' => 'Todos os tickets', 'url' => '/tickets'],
-            ['label' => 'Não lidos', 'url' => '/tickets?scope=unread'],
-            ['label' => 'Encerrados', 'url' => '/tickets?status=closed'],
-        ];
-
         try {
             /** @var Auth $auth */
             $auth = $container->get(Auth::class);
             if (!$auth->check()) {
-                return $children;
+                return [];
             }
 
             $service = new TicketService($container->get(PDO::class));
+            // Busca 7 para saber se existe mais de 6 sem uma consulta extra.
             $tickets = $service->visibleTickets(
                 (int) $auth->id(),
                 $auth->hasRole(['admin']),
-                4,
+                7,
                 'open'
             );
-
-            foreach ($tickets as $ticket) {
-                $label = mb_strimwidth((string) $ticket['subject'], 0, 34, '…');
-                if ((int) ($ticket['unread'] ?? 0) > 0) {
-                    $label .= ' •';
-                }
-                $children[] = [
-                    'label' => $label,
-                    'url' => '/tickets?ticket=' . (int) $ticket['id'],
-                ];
-            }
         } catch (\Throwable $e) {
-            // Sem banco ou tabela ainda: mantém apenas os atalhos.
+            return [];
+        }
+
+        $children = [];
+        foreach (array_slice($tickets, 0, 6) as $ticket) {
+            $subject = trim((string) ($ticket['subject'] ?? ''));
+            $meta = '';
+            if (preg_match('/^OS\s*#(\d+)\s*[-–—]\s*(.+)$/u', $subject, $m)) {
+                $subject = trim($m[2]);
+                $meta = '#' . $m[1];
+            }
+            if ($subject === '') {
+                $subject = 'Ticket #' . (int) $ticket['id'];
+            }
+
+            $children[] = [
+                'label' => mb_strimwidth($subject, 0, 30, '…'),
+                'url' => '/tickets?ticket=' . (int) $ticket['id'],
+                'class' => 'menu-ticket',
+                'meta' => $meta,
+                'unread' => (int) ($ticket['unread'] ?? 0),
+            ];
+        }
+
+        if (count($tickets) > 6) {
+            $children[] = [
+                'label' => 'Ver todos os tickets',
+                'url' => '/tickets',
+                'class' => 'menu-ticket-all',
+            ];
         }
 
         return $children;

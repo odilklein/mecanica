@@ -13,9 +13,11 @@ $configJson = json_encode(
         <span class="page-subtitle"><?= e($datatable['subtitle'] ?? '') ?></span>
     </div>
     <div class="page-header-actions">
+        <?php if ($datatable['canCreate'] ?? true): ?>
         <a href="<?= e($resource->path()) ?>/create" class="btn btn-primary">
             <i class="icon-base ti tabler-plus"></i> <?= e($datatable['newLabel'] ?? 'Novo') ?>
         </a>
+        <?php endif; ?>
     </div>
 </div>
 

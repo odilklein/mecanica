@@ -29,7 +29,7 @@ class UserResource extends Resource
 
     public function roles(): array
     {
-        return ['admin', 'secretary', 'lead_mechanic'];
+        return ['admin'];
     }
 
     public function datatableSubtitle(): string
@@ -70,7 +70,6 @@ class UserResource extends Resource
             ],
             $this->dtActionsColumn([
                 ['label' => 'Editar', 'icon' => 'pencil', 'href' => $this->path() . '/{id}/edit', 'primary' => true],
-                ['label' => 'Excluir', 'icon' => 'trash', 'delete' => true],
             ]),
         ];
     }
@@ -129,6 +128,7 @@ class UserResource extends Resource
             ['name' => 'phone', 'label' => 'Telefone', 'type' => 'text', 'icon' => 'phone', 'mask' => 'phone', 'max' => 20, 'col' => 'col-md-4'],
             ['name' => 'hire_date', 'label' => 'Admissão', 'type' => 'date', 'icon' => 'calendar', 'col' => 'col-md-4'],
             ['name' => 'job_title', 'label' => 'Cargo', 'type' => 'text', 'icon' => 'briefcase', 'max' => 100, 'col' => 'col-md-6'],
+            ['name' => 'is_active', 'label' => 'Funcionário ativo', 'type' => 'boolean', 'icon' => 'toggle-right', 'default' => 1, 'col' => 'col-md-6'],
         ];
     }
 }

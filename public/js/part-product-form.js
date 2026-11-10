@@ -23,7 +23,15 @@
                 }
 
                 var img = document.createElement('img');
-                img.src = url;
+                var safe = window.safeUrl ? window.safeUrl(url) : '';
+                if (!safe) {
+                    var invalid = document.createElement('span');
+                    invalid.className = 'text-body-secondary small';
+                    invalid.textContent = 'Informe uma URL http(s) válida';
+                    imagePreview.appendChild(invalid);
+                    return;
+                }
+                img.src = safe;
                 img.alt = 'Prévia da peça';
                 img.className = 'img-fluid rounded-2';
                 img.onerror = function () {

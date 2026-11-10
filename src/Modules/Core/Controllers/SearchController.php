@@ -9,6 +9,7 @@ use Kernel\Http\Session;
 use Kernel\Menu\Menu;
 use Kernel\View\ViewFactory;
 use Modules\Mechanic\Support\BudgetStatus;
+use Modules\Mechanic\Support\OrderAccess;
 use Modules\Mechanic\Support\PartOrderStatus;
 use Modules\Mechanic\Support\ServiceOrderStatus;
 use PDO;
@@ -69,12 +70,15 @@ class SearchController extends Controller
     /** @return array{key: string, label: string, items: array<int, array<string, string>>} */
     private function ordersGroup(string $like, bool $hasNumber, int $number, string $query): array
     {
+        [$scopeSql, $scopeParams] = OrderAccess::scopeSql($this->auth, 'so');
+
         $sql = "SELECT so.id, so.number, so.status, c.name AS client, v.plate, v.model
                   FROM service_orders so
                   LEFT JOIN clients c ON c.id = so.client_id
                   LEFT JOIN vehicles v ON v.id = so.vehicle_id
                  WHERE (c.name LIKE :name OR v.plate LIKE :plate OR v.model LIKE :model
-                        OR so.initial_complaint LIKE :complaint" . ($hasNumber ? ' OR so.number = :number' : '') . ")
+                        OR so.initial_complaint LIKE :complaint" . ($hasNumber ? ' OR so.number = :number' : '') . ')'
+            . ($scopeSql !== '' ? ' AND ' . $scopeSql : '') . "
                  ORDER BY so.number DESC
                  LIMIT " . self::LIMIT;
 
@@ -87,6 +91,7 @@ class SearchController extends Controller
         if ($hasNumber) {
             $params[':number'] = $number;
         }
+        $params = array_merge($params, $scopeParams);
 
         $stmt = $this->pdo->prepare($sql);
         $stmt->execute($params);
@@ -115,11 +120,12 @@ class SearchController extends Controller
                    FROM service_orders so
                    LEFT JOIN clients c ON c.id = so.client_id
                    LEFT JOIN vehicles v ON v.id = so.vehicle_id
-                  WHERE so.status = :status
+                  WHERE so.status = :status'
+                . ($scopeSql !== '' ? ' AND ' . $scopeSql : '') . '
                   ORDER BY so.number DESC
                   LIMIT ' . (self::LIMIT - count($items))
             );
-            $stmt->execute([':status' => $statusQuery]);
+            $stmt->execute(array_merge([':status' => $statusQuery], $scopeParams));
             foreach ($stmt->fetchAll() as $row) {
                 if (isset($seen[(int) $row['id']])) {
                     continue;
@@ -237,11 +243,14 @@ class SearchController extends Controller
     /** @return array{key: string, label: string, items: array<int, array<string, string>>} */
     private function partOrdersGroup(string $like, bool $hasNumber, int $number): array
     {
+        [$scopeSql, $scopeParams] = OrderAccess::scopeSql($this->auth, 'so');
+
         $sql = 'SELECT po.id, po.status, po.supplier, so.number, c.name AS client
                   FROM part_orders po
                   INNER JOIN service_orders so ON so.id = po.service_order_id
                   LEFT JOIN clients c ON c.id = so.client_id
-                 WHERE (po.supplier LIKE :supplier OR c.name LIKE :client' . ($hasNumber ? ' OR so.number = :number' : '') . ")
+                 WHERE (po.supplier LIKE :supplier OR c.name LIKE :client' . ($hasNumber ? ' OR so.number = :number' : '') . ')'
+            . ($scopeSql !== '' ? ' AND ' . $scopeSql : '') . "
                  ORDER BY po.id DESC
                  LIMIT " . self::LIMIT;
 
@@ -249,6 +258,7 @@ class SearchController extends Controller
         if ($hasNumber) {
             $params[':number'] = $number;
         }
+        $params = array_merge($params, $scopeParams);
 
         $stmt = $this->pdo->prepare($sql);
         $stmt->execute($params);
@@ -278,7 +288,10 @@ class SearchController extends Controller
                   LEFT JOIN service_orders so ON so.id = t.service_order_id
                   LEFT JOIN clients c ON c.id = so.client_id
                  WHERE (t.subject LIKE :subject OR c.name LIKE :client' . ($hasNumber ? ' OR so.number = :number' : '') . ')
-                   AND (:is_admin = 1 OR t.created_by = :uid_created OR t.assigned_to = :uid_assigned)
+                   AND (:is_admin = 1 OR t.created_by = :uid_created OR t.assigned_to = :uid_assigned
+                        OR so.created_by = :uid_os_created OR so.lead_mechanic_id = :uid_os_lead
+                        OR EXISTS (SELECT 1 FROM service_order_responsibles r_p
+                                    WHERE r_p.order_id = so.id AND r_p.user_id = :uid_os_resp))
                  ORDER BY t.updated_at DESC
                  LIMIT ' . self::LIMIT;
 
@@ -288,6 +301,9 @@ class SearchController extends Controller
             ':is_admin' => $isAdmin ? 1 : 0,
             ':uid_created' => $userId,
             ':uid_assigned' => $userId,
+            ':uid_os_created' => $userId,
+            ':uid_os_lead' => $userId,
+            ':uid_os_resp' => $userId,
         ];
         if ($hasNumber) {
             $params[':number'] = $number;

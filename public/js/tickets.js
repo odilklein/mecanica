@@ -65,12 +65,25 @@
         var emptyState = document.getElementById('ticketEmptyState');
         var noMessages = document.getElementById('ticketNoMessages');
         var footer = document.getElementById('ticketFooter');
+        var closedNotice = document.getElementById('ticketClosedNotice');
         var form = document.getElementById('ticketForm');
         var input = document.getElementById('ticketInput');
         var subjectEl = document.getElementById('ticketSubject');
         var subtitleEl = document.getElementById('ticketSubtitle');
         var statusBadge = document.getElementById('ticketStatusBadge');
         var toggleStatus = document.getElementById('ticketToggleStatus');
+        var assignBtn = document.getElementById('ticketAssignBtn');
+        var assignModalEl = document.getElementById('ticketAssignModal');
+        var assignForm = document.getElementById('ticketAssignForm');
+        var assignSelect = document.getElementById('ticketAssignSelect');
+        var assignError = document.getElementById('ticketAssignError');
+        var assignSubmit = document.getElementById('ticketAssignSubmit');
+        var closeModalEl = document.getElementById('ticketCloseModal');
+        var closeSubjectEl = document.getElementById('ticketCloseSubject');
+        var closeConfirmBtn = document.getElementById('ticketCloseConfirm');
+        var currentAssignedTo = assignBtn
+            ? parseInt(assignBtn.getAttribute('data-assigned-to') || '0', 10)
+            : 0;
 
         var params = new URLSearchParams(window.location.search);
         var scope = params.get('scope') === 'unread' ? 'unread' : (params.get('status') === 'closed' ? 'closed' : 'all');
@@ -101,21 +114,201 @@
             });
         }
 
+        // Mantém a conversa aberta destacada também na sidebar.
+        function syncSidebarActive() {
+            document.querySelectorAll('#layout-menu .menu-ticket').forEach(function (li) {
+                var link = li.querySelector('a.menu-link');
+                var href = link ? (link.getAttribute('href') || '') : '';
+                var active = selectedId > 0 && href.indexOf('ticket=' + selectedId) !== -1;
+                li.classList.toggle('active', active);
+                // Ao abrir a conversa ela é marcada como lida; some o ponto.
+                if (active) {
+                    var dot = li.querySelector('.menu-ticket-dot');
+                    if (dot) {
+                        dot.remove();
+                    }
+                }
+            });
+        }
+
+        function buildUrl(ticketId) {
+            var query = new URLSearchParams();
+            if (search) {
+                query.set('q', search);
+            }
+            if (scope === 'unread') {
+                query.set('scope', 'unread');
+            } else if (statusFilter === 'closed') {
+                query.set('status', 'closed');
+            }
+            if (ticketId) {
+                query.set('ticket', ticketId);
+            }
+            var qs = query.toString();
+            return baseUrl + (qs ? '?' + qs : '');
+        }
+
+        function scrollSelectedIntoView() {            if (!listEl || !selectedId) {
+                return;
+            }
+            var item = listEl.querySelector('.chat-contact-list-item[data-ticket-id="' + selectedId + '"]');
+            if (!item) {
+                return;
+            }
+            var container = listEl.closest('.sidebar-body');
+            if (!container) {
+                item.scrollIntoView({ block: 'nearest' });
+                return;
+            }
+            var itemRect = item.getBoundingClientRect();
+            var containerRect = container.getBoundingClientRect();
+            if (itemRect.top < containerRect.top || itemRect.bottom > containerRect.bottom) {
+                container.scrollTop += itemRect.top - containerRect.top
+                    - (container.clientHeight - itemRect.height) / 2;
+            }
+        }
+
+        function removeSidebarTicket(ticketId) {
+            document.querySelectorAll('#layout-menu .menu-ticket').forEach(function (li) {
+                var link = li.querySelector('a.menu-link');
+                var href = link ? link.getAttribute('href') || '' : '';
+                if (href.indexOf('ticket=' + ticketId) !== -1) {
+                    li.remove();
+                }
+            });
+        }
+
+        function sidebarTicketLabel(ticket) {
+            var subject = String(ticket.subject || '').trim();
+            var meta = '';
+            var match = subject.match(/^OS\s*#(\d+)\s*[-–—]\s*(.+)$/u);
+            if (match) {
+                subject = match[2].trim();
+                meta = '#' + match[1];
+            }
+            if (!subject) {
+                subject = 'Ticket #' + ticket.id;
+            }
+            if (subject.length > 30) {
+                subject = subject.slice(0, 29) + '…';
+            }
+            return { label: subject, meta: meta };
+        }
+
+        function renderSidebarTickets(tickets) {
+            var parent = document.querySelector('#layout-menu [data-menu-key="tickets"]');
+            if (!parent) {
+                return;
+            }
+            var menu = parent.querySelector('.menu-sub');
+            if (!menu) {
+                return;
+            }
+
+            menu.innerHTML = '';
+
+            tickets
+                .filter(function (ticket) {
+                    return (ticket.status || 'open') === 'open';
+                })
+                .slice(0, 6)
+                .forEach(function (ticket) {
+                    var info = sidebarTicketLabel(ticket);
+                    var unread = parseInt(ticket.unread || 0, 10);
+                    var li = document.createElement('li');
+                    li.className = 'menu-item menu-ticket' + (parseInt(ticket.id, 10) === selectedId ? ' active' : '');
+                    li.innerHTML = '<a href="/tickets?ticket=' + ticket.id + '" class="menu-link">'
+                        + '<div class="menu-ticket-title">' + esc(info.label) + '</div>'
+                        + (info.meta ? '<small class="menu-ticket-meta">' + esc(info.meta) + '</small>' : '')
+                        + (unread > 0 ? '<span class="menu-ticket-dot" title="' + unread + ' não lida(s)"></span>' : '')
+                        + '</a>';
+                    menu.appendChild(li);
+                });
+
+            var all = document.createElement('li');
+            all.className = 'menu-item menu-ticket-all';
+            all.innerHTML = '<a href="/tickets" class="menu-link"><div>Ver todos os tickets</div></a>';
+            menu.appendChild(all);
+
+            syncSidebarActive();
+        }
+
+        function refreshSidebarTickets() {
+            fetch(listUrl + '?status=open', {
+                headers: { Accept: 'application/json' },
+                cache: 'no-store'
+            })
+                .then(function (response) { return response.json(); })
+                .then(function (data) {
+                    if (data && Array.isArray(data.tickets)) {
+                        renderSidebarTickets(data.tickets);
+                    }
+                })
+                .catch(function () {});
+        }
+
+        function syncSidebarUnread(tickets) {
+            // A sidebar lista apenas tickets abertos: remove os que foram encerrados.
+            if (statusFilter !== 'closed') {
+                tickets.forEach(function (ticket) {
+                    if (ticket.status === 'closed') {
+                        removeSidebarTicket(ticket.id);
+                    }
+                });
+            }
+
+            var unreadByTicket = {};
+            tickets.forEach(function (ticket) {
+                unreadByTicket[String(ticket.id)] = parseInt(ticket.unread || 0, 10);
+            });
+
+            document.querySelectorAll('#layout-menu .menu-ticket').forEach(function (li) {
+                var link = li.querySelector('a.menu-link');
+                if (!link) {
+                    return;
+                }
+                var match = (link.getAttribute('href') || '').match(/ticket=(\d+)/);
+                if (!match) {
+                    return;
+                }
+                var unread = unreadByTicket[match[1]] || 0;
+                var dot = li.querySelector('.menu-ticket-dot');
+                if (unread > 0) {
+                    if (!dot) {
+                        dot = document.createElement('span');
+                        dot.className = 'menu-ticket-dot';
+                        link.appendChild(dot);
+                    }
+                    dot.title = unread + ' não lida(s)';
+                } else if (dot) {
+                    dot.remove();
+                }
+            });
+        }
+
         function renderList(tickets) {
             if (!listEl) {
                 return;
             }
 
+            var container = listEl.closest('.sidebar-body');
+            var scrollTop = container ? container.scrollTop : 0;
+
             listEl.innerHTML = '';
             if (!tickets.length) {
                 listEl.innerHTML = '<li class="text-center text-body-secondary py-6 px-4">Nenhum ticket encontrado.</li>';
+                if (container) {
+                    container.scrollTop = 0;
+                }
                 return;
             }
 
             tickets.forEach(function (ticket) {
                 var item = document.createElement('li');
                 var unread = parseInt(ticket.unread || 0, 10);
-                item.className = 'chat-contact-list-item mb-1' + (parseInt(ticket.id, 10) === selectedId ? ' active' : '');
+                var isSelected = parseInt(ticket.id, 10) === selectedId;
+                var isClosed = ticket.status === 'closed';
+                item.className = 'chat-contact-list-item mb-1' + (isSelected ? ' active' : '');
                 item.setAttribute('data-ticket-id', ticket.id);
                 item.innerHTML = '<a href="' + baseUrl + '?ticket=' + ticket.id + '" class="d-flex align-items-center text-reset text-decoration-none p-0">'
                     + '<div class="avatar avatar-sm flex-shrink-0">'
@@ -128,13 +321,25 @@
                     + '</div>'
                     + '<div class="d-flex justify-content-between align-items-center gap-2">'
                     + '<small class="chat-contact-status text-truncate">' + esc(ticket.last_message || 'Sem mensagens ainda') + '</small>'
-                    + (unread > 0 ? '<span class="badge rounded-pill bg-primary">' + unread + '</span>' : '')
-                    + '</div></div></a>';
+                    + (unread > 0 && !isSelected ? '<span class="badge rounded-pill bg-primary unread-badge">' + unread + '</span>' : '')
+                    + '</div>'
+                    + '<div class="d-flex justify-content-between align-items-center gap-2 mt-1">'
+                    + '<small class="chat-contact-assignee text-body-secondary text-truncate">'
+                    + '<i class="icon-base ti tabler-user-check"></i> ' + esc(ticket.assigned_name || 'Sem responsável')
+                    + '</small>'
+                    + (isClosed ? '<span class="badge bg-label-secondary flex-shrink-0"><i class="icon-base ti tabler-lock me-1"></i>Encerrado</span>' : '')
+                    + '</div>'
+                    + '</div></a>';
                 listEl.appendChild(item);
             });
+
+            // Preserva a rolagem da lista entre as atualizações periódicas.
+            if (container) {
+                container.scrollTop = scrollTop;
+            }
         }
 
-        function loadList() {
+        function loadList(scrollToSelected) {
             var params = new URLSearchParams();
             if (search) {
                 params.set('q', search);
@@ -153,14 +358,23 @@
                 .then(function (data) {
                     if (data && Array.isArray(data.tickets)) {
                         renderList(data.tickets);
+                        syncSidebarUnread(data.tickets);
+                        if (scrollToSelected) {
+                            scrollSelectedIntoView();
+                        }
                     }
                 })
                 .catch(function () {});
         }
 
-        function renderMessages(messages) {
+        function renderMessages(messages, scrollToBottom) {
             if (!messagesEl) {
                 return;
+            }
+
+            var previousDistance = 0;
+            if (historyBody) {
+                previousDistance = historyBody.scrollHeight - historyBody.scrollTop - historyBody.clientHeight;
             }
 
             messagesEl.innerHTML = '';
@@ -168,10 +382,18 @@
                 if (message.kind === 'system') {
                     var summary = document.createElement('li');
                     summary.className = 'chat-message ticket-system-message';
+                    var summaryId = 'ticketSummary-' + (message.id || Math.random().toString(36).slice(2));
                     summary.innerHTML = '<div class="ticket-system-card">'
-                        + '<div class="d-flex align-items-center gap-2 mb-2 text-primary">'
-                        + '<i class="icon-base ti tabler-clipboard-text"></i><span class="fw-semibold">Resumo automático da OS</span></div>'
-                        + '<div class="ticket-system-content">' + esc(message.message).replace(/\n/g, '<br>') + '</div></div>';
+                        + '<button type="button" class="btn btn-text-secondary p-0 d-flex align-items-center gap-2 w-100 text-start"'
+                        + ' data-bs-toggle="collapse" data-bs-target="#' + summaryId + '"'
+                        + ' aria-expanded="false" aria-controls="' + summaryId + '">'
+                        + '<i class="icon-base ti tabler-clipboard-text text-primary"></i>'
+                        + '<span class="fw-semibold text-primary">Resumo automático da OS</span>'
+                        + '<i class="icon-base ti tabler-chevron-down ms-auto"></i>'
+                        + '</button>'
+                        + '<div class="collapse" id="' + summaryId + '">'
+                        + '<div class="ticket-system-content mt-2">' + esc(message.message).replace(/\n/g, '<br>') + '</div>'
+                        + '</div></div>';
                     messagesEl.appendChild(summary);
                     return;
                 }
@@ -197,11 +419,24 @@
             if (noMessages) {
                 noMessages.classList.toggle('d-none', messages.length > 0);
             }
-            scrollBottom();
+            if (scrollToBottom !== false) {
+                scrollBottom();
+            } else if (historyBody) {
+                // Mantém a posição relativa ao final quando o usuário está lendo mensagens antigas.
+                historyBody.scrollTop = historyBody.scrollHeight - historyBody.clientHeight - previousDistance;
+            }
         }
 
-        function applyTicket(ticket, messages, contextHtml) {
+        function applyTicket(ticket, messages, contextHtml, preserveScroll) {
             selectedId = parseInt(ticket.id, 10);
+            currentAssignedTo = parseInt(ticket.assigned_to || 0, 10);
+            if (assignBtn) {
+                assignBtn.setAttribute('data-assigned-to', String(currentAssignedTo));
+                assignBtn.title = ticket.assigned_name
+                    ? 'Responsável: ' + ticket.assigned_name
+                    : 'Sem responsável';
+            }
+            syncSidebarActive();
 
             var contextWrap = document.getElementById('ticketContextWrap');
             if (contextWrap) {
@@ -238,18 +473,34 @@
             if (emptyState) {
                 emptyState.classList.add('d-none');
             }
+            var isClosed = ticket.status === 'closed';
             if (footer) {
-                footer.classList.remove('d-none');
+                footer.classList.toggle('d-none', isClosed);
+            }
+            if (closedNotice) {
+                closedNotice.classList.toggle('d-none', !isClosed);
             }
 
-            renderMessages(messages || []);
+            var shouldScroll = true;
+            if (preserveScroll && historyBody) {
+                var distanceFromBottom = historyBody.scrollHeight - historyBody.scrollTop - historyBody.clientHeight;
+                shouldScroll = distanceFromBottom < 80;
+            }
+            renderMessages(messages || [], shouldScroll);
 
             root.querySelectorAll('.chat-contact-list-item').forEach(function (li) {
-                li.classList.toggle('active', parseInt(li.getAttribute('data-ticket-id'), 10) === selectedId);
+                var isActive = parseInt(li.getAttribute('data-ticket-id'), 10) === selectedId;
+                li.classList.toggle('active', isActive);
+                if (isActive) {
+                    var unreadBadge = li.querySelector('.unread-badge');
+                    if (unreadBadge) {
+                        unreadBadge.remove();
+                    }
+                }
             });
         }
 
-        function selectTicket(id, updateUrl) {
+        function selectTicket(id, updateUrl, preserveScroll) {
             fetch(baseUrl + '/' + id, {
                 headers: { Accept: 'application/json' },
                 cache: 'no-store'
@@ -264,9 +515,9 @@
                     if (!data || !data.ticket) {
                         return;
                     }
-                    applyTicket(data.ticket, data.messages || [], data.context_html || '');
+                    applyTicket(data.ticket, data.messages || [], data.context_html || '', preserveScroll);
                     if (updateUrl !== false && window.history && window.history.replaceState) {
-                        window.history.replaceState(null, '', baseUrl + '?ticket=' + id);
+                        window.history.replaceState(null, '', buildUrl(id));
                     }
                     var contacts = document.getElementById('app-chat-contacts');
                     if (contacts && window.innerWidth < 992) {
@@ -295,7 +546,10 @@
                 clearTimeout(searchTimer);
                 searchTimer = setTimeout(function () {
                     search = searchEl.value.trim();
-                    loadList();
+                    if (window.history && window.history.replaceState) {
+                        window.history.replaceState(null, '', buildUrl(selectedId));
+                    }
+                    loadList(true);
                 }, 300);
             });
         }
@@ -311,7 +565,10 @@
                     scope = statusFilter === 'closed' ? 'closed' : 'all';
                 }
                 setActiveFilter();
-                loadList();
+                if (window.history && window.history.replaceState) {
+                    window.history.replaceState(null, '', buildUrl(selectedId));
+                }
+                loadList(true);
             });
         });
 
@@ -361,34 +618,139 @@
         }
 
         // Encerrar / reabrir
+        function changeStatus(next) {
+            if (!selectedId) {
+                return Promise.resolve(false);
+            }
+            return fetch(baseUrl + '/' + selectedId + '/status', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    Accept: 'application/json'
+                },
+                body: 'csrf_token=' + encodeURIComponent(csrf) + '&status=' + encodeURIComponent(next),
+                cache: 'no-store'
+            })
+                .then(function (response) { return response.json(); })
+                .then(function (data) {
+                    if (data && data.ok) {
+                        if (statusBadge) {
+                            statusBadge.className = 'badge ' + (STATUS_BADGE[next] || 'bg-label-secondary');
+                            statusBadge.textContent = STATUS_LABEL[next] || next;
+                        }
+                        if (toggleStatus) {
+                            toggleStatus.setAttribute('data-status', next);
+                            toggleStatus.innerHTML = '<i class="icon-base ti ' + (next === 'closed' ? 'tabler-lock-open' : 'tabler-lock') + '"></i>';
+                        }
+                        if (next === 'closed') {
+                            removeSidebarTicket(selectedId);
+                        }
+                        refreshSidebarTickets();
+                        loadList();
+                        selectTicket(selectedId, false, true);
+                        return true;
+                    }
+                    return false;
+                })
+                .catch(function () { return false; });
+        }
+
         if (toggleStatus) {
             toggleStatus.addEventListener('click', function () {
                 if (!selectedId) {
                     return;
                 }
                 var next = toggleStatus.getAttribute('data-status') === 'closed' ? 'open' : 'closed';
-                fetch(baseUrl + '/' + selectedId + '/status', {
+                if (next === 'closed') {
+                    if (closeSubjectEl) {
+                        closeSubjectEl.textContent = subjectEl ? subjectEl.textContent : 'selecionado';
+                    }
+                    if (closeModalEl && window.bootstrap && bootstrap.Modal) {
+                        bootstrap.Modal.getOrCreateInstance(closeModalEl).show();
+                        return;
+                    }
+                    var ticketLabel = subjectEl ? subjectEl.textContent : 'este ticket';
+                    if (!window.confirm('Encerrar o ticket "' + ticketLabel + '"? Depois será necessário reabri-lo para enviar novas mensagens.')) {
+                        return;
+                    }
+                }
+                changeStatus(next);
+            });
+        }
+
+        if (closeConfirmBtn) {
+            closeConfirmBtn.addEventListener('click', function () {
+                closeConfirmBtn.disabled = true;
+                changeStatus('closed').then(function (ok) {
+                    closeConfirmBtn.disabled = false;
+                    if (ok && closeModalEl && window.bootstrap && bootstrap.Modal) {
+                        bootstrap.Modal.getOrCreateInstance(closeModalEl).hide();
+                    }
+                });
+            });
+        }
+
+        // Alterar responsável
+        if (assignBtn && assignForm) {
+            assignBtn.addEventListener('click', function () {
+                if (!selectedId) {
+                    return;
+                }
+                if (assignSelect) {
+                    assignSelect.value = currentAssignedTo ? String(currentAssignedTo) : '';
+                }
+                if (assignError) {
+                    assignError.classList.add('d-none');
+                }
+                if (assignModalEl && window.bootstrap && bootstrap.Modal) {
+                    bootstrap.Modal.getOrCreateInstance(assignModalEl).show();
+                }
+            });
+
+            assignForm.addEventListener('submit', function (event) {
+                event.preventDefault();
+                if (!selectedId) {
+                    return;
+                }
+                if (assignSubmit) {
+                    assignSubmit.disabled = true;
+                }
+                if (assignError) {
+                    assignError.classList.add('d-none');
+                }
+
+                var assignedTo = assignSelect ? assignSelect.value : '';
+                fetch(baseUrl + '/' + selectedId + '/assign', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/x-www-form-urlencoded',
                         Accept: 'application/json'
                     },
-                    body: 'csrf_token=' + encodeURIComponent(csrf) + '&status=' + encodeURIComponent(next),
+                    body: 'csrf_token=' + encodeURIComponent(csrf) + '&assigned_to=' + encodeURIComponent(assignedTo),
                     cache: 'no-store'
                 })
                     .then(function (response) { return response.json(); })
                     .then(function (data) {
-                        if (data && data.ok) {
-                            if (statusBadge) {
-                                statusBadge.className = 'badge ' + (STATUS_BADGE[next] || 'bg-label-secondary');
-                                statusBadge.textContent = STATUS_LABEL[next] || next;
-                            }
-                            toggleStatus.setAttribute('data-status', next);
-                            toggleStatus.innerHTML = '<i class="icon-base ti ' + (next === 'closed' ? 'tabler-lock-open' : 'tabler-lock') + '"></i>';
-                            loadList();
+                        if (!data || !data.ok) {
+                            throw new Error('assign_failed');
+                        }
+                        if (assignModalEl && window.bootstrap && bootstrap.Modal) {
+                            bootstrap.Modal.getOrCreateInstance(assignModalEl).hide();
+                        }
+                        selectTicket(selectedId, false, true);
+                        loadList();
+                    })
+                    .catch(function () {
+                        if (assignError) {
+                            assignError.textContent = 'Não foi possível alterar o responsável. Verifique os dados.';
+                            assignError.classList.remove('d-none');
                         }
                     })
-                    .catch(function () {});
+                    .finally(function () {
+                        if (assignSubmit) {
+                            assignSubmit.disabled = false;
+                        }
+                    });
             });
         }
 
@@ -440,14 +802,18 @@
         }
 
         setActiveFilter();
+        syncSidebarActive();
         scrollBottom();
+        window.setTimeout(scrollSelectedIntoView, 0);
+        window.addEventListener('load', scrollSelectedIntoView);
 
-        // Atualização periódica da conversa aberta.
+        // Atualização periódica da conversa aberta e da lista.
         setInterval(function () {
             if (document.hidden || !selectedId) {
                 return;
             }
-            selectTicket(selectedId, false);
+            selectTicket(selectedId, false, true);
+            loadList();
         }, 10000);
     }
 

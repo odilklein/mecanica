@@ -168,7 +168,13 @@
                     return '';
                 }
 
-                var items = (col.actions || []).map(function (action) {
+                var cfg = window.CRUD_DATATABLE || {};
+                var userRole = cfg.userRole || '';
+                var actions = (col.actions || []).filter(function (action) {
+                    return !action.roles || !action.roles.length || action.roles.indexOf(userRole) !== -1;
+                });
+
+                var items = actions.map(function (action) {
                     if (action.delete) {
                         return '<a href="javascript:;" class="dropdown-item text-danger delete-record"'
                             + ' data-id="' + esc(full.id) + '">' + esc(action.label || 'Excluir') + '</a>';
@@ -178,7 +184,7 @@
                 }).join('');
 
                 var primary = null;
-                (col.actions || []).some(function (action) {
+                actions.some(function (action) {
                     if (action.primary) {
                         primary = action;
                         return true;
@@ -299,13 +305,12 @@
                     display: DataTable.Responsive.display.modal({
                         header: function (row) {
                             var data = row.data();
-                            return 'Detalhes de ' + (
-                                data.name
+                            var title = data.name
                                 || data.plate
                                 || data.number_label
                                 || data.order_number_label
-                                || ('#' + data.id)
-                            );
+                                || ('#' + data.id);
+                            return 'Detalhes de ' + esc(title);
                         }
                     }),
                     type: 'column',

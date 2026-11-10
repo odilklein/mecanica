@@ -146,12 +146,12 @@ class BudgetResource extends Resource
     public function selectOptions(PDO $pdo, array $data = []): array
     {
         $clients = [];
-        foreach ($pdo->query('SELECT id, name FROM clients ORDER BY name')->fetchAll() as $row) {
+        foreach ($pdo->query('SELECT id, name FROM clients WHERE is_active = 1 ORDER BY name')->fetchAll() as $row) {
             $clients[(int) $row['id']] = $row['name'];
         }
 
         $vehicles = [];
-        foreach ($pdo->query('SELECT id, plate, model FROM vehicles ORDER BY plate')->fetchAll() as $row) {
+        foreach ($pdo->query('SELECT id, plate, model FROM vehicles WHERE is_active = 1 ORDER BY plate')->fetchAll() as $row) {
             $vehicles[(int) $row['id']] = trim(($row['plate'] ?? '') . ' - ' . ($row['model'] ?? ''));
         }
 

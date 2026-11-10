@@ -35,6 +35,24 @@ $typeLabels = ['part' => 'Peça', 'service' => 'Serviço'];
                 <?php endif; ?>
             </div>
         </div></div>
+
+        <div class="card mt-3"><div class="card-body">
+            <div class="panel-header"><i class="icon-base ti tabler-progress-check"></i><div><h3 class="panel-title">Status</h3></div></div>
+            <form method="POST" action="<?= e($path . '/' . $budgetId . '/status') ?>">
+                <input type="hidden" name="csrf_token" value="<?= e($csrf) ?>">
+                <div class="mb-3">
+                    <label class="form-label" for="budgetStatus">Situação do orçamento</label>
+                    <select class="select2 form-select" id="budgetStatus" name="status" data-placeholder="Selecione">
+                        <?php foreach (($statuses ?? []) as $statusKey => $statusLabel): ?>
+                        <option value="<?= e($statusKey) ?>" <?= $budget['status'] === $statusKey ? 'selected' : '' ?>><?= e($statusLabel) ?></option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+                <button type="submit" class="btn btn-primary w-100">
+                    <i class="icon-base ti tabler-device-floppy"></i> Atualizar status
+                </button>
+            </form>
+        </div></div>
     </div>
 
     <div class="col-lg-8">

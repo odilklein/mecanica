@@ -269,9 +269,10 @@
                     ? metaParts.join(' · ')
                     : (meta.name ? 'Peça do catálogo' : 'Peça manual');
 
-                if (meta.product_url) {
+                var productUrl = window.safeUrl ? window.safeUrl(meta.product_url) : '';
+                if (productUrl) {
                     var link = document.createElement('a');
-                    link.href = meta.product_url;
+                    link.href = productUrl;
                     link.target = '_blank';
                     link.rel = 'noopener';
                     link.className = 'ms-1 text-primary text-decoration-none';
@@ -282,7 +283,7 @@
 
                 row.dataset.sku = meta.sku || '';
                 row.dataset.unitPrice = meta.price != null ? String(meta.price) : '';
-                row.dataset.productUrl = meta.product_url || meta.url || '';
+                row.dataset.productUrl = productUrl || '';
                 row.dataset.catalogNotes = metaParts.join(' · ');
 
                 var priceEl = row.querySelector('.item-price');

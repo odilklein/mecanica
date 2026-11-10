@@ -5,6 +5,7 @@ namespace Modules\Mechanic\Controllers;
 
 use Kernel\Crud\CrudController;
 use Kernel\Crud\Resource;
+use Modules\Core\Support\Notify;
 use Modules\Mechanic\Resources\BudgetResource;
 use Modules\Mechanic\Services\TicketService;
 use Modules\Mechanic\Support\BudgetStatus;
@@ -67,13 +68,33 @@ class BudgetController extends CrudController
         $vehicleId = (int) ($body['vehicle_id'] ?? 0) ?: null;
         $serviceOrderId = (int) ($body['service_order_id'] ?? 0) ?: null;
         $validUntil = clean($body['valid_until'] ?? '') ?: null;
-        $discount = (float) str_replace(',', '.', (string) ($body['discount'] ?? 0));
+        $discount = max(0, (float) str_replace(',', '.', (string) ($body['discount'] ?? 0)));
         $notes = clean($body['notes'] ?? '');
         $items = json_decode((string) ($body['items_json'] ?? '[]'), true) ?: [];
 
         if ($clientId <= 0) {
             $this->session->flash('error', 'Selecione o cliente.');
             return redirect($resource->path() . ($id > 0 ? '/' . $id . '/edit' : '/create'));
+        }
+
+        if ($vehicleId !== null) {
+            $vehicleCheck = $this->pdo->prepare(
+                'SELECT 1 FROM vehicles WHERE id = ? AND client_id = ? AND is_active = 1'
+            );
+            $vehicleCheck->execute([$vehicleId, $clientId]);
+            if (!$vehicleCheck->fetchColumn()) {
+                $this->session->flash('error', 'Veículo inválido ou inativo para o cliente selecionado.');
+                return redirect($resource->path() . ($id > 0 ? '/' . $id . '/edit' : '/create'));
+            }
+        }
+
+        if ($serviceOrderId !== null) {
+            $orderCheck = $this->pdo->prepare('SELECT 1 FROM service_orders WHERE id = ? AND client_id = ?');
+            $orderCheck->execute([$serviceOrderId, $clientId]);
+            if (!$orderCheck->fetchColumn()) {
+                $this->session->flash('error', 'A OS selecionada não pertence a este cliente.');
+                return redirect($resource->path() . ($id > 0 ? '/' . $id . '/edit' : '/create'));
+            }
         }
 
         $isNew = $id <= 0;
@@ -160,6 +181,83 @@ class BudgetController extends CrudController
         ]);
     }
 
+    public function updateStatus(ServerRequestInterface $request, $id)
+    {
+        $resource = $this->resource();
+        if ($response = $this->guardRoles($resource->roles())) {
+            return $response;
+        }
+        if ($response = $this->guardCsrf($request, $resource->path() . '/' . (int) $id)) {
+            return $response;
+        }
+
+        $status = (string) ($request->getParsedBody()['status'] ?? '');
+        if (!isset(BudgetStatus::STATUSES[$status])) {
+            $this->session->flash('error', 'Status inválido.');
+            return redirect($resource->path() . '/' . (int) $id);
+        }
+
+        $budget = $this->findBudget((int) $id);
+        if (!$budget) {
+            $this->session->flash('error', 'Orçamento não encontrado.');
+            return redirect($resource->path());
+        }
+        if ((string) $budget['status'] === $status) {
+            $this->session->flash('success', 'O status já é "' . BudgetStatus::label($status) . '".');
+            return redirect($resource->path() . '/' . (int) $id);
+        }
+
+        $this->pdo->prepare('UPDATE budgets SET status = :s WHERE id = :id')
+            ->execute([':s' => $status, ':id' => (int) $id]);
+        record_audit($this->pdo, $this->auth->id(), 'budgets', (int) $id, 'status', ['status' => $status]);
+        $this->notifyBudgetStatus($budget, $status);
+        $this->session->flash('success', 'Status do orçamento atualizado para "' . BudgetStatus::label($status) . '".');
+        return redirect($resource->path() . '/' . (int) $id);
+    }
+
+    /** Notifica a equipe da OS quando o orçamento muda de status. */
+    private function notifyBudgetStatus(array $budget, string $status): void
+    {
+        $orderId = (int) ($budget['service_order_id'] ?? 0);
+        if ($orderId <= 0) {
+            return;
+        }
+
+        $stmt = $this->pdo->prepare('SELECT number, created_by, lead_mechanic_id FROM service_orders WHERE id = ?');
+        $stmt->execute([$orderId]);
+        $order = $stmt->fetch();
+        if (!$order) {
+            return;
+        }
+
+        $ids = [(int) ($order['created_by'] ?? 0), (int) ($order['lead_mechanic_id'] ?? 0)];
+        $resp = $this->pdo->prepare('SELECT user_id FROM service_order_responsibles WHERE order_id = ?');
+        $resp->execute([$orderId]);
+        foreach ($resp->fetchAll(\PDO::FETCH_COLUMN) as $userId) {
+            $ids[] = (int) $userId;
+        }
+
+        $actor = (int) $this->auth->id();
+        $recipients = array_values(array_unique(array_filter(
+            $ids,
+            static fn (int $uid): bool => $uid > 0 && $uid !== $actor
+        )));
+        if (!$recipients) {
+            return;
+        }
+
+        Notify::to(
+            $this->pdo,
+            $recipients,
+            'os_status',
+            'Orçamento #' . str_pad((string) $budget['number'], 4, '0', STR_PAD_LEFT)
+                . ' da OS #' . str_pad((string) $order['number'], 4, '0', STR_PAD_LEFT)
+                . ' foi ' . mb_strtolower(BudgetStatus::label($status)) . '.',
+            '/budgets/' . (int) $budget['id'],
+            $actor
+        );
+    }
+
     public function print(ServerRequestInterface $request, $id)
     {
         $resource = $this->resource();
@@ -182,8 +280,8 @@ class BudgetController extends CrudController
 
     private function renderEditor(Resource $resource, ?array $budget, array $items, array $defaults = []): string
     {
-        $clients = $this->pdo->query('SELECT id, name FROM clients ORDER BY name')->fetchAll();
-        $vehicles = $this->pdo->query('SELECT id, client_id, plate, model FROM vehicles ORDER BY plate')->fetchAll();
+        $clients = $this->pdo->query('SELECT id, name FROM clients WHERE is_active = 1 ORDER BY name')->fetchAll();
+        $vehicles = $this->pdo->query('SELECT id, client_id, plate, model FROM vehicles WHERE is_active = 1 ORDER BY plate')->fetchAll();
 
         return $this->render('mechanic::budgets/editor', [
             'title' => $budget ? 'Editar orçamento' : 'Novo orçamento',

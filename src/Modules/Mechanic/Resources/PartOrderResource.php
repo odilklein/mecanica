@@ -85,8 +85,8 @@ class PartOrderResource extends Resource
             ['title' => 'Status', 'data' => 'status', 'render' => 'badge', 'badge' => $statuses, 'priority' => 4],
             ['title' => 'Previsão', 'data' => 'expected_date', 'render' => 'date', 'priority' => 8],
             $this->dtActionsColumn([
-                ['label' => 'Editar', 'icon' => 'pencil', 'href' => $this->path() . '/{id}/edit', 'primary' => true],
-                ['label' => 'Excluir', 'icon' => 'trash', 'delete' => true],
+                ['label' => 'Editar', 'icon' => 'pencil', 'href' => $this->path() . '/{id}/edit', 'primary' => true, 'roles' => ['admin', 'secretary', 'lead_mechanic']],
+                ['label' => 'Excluir', 'icon' => 'trash', 'delete' => true, 'roles' => ['admin', 'secretary', 'lead_mechanic']],
             ]),
         ];
     }
@@ -107,7 +107,7 @@ class PartOrderResource extends Resource
         ];
     }
 
-    public function paginate(PDO $pdo, int $page, int $perPage, string $search): array
+    public function paginate(PDO $pdo, int $page, int $perPage, string $search, ?int $scopeUserId = null): array
     {
         $page = max(1, $page);
         $params = [];
@@ -116,6 +116,15 @@ class PartOrderResource extends Resource
         if ($search !== '') {
             $where = '(so.number LIKE :s OR po.supplier LIKE :s OR c.name LIKE :s)';
             $params[':s'] = '%' . $search . '%';
+        }
+
+        if ($scopeUserId !== null) {
+            $where .= " AND (so.created_by = :scope_uid_created OR so.lead_mechanic_id = :scope_uid_lead
+                OR EXISTS (SELECT 1 FROM service_order_responsibles sr
+                            WHERE sr.order_id = so.id AND sr.user_id = :scope_uid_resp))";
+            $params[':scope_uid_created'] = $scopeUserId;
+            $params[':scope_uid_lead'] = $scopeUserId;
+            $params[':scope_uid_resp'] = $scopeUserId;
         }
 
         $from = 'FROM part_orders po
@@ -148,22 +157,65 @@ class PartOrderResource extends Resource
         ];
     }
 
-    public function selectOptions(PDO $pdo, array $data = []): array
-    {
+    public function selectOptions(
+        PDO $pdo,
+        array $data = [],
+        ?int $scopeUserId = null,
+        bool $canManageStatus = true
+    ): array {
         $orders = [];
         $sql = "SELECT so.id, so.number, c.name
                   FROM service_orders so
                   LEFT JOIN clients c ON c.id = so.client_id
-                 WHERE so.status NOT IN ('delivered','cancelled')
-                 ORDER BY so.number DESC";
-        foreach ($pdo->query($sql)->fetchAll() as $row) {
+                 WHERE so.status NOT IN ('delivered','cancelled')";
+        $params = [];
+        if ($scopeUserId !== null) {
+            $sql .= " AND (so.created_by = :scope_uid_created OR so.lead_mechanic_id = :scope_uid_lead
+                        OR EXISTS (SELECT 1 FROM service_order_responsibles sr
+                                    WHERE sr.order_id = so.id AND sr.user_id = :scope_uid_resp))";
+            $params[':scope_uid_created'] = $scopeUserId;
+            $params[':scope_uid_lead'] = $scopeUserId;
+            $params[':scope_uid_resp'] = $scopeUserId;
+        }
+        $sql .= ' ORDER BY so.number DESC';
+
+        $stmt = $pdo->prepare($sql);
+        $stmt->execute($params);
+        foreach ($stmt->fetchAll() as $row) {
             $orders[(int) $row['id']] = 'OS #' . str_pad((string) $row['number'], 4, '0', STR_PAD_LEFT)
                 . ($row['name'] ? ' - ' . $row['name'] : '');
         }
 
+        $suppliers = [];
+        $currentSupplier = (string) ($data['supplier'] ?? '');
+        try {
+            foreach ($pdo->query('SELECT name FROM suppliers WHERE is_active = 1 ORDER BY name')->fetchAll() as $row) {
+                $suppliers[(string) $row['name']] = (string) $row['name'];
+            }
+        } catch (\Throwable $e) {
+            // Tabela ainda não migrada: mantém apenas o valor atual.
+        }
+        if ($currentSupplier !== '' && !isset($suppliers[$currentSupplier])) {
+            $suppliers[$currentSupplier] = $currentSupplier . ' (legado)';
+        }
+
+        // Mecânico só pode solicitar a peça: o status inicial é sempre
+        // "Solicitado" e os demais ficam com a gestão da oficina.
+        $statuses = $canManageStatus
+            ? PartOrderStatus::STATUSES
+            : ['requested' => PartOrderStatus::STATUSES['requested']];
+
         return [
             'service_order_id' => $orders,
-            'status' => PartOrderStatus::STATUSES,
+            'supplier' => $suppliers,
+            'status' => $statuses,
+        ];
+    }
+
+    public function datatableFilters(): array
+    {
+        return [
+            ['field' => 'supplier', 'label' => 'Fornecedor'],
         ];
     }
 

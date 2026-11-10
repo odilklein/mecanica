@@ -13,8 +13,8 @@ $itemsJson = json_encode(array_map(static function ($i) {
         'quantity' => (float) $i['quantity'],
         'unit_price' => (float) $i['unit_price'],
     ];
-}, $items), JSON_UNESCAPED_UNICODE);
-$vehiclesJson = json_encode($vehicles, JSON_UNESCAPED_UNICODE);
+}, $items), JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT);
+$vehiclesJson = json_encode($vehicles, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT);
 ?>
 <div class="page-header">
     <div>

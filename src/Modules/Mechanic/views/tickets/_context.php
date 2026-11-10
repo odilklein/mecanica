@@ -23,18 +23,28 @@ $status = (string) ($order['status'] ?? 'received');
 ?>
 <div class="ticket-os-context">
     <div class="d-flex flex-wrap justify-content-between align-items-center gap-2">
-        <button type="button" class="btn btn-sm btn-text-secondary p-0 d-flex align-items-center gap-2"
-                data-bs-toggle="collapse" data-bs-target="#ticketContextBody" aria-expanded="true">
-            <i class="icon-base ti tabler-info-circle"></i>
-            <span class="fw-medium">Contexto da OS #<?= $orderNumber ?></span>
-            <span class="badge <?= e($Status::badgeClass($status)) ?>"><?= e($Status::label($status)) ?></span>
+        <button type="button" class="btn btn-sm btn-text-secondary p-0 d-flex align-items-start gap-2 text-start flex-grow-1"
+                data-bs-toggle="collapse" data-bs-target="#ticketContextBody" aria-expanded="false" aria-controls="ticketContextBody">
+            <i class="icon-base ti tabler-info-circle mt-1"></i>
+            <span class="min-w-0">
+                <span class="fw-medium d-flex flex-wrap align-items-center gap-2">
+                    Contexto da OS #<?= $orderNumber ?>
+                    <span class="badge <?= e($Status::badgeClass($status)) ?>"><?= e($Status::label($status)) ?></span>
+                </span>
+                <small class="text-body-secondary d-block text-truncate">
+                    <?= e($order['plate'] ?: 'Sem placa') ?>
+                    <?php if ($vehicle !== ''): ?> · <?= e($vehicle) ?><?php endif; ?>
+                    <?php if (!empty($order['client_name'])): ?> · <?= e((string) $order['client_name']) ?><?php endif; ?>
+                </small>
+            </span>
+            <i class="icon-base ti tabler-chevron-down ms-auto mt-1"></i>
         </button>
         <a href="/service-orders/<?= $orderId ?>" class="btn btn-sm btn-label-primary">
             <i class="icon-base ti tabler-external-link"></i> Abrir OS
         </a>
     </div>
 
-    <div class="collapse show" id="ticketContextBody">
+    <div class="collapse" id="ticketContextBody">
         <div class="row g-3 mt-0">
             <div class="col-md-6">
                 <div class="mb-2">

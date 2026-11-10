@@ -6,6 +6,7 @@ $icons = [
     'task' => 'list-check',
     'part' => 'package',
     'os_created' => 'clipboard-plus',
+    'os_responsible' => 'user-check',
     'ticket' => 'messages',
 ];
 $typeLabels = [
@@ -13,6 +14,7 @@ $typeLabels = [
     'task' => 'Tarefa',
     'part' => 'Pedido de peça',
     'os_created' => 'Nova ordem de serviço',
+    'os_responsible' => 'Responsável',
     'ticket' => 'Ticket',
 ];
 $colors = [
@@ -20,6 +22,7 @@ $colors = [
     'task' => 'bg-label-success',
     'part' => 'bg-label-warning',
     'os_created' => 'bg-label-primary',
+    'os_responsible' => 'bg-label-primary',
     'ticket' => 'bg-label-info',
 ];
 ?>

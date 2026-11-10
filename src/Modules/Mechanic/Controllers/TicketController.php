@@ -83,13 +83,29 @@ class TicketController extends Controller
             $this->tickets->markRead((int) $selected['id'], $userId);
         }
 
-        $orders = $this->pdo->query(
-            'SELECT so.id, so.number, c.name AS client_name
-               FROM service_orders so
-               LEFT JOIN clients c ON c.id = so.client_id
-              ORDER BY so.id DESC
-              LIMIT 200'
-        )->fetchAll();
+        // Só lista OS que o usuário pode acessar (evita expor OS de terceiros).
+        $ordersSql = 'SELECT so.id, so.number, c.name AS client_name
+                        FROM service_orders so
+                        LEFT JOIN clients c ON c.id = so.client_id';
+        if ($isAdmin) {
+            $orders = $this->pdo->query($ordersSql . ' ORDER BY so.id DESC LIMIT 200')->fetchAll();
+        } else {
+            $ordersStmt = $this->pdo->prepare(
+                $ordersSql . '
+                 WHERE so.created_by = :uid_created
+                    OR so.lead_mechanic_id = :uid_lead
+                    OR EXISTS (SELECT 1 FROM service_order_responsibles r
+                                WHERE r.order_id = so.id AND r.user_id = :uid_resp)
+                 ORDER BY so.id DESC
+                 LIMIT 200'
+            );
+            $ordersStmt->execute([
+                ':uid_created' => $userId,
+                ':uid_lead' => $userId,
+                ':uid_resp' => $userId,
+            ]);
+            $orders = $ordersStmt->fetchAll();
+        }
 
         $users = $this->pdo->query(
             "SELECT id, name, role FROM users WHERE is_active = 1 ORDER BY name"
@@ -201,7 +217,7 @@ class TicketController extends Controller
 
         $body = $request->getParsedBody();
         if (!$this->session->verifyCsrf($body['csrf_token'] ?? null)) {
-            return json_response(['error' => 'csrf'], 419);
+            return json_response(['error' => 'csrf'], 403);
         }
 
         $subject = clean($body['subject'] ?? '');
@@ -212,6 +228,14 @@ class TicketController extends Controller
         $orderId = (int) ($body['service_order_id'] ?? 0) ?: null;
         $assignedTo = (int) ($body['assigned_to'] ?? 0) ?: null;
         $userId = (int) $this->auth->id();
+
+        if ($assignedTo) {
+            $assignee = $this->pdo->prepare('SELECT 1 FROM users WHERE id = ? AND is_active = 1');
+            $assignee->execute([$assignedTo]);
+            if (!$assignee->fetchColumn()) {
+                return json_response(['error' => 'invalid_assignee'], 422);
+            }
+        }
 
         // Ticket vinculado a uma OS: valida participação e reaproveita o existente.
         if ($orderId) {
@@ -231,7 +255,15 @@ class TicketController extends Controller
                 $ticketId = (int) $existing['id'];
                 $message = clean($body['message'] ?? '');
                 if ($message !== '') {
+                    if (($existing['status'] ?? 'open') === 'closed') {
+                        return json_response(['error' => 'ticket_closed'], 409);
+                    }
                     $this->tickets->send($ticketId, $userId, $message);
+                    $this->notifyTicket(
+                        $ticketId,
+                        'Nova mensagem no ticket "' . mb_substr((string) $existing['subject'], 0, 80) . '".',
+                        $userId
+                    );
                 }
 
                 return json_response(['ok' => true, 'id' => $ticketId, 'existing' => true], 200);
@@ -245,16 +277,11 @@ class TicketController extends Controller
             $this->tickets->send($ticketId, $userId, $message);
         }
 
-        if ($assignedTo && $assignedTo !== $userId) {
-            Notify::to(
-                $this->pdo,
-                [$assignedTo],
-                'ticket',
-                'Você foi designado para o ticket "' . mb_substr($subject, 0, 80) . '".',
-                '/tickets?ticket=' . $ticketId,
-                $userId
-            );
-        }
+        $this->notifyTicket(
+            $ticketId,
+            'Novo ticket "' . mb_substr($subject, 0, 80) . '".',
+            $userId
+        );
 
         return json_response(['ok' => true, 'id' => $ticketId], 201);
     }
@@ -278,7 +305,11 @@ class TicketController extends Controller
 
         $body = $request->getParsedBody();
         if (!$this->session->verifyCsrf($body['csrf_token'] ?? null)) {
-            return json_response(['error' => 'csrf'], 419);
+            return json_response(['error' => 'csrf'], 403);
+        }
+
+        if (($ticket['status'] ?? 'open') === 'closed') {
+            return json_response(['error' => 'ticket_closed'], 409);
         }
 
         $message = trim((string) ($body['message'] ?? ''));
@@ -289,21 +320,11 @@ class TicketController extends Controller
         $created = $this->tickets->send((int) $ticket['id'], $userId, $message);
         $this->tickets->markRead((int) $ticket['id'], $userId);
 
-        $recipients = array_values(array_filter([
-            (int) $ticket['created_by'],
-            (int) ($ticket['assigned_to'] ?? 0),
-        ], static fn (int $uid): bool => $uid > 0 && $uid !== $userId));
-
-        if ($recipients) {
-            Notify::to(
-                $this->pdo,
-                $recipients,
-                'ticket',
-                'Nova mensagem no ticket "' . mb_substr((string) $ticket['subject'], 0, 80) . '".',
-                '/tickets?ticket=' . (int) $ticket['id'],
-                $userId
-            );
-        }
+        $this->notifyTicket(
+            (int) $ticket['id'],
+            'Nova mensagem no ticket "' . mb_substr((string) $ticket['subject'], 0, 80) . '".',
+            $userId
+        );
 
         return json_response(['ok' => true, 'message' => $created], 201);
     }
@@ -326,7 +347,7 @@ class TicketController extends Controller
 
         $body = $request->getParsedBody();
         if (!$this->session->verifyCsrf($body['csrf_token'] ?? null)) {
-            return json_response(['error' => 'csrf'], 419);
+            return json_response(['error' => 'csrf'], 403);
         }
 
         $status = (string) ($body['status'] ?? '');
@@ -334,9 +355,93 @@ class TicketController extends Controller
             return json_response(['error' => 'invalid_status'], 422);
         }
 
-        $this->tickets->updateStatus((int) $ticket['id'], $status);
+        $previous = (string) ($ticket['status'] ?? 'open');
+        if ($previous !== $status) {
+            $this->tickets->updateStatus((int) $ticket['id'], $status);
+            $this->notifyTicket(
+                (int) $ticket['id'],
+                'Ticket "' . mb_substr((string) $ticket['subject'], 0, 80) . '" '
+                    . ($status === 'closed' ? 'encerrado' : 'reaberto') . '.',
+                (int) $this->auth->id()
+            );
+        }
 
         return json_response(['ok' => true, 'status' => $status]);
+    }
+
+    /** Altera o responsável pelo ticket. */
+    public function assign(ServerRequestInterface $request, $id)
+    {
+        if (!$this->auth->check()) {
+            return json_response(['error' => 'unauthorized'], 401);
+        }
+
+        $ticket = $this->tickets->find((int) $id);
+        if (!$ticket) {
+            return json_response(['error' => 'not_found'], 404);
+        }
+
+        $userId = (int) $this->auth->id();
+        if (!$this->tickets->canAccess($ticket, $userId, $this->auth->hasRole(['admin']))) {
+            return json_response(['error' => 'forbidden'], 403);
+        }
+
+        $body = $request->getParsedBody();
+        if (!$this->session->verifyCsrf($body['csrf_token'] ?? null)) {
+            return json_response(['error' => 'csrf'], 403);
+        }
+
+        $assignedTo = (int) ($body['assigned_to'] ?? 0) ?: null;
+        $assignedName = null;
+        if ($assignedTo !== null) {
+            $stmt = $this->pdo->prepare('SELECT name FROM users WHERE id = ? AND is_active = 1');
+            $stmt->execute([$assignedTo]);
+            $assignedName = $stmt->fetchColumn();
+            if (!$assignedName) {
+                return json_response(['error' => 'invalid_assignee'], 422);
+            }
+        }
+
+        $this->pdo->prepare('UPDATE tickets SET assigned_to = :assigned WHERE id = :id')
+            ->execute([':assigned' => $assignedTo, ':id' => (int) $ticket['id']]);
+
+        if ($assignedTo !== null && $assignedTo !== $userId) {
+            Notify::to(
+                $this->pdo,
+                [$assignedTo],
+                'ticket',
+                'Você é o novo responsável pelo ticket "' . mb_substr((string) $ticket['subject'], 0, 80) . '".',
+                '/tickets?ticket=' . (int) $ticket['id'],
+                $userId
+            );
+        }
+
+        return json_response([
+            'ok' => true,
+            'assigned_to' => $assignedTo,
+            'assigned_name' => $assignedName,
+        ]);
+    }
+
+    /** Notifica todos os participantes do ticket, exceto quem executou a ação. */
+    private function notifyTicket(int $ticketId, string $message, int $actorId): void
+    {
+        $recipients = array_values(array_filter(
+            $this->tickets->participants($ticketId),
+            static fn (int $uid): bool => $uid > 0 && $uid !== $actorId
+        ));
+        if (!$recipients) {
+            return;
+        }
+
+        Notify::to(
+            $this->pdo,
+            $recipients,
+            'ticket',
+            $message,
+            '/tickets?ticket=' . $ticketId,
+            $actorId
+        );
     }
 
     /** Abre (ou garante) o ticket vinculado a uma OS. */
@@ -346,7 +451,7 @@ class TicketController extends Controller
             return $response;
         }
 
-        $stmt = $this->pdo->prepare('SELECT id, created_by, lead_mechanic_id FROM service_orders WHERE id = ?');
+        $stmt = $this->pdo->prepare('SELECT id, number, created_by, lead_mechanic_id FROM service_orders WHERE id = ?');
         $stmt->execute([(int) $id]);
         $order = $stmt->fetch();
 
@@ -360,7 +465,16 @@ class TicketController extends Controller
             return redirect('/service-orders/' . (int) $id);
         }
 
+        $existing = $this->tickets->findByOrder((int) $id);
         $ticketId = $this->tickets->ensureForOrder((int) $id);
+
+        if (!$existing) {
+            $this->notifyTicket(
+                $ticketId,
+                'Novo ticket da OS #' . str_pad((string) $order['number'], 4, '0', STR_PAD_LEFT) . '.',
+                (int) $this->auth->id()
+            );
+        }
 
         return redirect('/tickets?ticket=' . $ticketId);
     }

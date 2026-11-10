@@ -31,6 +31,15 @@ class Auth
         $user = $stmt->fetch();
 
         if ($user && password_verify($password, $user['password'])) {
+            // Atualiza o hash se o algoritmo/custo padrão mudou.
+            if (password_needs_rehash((string) $user['password'], PASSWORD_DEFAULT)) {
+                $this->pdo->prepare('UPDATE users SET password = :p WHERE id = :id')
+                    ->execute([
+                        ':p' => password_hash($password, PASSWORD_DEFAULT),
+                        ':id' => (int) $user['id'],
+                    ]);
+            }
+
             $this->session->regenerate();
             $this->session->set('auth_user_id', (int) $user['id']);
             $this->session->set('auth_user_name', (string) $user['name']);

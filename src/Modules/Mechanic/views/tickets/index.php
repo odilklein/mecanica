@@ -84,9 +84,14 @@ $currentStatus = (string) ($selected['status'] ?? '');
                        data-bs-toggle="sidebar" data-overlay data-target="#app-chat-contacts"></i>
                 </div>
                 <div class="px-4 pb-3 d-flex gap-2">
-                    <button type="button" class="btn btn-sm btn-label-primary ticket-filter" data-scope="all">Todos</button>
-                    <button type="button" class="btn btn-sm btn-label-secondary ticket-filter" data-scope="unread">Não lidos</button>
-                    <button type="button" class="btn btn-sm btn-label-secondary ticket-filter" data-status="closed">Encerrados</button>
+                    <?php
+                    $isAllFilter = $scope !== 'unread' && $status !== 'closed';
+                    $isUnreadFilter = $scope === 'unread';
+                    $isClosedFilter = $status === 'closed';
+                    ?>
+                    <button type="button" class="btn btn-sm <?= $isAllFilter ? 'btn-label-primary' : 'btn-label-secondary' ?> ticket-filter" data-scope="all">Todos</button>
+                    <button type="button" class="btn btn-sm <?= $isUnreadFilter ? 'btn-label-primary' : 'btn-label-secondary' ?> ticket-filter" data-scope="unread">Não lidos</button>
+                    <button type="button" class="btn btn-sm <?= $isClosedFilter ? 'btn-label-primary' : 'btn-label-secondary' ?> ticket-filter" data-status="closed">Encerrados</button>
                 </div>
             </div>
             <div class="sidebar-body">
@@ -101,6 +106,7 @@ $currentStatus = (string) ($selected['status'] ?? '');
                         $ticketId = (int) $ticket['id'];
                         $unread = (int) ($ticket['unread'] ?? 0);
                         $isSelected = $ticketId === (int) $selectedId;
+                        $isClosedTicket = ($ticket['status'] ?? 'open') === 'closed';
                     ?>
                     <li class="chat-contact-list-item mb-1<?= $isSelected ? ' active' : '' ?>" data-ticket-id="<?= $ticketId ?>">
                         <a href="/tickets?ticket=<?= $ticketId ?>" class="d-flex align-items-center text-reset text-decoration-none p-0">
@@ -118,8 +124,17 @@ $currentStatus = (string) ($selected['status'] ?? '');
                                     <small class="chat-contact-status text-truncate">
                                         <?= e($ticket['last_message'] ?: 'Sem mensagens ainda') ?>
                                     </small>
-                                    <?php if ($unread > 0): ?>
-                                    <span class="badge rounded-pill bg-primary"><?= $unread ?></span>
+                                    <?php if ($unread > 0 && !$isSelected): ?>
+                                    <span class="badge rounded-pill bg-primary unread-badge"><?= $unread ?></span>
+                                    <?php endif; ?>
+                                </div>
+                                <div class="d-flex justify-content-between align-items-center gap-2 mt-1">
+                                    <small class="chat-contact-assignee text-body-secondary text-truncate">
+                                        <i class="icon-base ti tabler-user-check"></i>
+                                        <?= e($ticket['assigned_name'] ?: 'Sem responsável') ?>
+                                    </small>
+                                    <?php if ($isClosedTicket): ?>
+                                    <span class="badge bg-label-secondary flex-shrink-0"><i class="icon-base ti tabler-lock me-1"></i>Encerrado</span>
                                     <?php endif; ?>
                                 </div>
                             </div>
@@ -172,6 +187,12 @@ $currentStatus = (string) ($selected['status'] ?? '');
                                 <i class="icon-base ti tabler-external-link"></i>
                             </a>
                             <?php endif; ?>
+                            <button type="button" class="btn btn-sm btn-label-secondary" id="ticketAssignBtn"
+                                    data-assigned-to="<?= (int) ($selected['assigned_to'] ?? 0) ?>"
+                                    title="<?= e(!empty($selected['assigned_name']) ? 'Responsável: ' . $selected['assigned_name'] : 'Sem responsável') ?>"
+                                    aria-label="Alterar responsável">
+                                <i class="icon-base ti tabler-user-check"></i>
+                            </button>
                             <button type="button" class="btn btn-sm btn-label-secondary" id="ticketToggleStatus"
                                     data-status="<?= e($currentStatus) ?>" title="<?= $currentStatus === 'closed' ? 'Reabrir ticket' : 'Encerrar ticket' ?>">
                                 <i class="icon-base ti <?= $currentStatus === 'closed' ? 'tabler-lock-open' : 'tabler-lock' ?>"></i>
@@ -196,11 +217,16 @@ $currentStatus = (string) ($selected['status'] ?? '');
                         <?php if ($isSystem): ?>
                         <li class="chat-message ticket-system-message">
                             <div class="ticket-system-card">
-                                <div class="d-flex align-items-center gap-2 mb-2 text-primary">
-                                    <i class="icon-base ti tabler-clipboard-text"></i>
-                                    <span class="fw-semibold">Resumo automático da OS</span>
+                                <button type="button" class="btn btn-text-secondary p-0 d-flex align-items-center gap-2 w-100 text-start"
+                                        data-bs-toggle="collapse" data-bs-target="#ticketSummary-<?= (int) $message['id'] ?>"
+                                        aria-expanded="false" aria-controls="ticketSummary-<?= (int) $message['id'] ?>">
+                                    <i class="icon-base ti tabler-clipboard-text text-primary"></i>
+                                    <span class="fw-semibold text-primary">Resumo automático da OS</span>
+                                    <i class="icon-base ti tabler-chevron-down ms-auto"></i>
+                                </button>
+                                <div class="collapse" id="ticketSummary-<?= (int) $message['id'] ?>">
+                                    <div class="ticket-system-content mt-2"><?= nl2br(e((string) $message['message'])) ?></div>
                                 </div>
-                                <div class="ticket-system-content"><?= nl2br(e((string) $message['message'])) ?></div>
                             </div>
                         </li>
                         <?php else: ?>
@@ -247,7 +273,12 @@ $currentStatus = (string) ($selected['status'] ?? '');
                     </div>
                 </div>
 
-                <div class="chat-history-footer shadow-xs <?= $selected ? '' : 'd-none' ?>" id="ticketFooter">
+                <div class="alert alert-secondary mx-4 mb-3 <?= ($selected && $currentStatus === 'closed') ? '' : 'd-none' ?>" id="ticketClosedNotice">
+                    <i class="icon-base ti tabler-lock me-1"></i>
+                    Ticket encerrado. Reabra para enviar novas mensagens.
+                </div>
+
+                <div class="chat-history-footer shadow-xs <?= ($selected && $currentStatus !== 'closed') ? '' : 'd-none' ?>" id="ticketFooter">
                     <form class="form-send-message d-flex justify-content-between align-items-center" id="ticketForm">
                         <input type="hidden" name="csrf_token" value="<?= e($csrf) ?>">
                         <input type="text" class="form-control message-input border-0 me-3 shadow-none" id="ticketInput"
@@ -332,6 +363,70 @@ $currentStatus = (string) ($selected['status'] ?? '');
                     </button>
                 </div>
             </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: alterar responsável -->
+<div class="modal fade" id="ticketAssignModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <form id="ticketAssignForm">
+                <input type="hidden" name="csrf_token" value="<?= e($csrf) ?>">
+                <div class="modal-header">
+                    <h5 class="modal-title">Alterar responsável</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-4">
+                        <label class="form-label" for="ticketAssignSelect">Responsável</label>
+                        <select class="form-select" id="ticketAssignSelect" name="assigned_to">
+                            <option value="">Sem responsável</option>
+                            <?php foreach ($users as $member): ?>
+                            <option value="<?= (int) $member['id'] ?>">
+                                <?= e($member['name']) ?> · <?= e($roleLabel[$member['role']] ?? $member['role']) ?>
+                            </option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+                    <div class="alert alert-danger mt-4 mb-0 d-none" id="ticketAssignError"></div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-label-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary" id="ticketAssignSubmit">
+                        <i class="icon-base ti tabler-user-check"></i> Salvar responsável
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: encerrar ticket -->
+<div class="modal fade" id="ticketCloseModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Encerrar ticket</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+            </div>
+            <div class="modal-body">
+                <div class="d-flex gap-3">
+                    <div class="badge rounded bg-label-warning p-2 flex-shrink-0">
+                        <i class="icon-base ti tabler-lock icon-lg"></i>
+                    </div>
+                    <div>
+                        <p class="mb-2">Encerrar o ticket <strong id="ticketCloseSubject"></strong>?</p>
+                        <p class="text-body-secondary mb-0">Depois será necessário reabri-lo para enviar novas mensagens.</p>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-label-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-danger" id="ticketCloseConfirm">
+                    <i class="icon-base ti tabler-lock"></i> Encerrar ticket
+                </button>
+            </div>
         </div>
     </div>
 </div>

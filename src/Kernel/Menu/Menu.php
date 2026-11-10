@@ -21,10 +21,10 @@ class Menu
      */
     private const SECTION_ORDER = [
         'Principal' => 10,
-        'Cadastros' => 20,
-        'Operações' => 30,
-        'Documentos' => 40,
-        'Atendimento' => 50,
+        'Atendimento' => 20,
+        'Cadastros' => 30,
+        'Operações' => 40,
+        'Documentos' => 50,
         'Sistema' => 90,
     ];
 

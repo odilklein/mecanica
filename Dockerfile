@@ -5,6 +5,18 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/* \
     && docker-php-ext-install pdo_mysql mbstring zip
 
+# Hardening básico do PHP.
+RUN { \
+        echo 'expose_php=Off'; \
+        echo 'display_errors=Off'; \
+        echo 'log_errors=On'; \
+        echo 'session.use_strict_mode=1'; \
+        echo 'session.cookie_httponly=1'; \
+        echo 'session.cookie_samesite=Lax'; \
+        echo 'upload_max_filesize=25M'; \
+        echo 'post_max_size=25M'; \
+    } > /usr/local/etc/php/conf.d/security.ini
+
 RUN { \
         echo '<Directory /var/www/html>'; \
         echo '    AllowOverride All'; \

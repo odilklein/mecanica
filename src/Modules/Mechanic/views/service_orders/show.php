@@ -44,6 +44,7 @@ $me = (int) ($user['id'] ?? 0);
 $ticketStatus = (string) ($ticket['status'] ?? 'open');
 $ticketId = (int) ($ticket['id'] ?? 0);
 $eventCount = count($events);
+$canManage = $canManage ?? false;
 ?>
 <div class="page-header os-page-header">
     <div>
@@ -72,12 +73,14 @@ $eventCount = count($events);
             <i class="icon-base ti tabler-messages"></i> Central de tickets
         </a>
         <?php endif; ?>
+        <?php if ($canManage): ?>
         <a href="/budgets/create?os_id=<?= $orderId ?>&cliente_id=<?= (int) $order['client_id'] ?>&veiculo_id=<?= (int) $order['vehicle_id'] ?>" class="btn btn-label-primary">
             <i class="icon-base ti tabler-file-plus"></i> Novo orçamento
         </a>
         <a href="<?= e($path . '/' . $orderId . '/edit') ?>" class="btn btn-primary">
             <i class="icon-base ti tabler-pencil"></i> Editar
         </a>
+        <?php endif; ?>
     </div>
 </div>
 
@@ -193,9 +196,11 @@ $eventCount = count($events);
                     <i class="icon-base ti tabler-file-off icon-40px d-block mb-2 opacity-50"></i>
                     Crie um orçamento para calcular peças, mão de obra e total.
                     <div class="mt-3">
+                        <?php if ($canManage): ?>
                         <a href="/budgets/create?os_id=<?= $orderId ?>&cliente_id=<?= (int) $order['client_id'] ?>&veiculo_id=<?= (int) $order['vehicle_id'] ?>" class="btn btn-sm btn-primary">
                             <i class="icon-base ti tabler-plus"></i> Criar orçamento
                         </a>
+                        <?php endif; ?>
                     </div>
                 </div>
                 <?php endif; ?>
@@ -556,7 +561,7 @@ $eventCount = count($events);
         <div class="card mb-6">
             <div class="card-header d-flex justify-content-between">
                 <h5 class="card-title m-0">Veículo</h5>
-                <?php if (!empty($order['vehicle_id'])): ?>
+                <?php if (!empty($order['vehicle_id']) && $canManage): ?>
                 <h6 class="m-0"><a href="/vehicles/<?= (int) $order['vehicle_id'] ?>/edit">Editar</a></h6>
                 <?php endif; ?>
             </div>
@@ -570,6 +575,7 @@ $eventCount = count($events);
         </div>
 
         <!-- Status -->
+        <?php if ($canManage): ?>
         <div class="card mb-6">
             <div class="card-header">
                 <h5 class="card-title m-0">Status</h5>
@@ -590,6 +596,7 @@ $eventCount = count($events);
                 </form>
             </div>
         </div>
+        <?php endif; ?>
 
         <!-- Diagnóstico -->
         <div class="card mb-6">
@@ -622,6 +629,7 @@ $eventCount = count($events);
                 <p class="mb-1">Destino: <?= e($delivery['destination'] ?: '—') ?></p>
                 <p class="mb-0">KM na saída: <?= $delivery['exit_km'] !== null ? (int) $delivery['exit_km'] : '—' ?></p>
                 <?php else: ?>
+                <?php if ($canManage): ?>
                 <form method="POST" action="<?= e($path . '/' . $orderId . '/delivery') ?>">
                     <input type="hidden" name="csrf_token" value="<?= e($csrf) ?>">
                     <div class="mb-3">
@@ -647,6 +655,9 @@ $eventCount = count($events);
                         <i class="icon-base ti tabler-device-floppy"></i> Registrar
                     </button>
                 </form>
+                <?php else: ?>
+                <p class="text-body-secondary mb-0">Aguardando registro pela equipe.</p>
+                <?php endif; ?>
                 <?php endif; ?>
             </div>
         </div>
@@ -668,12 +679,14 @@ $eventCount = count($events);
                         <h6 class="mb-0"><?= e($r['name']) ?></h6>
                         <small class="text-body-secondary"><?= e(roleLabel($r['role'])) ?></small>
                     </div>
+                    <?php if ($canManage): ?>
                     <form method="POST" action="<?= e($path . '/' . $orderId . '/responsible/' . (int) $r['user_id'] . '/delete') ?>" onsubmit="return confirm('Remover responsável?')">
                         <input type="hidden" name="csrf_token" value="<?= e($csrf) ?>">
                         <button type="submit" class="btn btn-sm btn-icon btn-text-danger" title="Remover">
                             <i class="icon-base ti tabler-x"></i>
                         </button>
                     </form>
+                    <?php endif; ?>
                 </div>
                 <?php endforeach; ?>
 
@@ -681,7 +694,7 @@ $eventCount = count($events);
                 <p class="text-body-secondary">Nenhum mecânico designado.</p>
                 <?php endif; ?>
 
-                <?php if ($mechanics): ?>
+                <?php if ($canManage && $mechanics): ?>
                 <form method="POST" action="<?= e($path . '/' . $orderId . '/responsible') ?>" class="mt-3">
                     <input type="hidden" name="csrf_token" value="<?= e($csrf) ?>">
                     <div class="mb-3">

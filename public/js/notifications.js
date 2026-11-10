@@ -8,6 +8,7 @@
     var TYPE_META = {
         os_status: { label: 'Ordem de serviço', icon: 'arrows-exchange', color: 'bg-label-info' },
         os_created: { label: 'Nova ordem de serviço', icon: 'clipboard-plus', color: 'bg-label-primary' },
+        os_responsible: { label: 'Responsável', icon: 'user-check', color: 'bg-label-primary' },
         part: { label: 'Pedido de peça', icon: 'package', color: 'bg-label-warning' },
         task: { label: 'Tarefa', icon: 'list-check', color: 'bg-label-success' },
         ticket: { label: 'Ticket', icon: 'messages', color: 'bg-label-info' }
@@ -201,7 +202,12 @@
 
             var href = item.getAttribute('data-href');
             if (href) {
-                window.location.href = href;
+                // Marca como lida antes de navegar (não bloqueia se falhar).
+                markRead(id).then(function () {
+                    window.location.href = href;
+                }).catch(function () {
+                    window.location.href = href;
+                });
             }
         });
 

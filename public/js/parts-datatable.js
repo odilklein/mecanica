@@ -165,8 +165,9 @@
                         }
 
                         var link = '';
-                        if (full.product_url) {
-                            link = ' <a href="' + esc(full.product_url) + '" target="_blank" rel="noopener"'
+                        var productUrl = window.safeUrl ? window.safeUrl(full.product_url) : '';
+                        if (productUrl) {
+                            link = ' <a href="' + esc(productUrl) + '" target="_blank" rel="noopener"'
                                 + ' class="btn btn-icon btn-sm btn-text-primary rounded-pill waves-effect"'
                                 + ' title="Abrir no Canal da Peça" aria-label="Abrir no Canal da Peça">'
                                 + '<i class="icon-base ti tabler-external-link icon-18px"></i></a>';

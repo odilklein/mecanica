@@ -50,4 +50,11 @@ class ClientController extends CrudController
             'orders' => $orders->fetchAll(),
         ]);
     }
+
+    /** Clientes não são excluídos: o correto é desativar o cadastro. */
+    public function destroy(ServerRequestInterface $request, $id)
+    {
+        $this->session->flash('error', 'Não é possível excluir clientes. Desative o cadastro.');
+        return redirect('/clients');
+    }
 }

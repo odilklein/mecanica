@@ -84,6 +84,13 @@ $select = static function (string $name, string $label, string $icon, array $opt
                             </div>
                         </div>
 
+                        <div class="col-12">
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" role="switch" id="is_active" name="is_active" value="1" <?= ((string) ($old['is_active'] ?? '1') !== '0') ? 'checked' : '' ?>>
+                                <label class="form-check-label" for="is_active"><i class="icon-base ti tabler-toggle-right me-1"></i>Veículo ativo</label>
+                            </div>
+                        </div>
+
                         <div class="col-12 d-flex justify-content-end gap-2 mt-3">
                             <a href="<?= e($path) ?>" class="btn btn-outline-secondary">Cancelar</a>
                             <button type="submit" class="btn btn-primary"><i class="icon-base ti tabler-device-floppy"></i> Salvar</button>
