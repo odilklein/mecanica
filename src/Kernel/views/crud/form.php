@@ -92,6 +92,8 @@ $formTitle = $resource->formTitle($isEdit);
                                        <?= ($type === 'number' && isset($field['min'])) ? 'min="' . (int) $field['min'] . '"' : '' ?>
                                        <?= ($type === 'number' && isset($field['max'])) ? 'max="' . (int) $field['max'] . '"' : '' ?>
                                        <?= ($type === 'number' && isset($field['step'])) ? 'step="' . e($field['step']) . '"' : '' ?>
+                                       <?= !empty($field['minlength']) ? 'minlength="' . (int) $field['minlength'] . '"' : '' ?>
+                                       <?= !empty($field['autocomplete']) ? 'autocomplete="' . e($field['autocomplete']) . '"' : '' ?>
                                        <?= !empty($field['mask']) ? 'data-mask="' . e($field['mask']) . '"' : '' ?>>
                             </div>
                             <?php if ($error): ?><div class="invalid-feedback d-block"><?= e($error) ?></div><?php endif; ?>

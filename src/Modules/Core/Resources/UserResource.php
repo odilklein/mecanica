@@ -22,6 +22,11 @@ class UserResource extends Resource
         return ['singular' => 'Funcionário', 'plural' => 'Funcionários'];
     }
 
+    public function formTitle(bool $isEdit): string
+    {
+        return $isEdit ? 'Editar funcionário' : 'Novo funcionário';
+    }
+
     public function icon(): string
     {
         return 'users-group';
@@ -42,11 +47,37 @@ class UserResource extends Resource
         return 'Novo funcionário';
     }
 
+    /** A listagem não tem ações em massa: sem checkboxes. */
+    public function selectable(): bool
+    {
+        return false;
+    }
+
+    public function datatableOrder(): array
+    {
+        return [[2, 'asc']];
+    }
+
+    public function datatableFilters(): array
+    {
+        return [
+            ['field' => 'role_label', 'label' => 'Perfil', 'options' => [
+                'admin' => 'Administrador',
+                'secretary' => 'Secretaria',
+                'lead_mechanic' => 'Mecânico-chefe',
+                'mechanic' => 'Mecânico',
+            ]],
+            ['field' => 'status', 'label' => 'Situação', 'options' => [
+                1 => 'Ativo',
+                0 => 'Inativo',
+            ]],
+        ];
+    }
+
     public function datatableColumns(): array
     {
         return [
             $this->dtControlColumn(),
-            $this->dtSelectColumn(),
             $this->dtIdColumn(),
             [
                 'title' => 'Nome',
@@ -77,6 +108,7 @@ class UserResource extends Resource
     public function datatableRow(array $row): array
     {
         $row['post'] = $row['job_title'] ?: roleLabel($row['role']);
+        $row['role_label'] = (string) $row['role'];
         $row['status'] = (int) $row['is_active'];
         return $row;
     }
@@ -122,13 +154,14 @@ class UserResource extends Resource
         return [
             ['name' => 'name', 'label' => 'Nome', 'type' => 'text', 'icon' => 'user', 'required' => true, 'max' => 100, 'col' => 'col-md-6'],
             ['name' => 'email', 'label' => 'E-mail', 'type' => 'email', 'icon' => 'mail', 'required' => true, 'validate' => 'email', 'unique' => true, 'max' => 120, 'col' => 'col-md-6'],
-            ['name' => 'role', 'label' => 'Perfil', 'type' => 'select', 'icon' => 'shield', 'required' => true, 'col' => 'col-md-6'],
-            ['name' => 'password', 'label' => 'Senha', 'type' => 'password', 'icon' => 'lock', 'required_on_create' => true, 'help' => 'Na edição, deixe em branco para manter a senha atual.', 'col' => 'col-md-6'],
+            ['name' => 'role', 'label' => 'Perfil', 'type' => 'select', 'icon' => 'shield', 'required' => true, 'col' => 'col-md-4'],
+            ['name' => 'salary', 'label' => 'Salário', 'type' => 'number', 'icon' => 'currency-real', 'min' => 0, 'step' => '0.01', 'col' => 'col-md-4'],
+            ['name' => 'hire_date', 'label' => 'Admissão', 'type' => 'date', 'icon' => 'calendar', 'col' => 'col-md-4'],
+            ['name' => 'password', 'label' => 'Senha', 'type' => 'password', 'icon' => 'lock', 'required_on_create' => true, 'minlength' => 8, 'autocomplete' => 'new-password', 'help' => 'Mínimo de 8 caracteres. Na edição, deixe em branco para manter a senha atual.', 'col' => 'col-md-6'],
+            ['name' => 'job_title', 'label' => 'Cargo', 'type' => 'text', 'icon' => 'briefcase', 'max' => 100, 'col' => 'col-md-6'],
             ['name' => 'cpf', 'label' => 'CPF', 'type' => 'text', 'icon' => 'id', 'mask' => 'cpf', 'validate' => 'cpf', 'unique' => true, 'max' => 14, 'col' => 'col-md-4'],
             ['name' => 'phone', 'label' => 'Telefone', 'type' => 'text', 'icon' => 'phone', 'mask' => 'phone', 'max' => 20, 'col' => 'col-md-4'],
-            ['name' => 'hire_date', 'label' => 'Admissão', 'type' => 'date', 'icon' => 'calendar', 'col' => 'col-md-4'],
-            ['name' => 'job_title', 'label' => 'Cargo', 'type' => 'text', 'icon' => 'briefcase', 'max' => 100, 'col' => 'col-md-6'],
-            ['name' => 'is_active', 'label' => 'Funcionário ativo', 'type' => 'boolean', 'icon' => 'toggle-right', 'default' => 1, 'col' => 'col-md-6'],
+            ['name' => 'is_active', 'label' => 'Funcionário ativo', 'type' => 'boolean', 'icon' => 'toggle-right', 'default' => 1, 'col' => 'col-md-4'],
         ];
     }
 }

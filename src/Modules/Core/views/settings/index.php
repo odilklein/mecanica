@@ -1,7 +1,7 @@
 <div class="page-header">
     <div>
         <h1><i class="icon-base ti tabler-settings"></i>Configurações</h1>
-        <span class="page-subtitle">Tema e SEO do sistema</span>
+        <span class="page-subtitle">Dados da oficina, aparência, orçamentos e SEO</span>
     </div>
 </div>
 
@@ -28,6 +28,55 @@
                                 <input type="text" class="form-control" id="theme_color" name="theme_color"
                                        value="<?= e(setting('theme_color', '#b8270f')) ?>" pattern="#[0-9a-fA-F]{6}" maxlength="7">
                             </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card mb-3">
+                <div class="card-body p-4">
+                    <div class="panel-header">
+                        <i class="icon-base ti tabler-building-store"></i>
+                        <div>
+                            <h3 class="panel-title">Dados da oficina</h3>
+                            <p class="panel-subtitle">Usados na impressão de orçamentos e documentos</p>
+                        </div>
+                    </div>
+                    <div class="row g-3">
+                        <div class="col-md-8">
+                            <label class="form-label" for="company_name">Nome / razão social</label>
+                            <input type="text" class="form-control" id="company_name" name="company_name"
+                                   value="<?= e(setting('company_name', 'Mecânica')) ?>" maxlength="120">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label" for="company_document">CNPJ / CPF</label>
+                            <input type="text" class="form-control" id="company_document" name="company_document"
+                                   value="<?= e(setting('company_document', '')) ?>" maxlength="20">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label" for="company_phone">Telefone</label>
+                            <input type="text" class="form-control" id="company_phone" name="company_phone"
+                                   value="<?= e(setting('company_phone', '')) ?>" maxlength="20" data-mask="phone">
+                        </div>
+                        <div class="col-md-8">
+                            <label class="form-label" for="company_email">E-mail</label>
+                            <input type="email" class="form-control" id="company_email" name="company_email"
+                                   value="<?= e(setting('company_email', '')) ?>" maxlength="120">
+                        </div>
+                        <div class="col-md-8">
+                            <label class="form-label" for="company_address">Endereço</label>
+                            <input type="text" class="form-control" id="company_address" name="company_address"
+                                   value="<?= e(setting('company_address', '')) ?>" maxlength="255">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label" for="company_city">Cidade</label>
+                            <input type="text" class="form-control" id="company_city" name="company_city"
+                                   value="<?= e(setting('company_city', '')) ?>" maxlength="80">
+                        </div>
+                        <div class="col-md-1">
+                            <label class="form-label" for="company_state">UF</label>
+                            <input type="text" class="form-control text-uppercase" id="company_state" name="company_state"
+                                   value="<?= e(setting('company_state', '')) ?>" maxlength="2">
                         </div>
                     </div>
                 </div>
@@ -63,6 +112,30 @@
                                 <span class="input-group-text"><i class="icon-base ti tabler-tags"></i></span>
                                 <input type="text" class="form-control" id="seo_keywords" name="seo_keywords" value="<?= e(setting('seo_keywords', '')) ?>">
                             </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card mb-3">
+                <div class="card-body p-4">
+                    <div class="panel-header">
+                        <i class="icon-base ti tabler-file-text"></i>
+                        <div>
+                            <h3 class="panel-title">Orçamentos</h3>
+                            <p class="panel-subtitle">Validade padrão e termos exibidos na impressão</p>
+                        </div>
+                    </div>
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <label class="form-label" for="budget_validity_days">Validade padrão (dias)</label>
+                            <input type="number" class="form-control" id="budget_validity_days" name="budget_validity_days"
+                                   min="1" max="365" value="<?= e(setting('budget_validity_days', '15')) ?>">
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label" for="budget_terms">Termos e condições</label>
+                            <textarea class="form-control" id="budget_terms" name="budget_terms" rows="3"
+                                      placeholder="Ex.: Orçamento válido por 15 dias. Peças com garantia de 90 dias."><?= e(setting('budget_terms', '')) ?></textarea>
                         </div>
                     </div>
                 </div>

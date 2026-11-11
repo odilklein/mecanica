@@ -60,7 +60,7 @@ $ticketsOpenPref = (string) ($_COOKIE['mecanica_tickets_open'] ?? '1');
                         <span class="app-brand-logo demo">
                             <span class="brand-icon"><i class="icon-base ti tabler-tool"></i></span>
                         </span>
-                        <span class="app-brand-text demo menu-text fw-bold ms-3">Mecânica</span>
+                        <span class="app-brand-text demo menu-text fw-bold ms-3"><?= e(setting('company_name', 'Mecânica') ?: 'Mecânica') ?></span>
                     </a>
                     <a href="javascript:void(0);" class="layout-menu-toggle menu-link text-large ms-auto">
                         <i class="icon-base ti menu-toggle-icon d-none d-xl-block"></i>
@@ -349,7 +349,7 @@ $ticketsOpenPref = (string) ($_COOKIE['mecanica_tickets_open'] ?? '1');
                     <footer class="content-footer footer bg-footer-theme">
                         <div class="container-xxl">
                             <div class="footer-container d-flex align-items-center justify-content-between py-4 flex-md-row flex-column">
-                                <div class="text-body">&copy; <?= date('Y') ?> Mecânica</div>
+                                <div class="text-body">&copy; <?= date('Y') ?> <?= e(setting('company_name', 'Mecânica') ?: 'Mecânica') ?></div>
                                 <div class="text-body-secondary">Oficina em dia</div>
                             </div>
                         </div>

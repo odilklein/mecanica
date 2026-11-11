@@ -20,6 +20,7 @@
         .actions button { padding: 10px 20px; background: #b8270f; color: #fff; border: 0; border-radius: 6px; cursor: pointer; }
         .signature { margin-top: 56px; width: 320px; }
         .signature .line { border-top: 1px solid #333; margin-bottom: 6px; }
+        .terms { margin-top: 24px; font-size: 12px; }
         @media print {
             .actions { display: none; }
             body { padding: 0; }
@@ -28,9 +29,24 @@
     </style>
 </head>
 <body>
+    <?php
+    $companyName = (string) setting('company_name', setting('seo_title', 'Mecânica')) ?: 'Mecânica';
+    $companyAddress = trim((string) setting('company_address', '')
+        . ' ' . (string) setting('company_city', '')
+        . ((string) setting('company_state', '') !== '' ? '/' . setting('company_state', '') : ''));
+    $companyLines = array_values(array_filter([
+        (string) setting('company_document', ''),
+        $companyAddress,
+        (string) setting('company_phone', ''),
+        (string) setting('company_email', ''),
+    ], static fn (string $line): bool => trim($line) !== ''));
+    ?>
     <div class="header">
         <div>
-            <h1><?= e(setting('seo_title', 'Mecânica')) ?></h1>
+            <h1><?= e($companyName) ?></h1>
+            <?php foreach ($companyLines as $line): ?>
+            <div class="muted"><?= e($line) ?></div>
+            <?php endforeach; ?>
             <div class="muted">Orçamento #<?= str_pad((string) $budget['number'], 4, '0', STR_PAD_LEFT) ?></div>
         </div>
         <div class="muted" style="text-align:right">
@@ -87,6 +103,14 @@
         <div><span>Desconto</span><strong>R$ <?= number_format((float) $budget['discount'], 2, ',', '.') ?></strong></div>
         <div class="total"><span>TOTAL</span><span>R$ <?= number_format((float) $budget['total'], 2, ',', '.') ?></span></div>
     </div>
+
+    <?php $terms = trim((string) setting('budget_terms', '')); ?>
+    <?php if ($terms !== ''): ?>
+    <div class="terms">
+        <strong>Termos e condições</strong>
+        <div class="muted"><?= nl2br(e($terms)) ?></div>
+    </div>
+    <?php endif; ?>
 
     <div class="signature">
         <div class="line"></div>

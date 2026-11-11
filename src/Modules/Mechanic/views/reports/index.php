@@ -1,5 +1,7 @@
 <?php
 $brand = setting('theme_color', '#b8270f');
+$period = $period ?? '30';
+$periodLabel = $periodLabel ?? 'Últimos 30 dias';
 
 $osLabels = [];
 $osValues = [];
@@ -25,7 +27,28 @@ foreach (\Modules\Mechanic\Support\PartOrderStatus::STATUSES as $key => $label) 
 <div class="page-header">
     <div>
         <h1><i class="icon-base ti tabler-chart-line"></i>Relatórios</h1>
-        <span class="page-subtitle">Visão geral da oficina</span>
+        <span class="page-subtitle">Visão geral da oficina · <?= e($periodLabel) ?></span>
+    </div>
+</div>
+
+<div class="card mb-3">
+    <div class="card-body py-3">
+        <form method="GET" action="/reports" class="d-flex flex-wrap align-items-end gap-2">
+            <div>
+                <label class="form-label mb-1" for="period">Período</label>
+                <select class="form-select" id="period" name="period" style="min-width: 200px;">
+                    <option value="30" <?= $period === '30' ? 'selected' : '' ?>>Últimos 30 dias</option>
+                    <option value="month" <?= $period === 'month' ? 'selected' : '' ?>>Este mês</option>
+                    <option value="90" <?= $period === '90' ? 'selected' : '' ?>>Últimos 90 dias</option>
+                    <option value="year" <?= $period === 'year' ? 'selected' : '' ?>>Este ano</option>
+                    <option value="all" <?= $period === 'all' ? 'selected' : '' ?>>Todo o período</option>
+                </select>
+            </div>
+            <button type="submit" class="btn btn-primary"><i class="icon-base ti tabler-filter"></i> Filtrar</button>
+            <a href="/reports/export?period=<?= e($period) ?>" class="btn btn-outline-primary">
+                <i class="icon-base ti tabler-download"></i> Exportar CSV
+            </a>
+        </form>
     </div>
 </div>
 
@@ -51,7 +74,16 @@ foreach (\Modules\Mechanic\Support\PartOrderStatus::STATUSES as $key => $label) 
     <div class="col-6 col-lg-3">
         <div class="card crud-kpi"><div class="card-body">
             <div class="crud-kpi-icon bg-label-info"><i class="icon-base ti tabler-currency-real"></i></div>
-            <div class="crud-kpi-info"><span class="crud-kpi-label">Orçamentos aprovados</span><span class="crud-kpi-value">R$ <?= number_format((float) $kpis['approved_revenue'], 2, ',', '.') ?></span></div>
+            <div class="crud-kpi-info">
+                <span class="crud-kpi-label">Orçamentos aprovados</span>
+                <span class="crud-kpi-value">R$ <?= number_format((float) $kpis['approved_revenue'], 2, ',', '.') ?></span>
+                <small class="text-body-secondary">
+                    <?= (int) ($kpis['approved_count'] ?? 0) ?> aprovados
+                    <?php if (!empty($kpis['approved_count'])): ?>
+                    · ticket médio R$ <?= number_format((float) $kpis['average_ticket'], 2, ',', '.') ?>
+                    <?php endif; ?>
+                </small>
+            </div>
         </div></div>
     </div>
 </div>
@@ -69,7 +101,46 @@ foreach (\Modules\Mechanic\Support\PartOrderStatus::STATUSES as $key => $label) 
             <div style="height: 300px;"><canvas id="budgetChart"></canvas></div>
         </div></div>
     </div>
-    <div class="col-12">
+    <div class="col-lg-7">
+        <div class="card"><div class="card-body">
+            <div class="panel-header"><i class="icon-base ti tabler-file-text"></i><div><h3 class="panel-title">Orçamentos por status</h3></div></div>
+            <div class="table-responsive">
+                <table class="table table-sm align-middle mb-0">
+                    <thead>
+                        <tr>
+                            <th>Status</th>
+                            <th class="text-end">Quantidade</th>
+                            <th class="text-end">Total</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php
+                        $budgetTotalCount = 0;
+                        $budgetTotalValue = 0.0;
+                        foreach (\Modules\Mechanic\Support\BudgetStatus::STATUSES as $key => $label):
+                            $row = $budgetsByStatus[$key] ?? ['count' => 0, 'total' => 0.0];
+                            $budgetTotalCount += (int) $row['count'];
+                            $budgetTotalValue += (float) $row['total'];
+                        ?>
+                        <tr>
+                            <td><span class="badge <?= e(\Modules\Mechanic\Support\BudgetStatus::badgeClass($key)) ?>"><?= e($label) ?></span></td>
+                            <td class="text-end"><?= (int) $row['count'] ?></td>
+                            <td class="text-end text-nowrap">R$ <?= number_format((float) $row['total'], 2, ',', '.') ?></td>
+                        </tr>
+                        <?php endforeach; ?>
+                    </tbody>
+                    <tfoot>
+                        <tr class="fw-semibold">
+                            <td>Total</td>
+                            <td class="text-end"><?= $budgetTotalCount ?></td>
+                            <td class="text-end text-nowrap">R$ <?= number_format($budgetTotalValue, 2, ',', '.') ?></td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+        </div></div>
+    </div>
+    <div class="col-lg-5">
         <div class="card"><div class="card-body">
             <div class="panel-header"><i class="icon-base ti tabler-truck"></i><div><h3 class="panel-title">Pedidos de peças por status</h3></div></div>
             <div style="height: 260px;"><canvas id="partsChart"></canvas></div>

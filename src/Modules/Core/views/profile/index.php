@@ -39,11 +39,18 @@
                                 <input type="email" class="form-control" id="email" name="email" value="<?= e($profile['email'] ?? '') ?>" maxlength="120" required>
                             </div>
                         </div>
-                        <div class="col-md-6">
+                        <div class="col-md-4">
+                            <label class="form-label" for="phone">Telefone</label>
+                            <div class="input-group input-group-merge">
+                                <span class="input-group-text"><i class="icon-base ti tabler-phone"></i></span>
+                                <input type="text" class="form-control" id="phone" name="phone" value="<?= e($profile['phone'] ?? '') ?>" maxlength="20" data-mask="phone" placeholder="(11) 98888-7777">
+                            </div>
+                        </div>
+                        <div class="col-md-4">
                             <label class="form-label">Perfil</label>
                             <input type="text" class="form-control" value="<?= e(roleLabel($profile['role'] ?? null)) ?>" disabled>
                         </div>
-                        <div class="col-md-6">
+                        <div class="col-md-4">
                             <label class="form-label" for="job_title">Cargo</label>
                             <div class="input-group input-group-merge">
                                 <span class="input-group-text"><i class="icon-base ti tabler-briefcase"></i></span>

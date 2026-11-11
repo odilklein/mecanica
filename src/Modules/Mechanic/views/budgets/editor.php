@@ -26,6 +26,7 @@ foreach (($opts['service_order_id'] ?? []) as $orderId => $orderLabel) {
     ];
 }
 $ordersJson = json_encode($ordersData, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT);
+$validityDays = max(1, min(365, (int) setting('budget_validity_days', 15)));
 ?>
 <div class="page-header">
     <div>
@@ -74,7 +75,7 @@ $ordersJson = json_encode($ordersData, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | J
                         </div>
                         <div class="col-md-6">
                             <label class="form-label" for="valid_until">Validade</label>
-                            <input type="date" class="form-control" id="valid_until" name="valid_until" value="<?= e($budget['valid_until'] ?? date('Y-m-d', strtotime('+15 days'))) ?>">
+                            <input type="date" class="form-control" id="valid_until" name="valid_until" value="<?= e($budget['valid_until'] ?? date('Y-m-d', strtotime('+' . $validityDays . ' days'))) ?>">
                         </div>
                         <div class="col-md-6">
                             <label class="form-label" for="discount">Desconto (R$)</label>

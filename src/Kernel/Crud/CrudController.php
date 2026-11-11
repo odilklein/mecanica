@@ -285,6 +285,10 @@ abstract class CrudController extends Controller
                 }
             }
 
+            if ($value !== '' && !empty($field['minlength']) && mb_strlen($value) < (int) $field['minlength']) {
+                $errors[$name] = 'Mínimo de ' . (int) $field['minlength'] . ' caracteres.';
+            }
+
             // Unicidade (ex.: CPF/placa).
             if ($value !== '' && !empty($field['unique']) && !isset($errors[$name])) {
                 $qb = $repo->query()->where($name, '=', $value);
@@ -302,6 +306,13 @@ abstract class CrudController extends Controller
 
             // Campos numéricos/select/data vazios viram NULL (evita erro em colunas tipadas).
             if (in_array($type, ['number', 'select', 'date'], true) && $value === '') {
+                $data[$name] = null;
+                continue;
+            }
+
+            // Campos únicos opcionais (ex.: CPF) vazios viram NULL para não
+            // conflitar com a chave única do banco.
+            if ($value === '' && !empty($field['unique'])) {
                 $data[$name] = null;
                 continue;
             }

@@ -48,6 +48,7 @@ class ProfileController extends Controller
         $body = $request->getParsedBody();
         $name = clean($body['name'] ?? '');
         $email = strtolower(clean($body['email'] ?? ''));
+        $phone = mb_substr(clean($body['phone'] ?? ''), 0, 20);
         $password = (string) ($body['password'] ?? '');
         $confirm = (string) ($body['password_confirmation'] ?? '');
         $currentPassword = (string) ($body['current_password'] ?? '');
@@ -83,11 +84,22 @@ class ProfileController extends Controller
         }
 
         if ($password !== '') {
-            $this->pdo->prepare('UPDATE users SET name = :n, email = :e, password = :p WHERE id = :id')
-                ->execute([':n' => $name, ':e' => $email, ':p' => password_hash($password, PASSWORD_DEFAULT), ':id' => $this->auth->id()]);
+            $this->pdo->prepare('UPDATE users SET name = :n, email = :e, phone = :ph, password = :p WHERE id = :id')
+                ->execute([
+                    ':n' => $name,
+                    ':e' => $email,
+                    ':ph' => $phone !== '' ? $phone : null,
+                    ':p' => password_hash($password, PASSWORD_DEFAULT),
+                    ':id' => $this->auth->id(),
+                ]);
         } else {
-            $this->pdo->prepare('UPDATE users SET name = :n, email = :e WHERE id = :id')
-                ->execute([':n' => $name, ':e' => $email, ':id' => $this->auth->id()]);
+            $this->pdo->prepare('UPDATE users SET name = :n, email = :e, phone = :ph WHERE id = :id')
+                ->execute([
+                    ':n' => $name,
+                    ':e' => $email,
+                    ':ph' => $phone !== '' ? $phone : null,
+                    ':id' => $this->auth->id(),
+                ]);
         }
 
         $this->session->set('auth_user_name', $name);

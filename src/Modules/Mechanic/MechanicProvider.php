@@ -113,6 +113,7 @@ class MechanicProvider implements ProviderInterface
         $router->get('/tickets/{id}', [TicketController::class, 'show']);
 
         // Relatórios.
+        $router->get('/reports/export', [ReportController::class, 'export']);
         $router->get('/reports', [ReportController::class, 'index']);
 
         $this->menu($container);
