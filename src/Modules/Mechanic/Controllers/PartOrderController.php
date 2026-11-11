@@ -55,6 +55,33 @@ class PartOrderController extends CrudController
         return redirect('/part-orders');
     }
 
+    /** Detalhe somente leitura do pedido de peças. */
+    public function show(ServerRequestInterface $request, $id)
+    {
+        $resource = $this->resource();
+        if ($response = $this->guardRoles($resource->roles())) {
+            return $response;
+        }
+
+        $order = $this->findOrderDetail((int) $id);
+        if (!$order) {
+            $this->session->flash('error', 'Pedido não encontrado.');
+            return redirect($resource->path());
+        }
+        if ($response = $this->guardPartOrderAccess($order)) {
+            return $response;
+        }
+
+        return $this->render('mechanic::part_orders/show', [
+            'title' => 'Pedido #' . (int) $order['id'],
+            'resource' => $resource,
+            'order' => $order,
+            'items' => $this->itemsData((int) $id),
+            'history' => $this->history((int) $id),
+            'canManageStatus' => $this->auth->hasRole(['admin', 'secretary', 'lead_mechanic']),
+        ]);
+    }
+
     public function create(ServerRequestInterface $request)
     {
         $resource = $this->resource();
@@ -65,7 +92,7 @@ class PartOrderController extends CrudController
         $canManageStatus = $this->auth->hasRole(['admin', 'secretary', 'lead_mechanic']);
 
         return $this->render('mechanic::part_orders/form', [
-            'title' => 'Novo pedido de peça',
+            'title' => $canManageStatus ? 'Novo pedido de peça' : 'Solicitar peça',
             'resource' => $resource,
             'record' => null,
             'old' => ['service_order_id' => (int) ($query['os_id'] ?? 0)],
@@ -112,11 +139,10 @@ class PartOrderController extends CrudController
         if (!isset(PartOrderStatus::STATUSES[$status])) {
             $status = 'requested';
         }
-        $supplier = mb_substr(clean($body['supplier'] ?? ''), 0, 160);
-        if ($isMechanicOnly && $supplier !== '' && !$this->supplierIsActive($supplier)) {
-            $this->session->flash('error', 'Selecione um fornecedor cadastrado.');
-            return redirect($resource->path() . '/create');
-        }
+        // Fornecedor e previsão são da secretaria: o mecânico só solicita a peça.
+        $supplier = $isMechanicOnly ? '' : mb_substr(clean($body['supplier'] ?? ''), 0, 160);
+        $expectedDate = $isMechanicOnly ? null : (clean($body['expected_date'] ?? '') ?: null);
+        $notes = $isMechanicOnly ? '' : clean($body['notes'] ?? '');
         if (!$isMechanicOnly) {
             $this->registerSupplier($supplier);
         }
@@ -132,8 +158,8 @@ class PartOrderController extends CrudController
                 ':o' => $orderId,
                 ':s' => $supplier,
                 ':st' => $status,
-                ':ed' => clean($body['expected_date'] ?? '') ?: null,
-                ':n' => clean($body['notes'] ?? ''),
+                ':ed' => $expectedDate,
+                ':n' => $notes,
                 ':cb' => $this->auth->id(),
                 ':rb' => $received ? $this->auth->id() : null,
                 ':ra' => $received ? date('Y-m-d H:i:s') : null,
@@ -141,6 +167,12 @@ class PartOrderController extends CrudController
             $partOrderId = (int) $this->pdo->lastInsertId();
             $this->saveItems($partOrderId, $this->parseItems($body['items_json'] ?? '[]'));
             $this->pdo->commit();
+
+            record_audit($this->pdo, $this->auth->id(), 'part_orders', $partOrderId, 'create', [
+                'status' => $status,
+                'supplier' => $supplier,
+                'service_order_id' => $orderId,
+            ]);
 
             $this->refreshTicket($orderId);
             $this->notifyPartOrder(
@@ -229,6 +261,13 @@ class PartOrderController extends CrudController
         if (!isset(PartOrderStatus::STATUSES[$status])) {
             $status = 'requested';
         }
+
+        if ($status !== $oldStatus && !PartOrderStatus::canTransition($oldStatus, $status)) {
+            $this->session->flash('error', 'Transição de status inválida: '
+                . PartOrderStatus::label($oldStatus) . ' → ' . PartOrderStatus::label($status) . '.');
+            return redirect($resource->path() . '/' . (int) $id . '/edit');
+        }
+
         $supplier = mb_substr(clean($body['supplier'] ?? ''), 0, 160);
         $this->registerSupplier($supplier);
         // O campo "Observações" saiu do formulário: preserva o valor atual
@@ -236,7 +275,20 @@ class PartOrderController extends CrudController
         $notes = array_key_exists('notes', $body)
             ? clean($body['notes'] ?? '')
             : (string) ($oldRecord['notes'] ?? '');
-        $received = $status === 'received';
+
+        if ($status === 'received') {
+            if ($oldStatus === 'received' && !empty($oldRecord['received_at'])) {
+                // Edição de um pedido já recebido: preserva quem/quando recebeu.
+                $receivedBy = $oldRecord['received_by'] ?? null;
+                $receivedAt = $oldRecord['received_at'];
+            } else {
+                $receivedBy = $this->auth->id();
+                $receivedAt = date('Y-m-d H:i:s');
+            }
+        } else {
+            $receivedBy = null;
+            $receivedAt = null;
+        }
 
         $this->pdo->beginTransaction();
         try {
@@ -249,13 +301,25 @@ class PartOrderController extends CrudController
                 ':st' => $status,
                 ':ed' => clean($body['expected_date'] ?? '') ?: null,
                 ':n' => $notes,
-                ':rb' => $received ? $this->auth->id() : null,
-                ':ra' => $received ? date('Y-m-d H:i:s') : null,
+                ':rb' => $receivedBy,
+                ':ra' => $receivedAt,
                 ':id' => (int) $id,
             ]);
             $this->pdo->prepare('DELETE FROM part_order_items WHERE part_order_id = :id')->execute([':id' => (int) $id]);
             $this->saveItems((int) $id, $this->parseItems($body['items_json'] ?? '[]'));
             $this->pdo->commit();
+
+            if ($oldStatus !== $status) {
+                record_audit($this->pdo, $this->auth->id(), 'part_orders', (int) $id, 'status', [
+                    'from' => $oldStatus,
+                    'to' => $status,
+                ]);
+            } else {
+                record_audit($this->pdo, $this->auth->id(), 'part_orders', (int) $id, 'update', [
+                    'supplier' => $supplier,
+                    'service_order_id' => $newOrderId,
+                ]);
+            }
 
             foreach (array_unique(array_filter([$oldOrderId, $newOrderId])) as $osId) {
                 $this->refreshTicket((int) $osId);
@@ -294,6 +358,11 @@ class PartOrderController extends CrudController
             return $response;
         }
 
+        record_audit($this->pdo, $this->auth->id(), 'part_orders', (int) $id, 'delete', [
+            'status' => $record['status'] ?? null,
+            'supplier' => $record['supplier'] ?? null,
+        ]);
+
         return parent::destroy($request, $id);
     }
 
@@ -309,18 +378,6 @@ class PartOrderController extends CrudController
         } catch (\Throwable $e) {
             // Não impede o pedido caso a tabela ainda não exista.
             error_log('PartOrder supplier: ' . $e->getMessage());
-        }
-    }
-
-    /** Confere se o fornecedor existe e está ativo (mecânico só usa cadastrados). */
-    private function supplierIsActive(string $name): bool
-    {
-        try {
-            $stmt = $this->pdo->prepare('SELECT 1 FROM suppliers WHERE name = :name AND is_active = 1');
-            $stmt->execute([':name' => $name]);
-            return (bool) $stmt->fetchColumn();
-        } catch (\Throwable $e) {
-            return false;
         }
     }
 
@@ -498,6 +555,40 @@ class PartOrderController extends CrudController
             '/part-orders/' . $partOrderId . '/edit',
             $actor
         );
+    }
+
+    private function findOrderDetail(int $id): ?array
+    {
+        $stmt = $this->pdo->prepare(
+            'SELECT po.*, so.number AS order_number, c.name AS client_name,
+                    v.plate, v.brand, v.model, v.year,
+                    creator.name AS created_by_name, receiver.name AS received_by_name
+               FROM part_orders po
+               LEFT JOIN service_orders so ON so.id = po.service_order_id
+               LEFT JOIN clients c ON c.id = so.client_id
+               LEFT JOIN vehicles v ON v.id = so.vehicle_id
+               LEFT JOIN users creator ON creator.id = po.created_by
+               LEFT JOIN users receiver ON receiver.id = po.received_by
+              WHERE po.id = :id'
+        );
+        $stmt->execute([':id' => $id]);
+        $row = $stmt->fetch();
+        return $row ?: null;
+    }
+
+    /** @return array<int, array<string, mixed>> */
+    private function history(int $partOrderId): array
+    {
+        $stmt = $this->pdo->prepare(
+            'SELECT a.*, u.name AS user_name
+               FROM audit_logs a
+               LEFT JOIN users u ON u.id = a.user_id
+              WHERE a.entity = :entity AND a.entity_id = :id
+              ORDER BY a.id DESC
+              LIMIT 50'
+        );
+        $stmt->execute([':entity' => 'part_orders', ':id' => $partOrderId]);
+        return $stmt->fetchAll() ?: [];
     }
 
     private function findOrder(int $id): ?array

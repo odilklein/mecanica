@@ -115,7 +115,8 @@ class PartsController extends Controller
 
         $limit = min(20, max(5, (int) ($query['limit'] ?? 10)));
         $stmt = $this->pdo->prepare(
-            "SELECT id, name, brand, part_code, category, price, cdp_sku, product_url, image
+            "SELECT id, name, brand, part_code, category, price, cdp_sku, product_url, image,
+                    description, applications, barcode
                FROM parts
               WHERE is_active = 1
                 AND (name LIKE :q1 OR brand LIKE :q2 OR part_code LIKE :q3 OR category LIKE :q4)
@@ -151,6 +152,9 @@ class PartsController extends Controller
                 'sku' => $row['cdp_sku'] !== null ? (string) $row['cdp_sku'] : null,
                 'product_url' => (string) ($row['product_url'] ?? ''),
                 'image' => (string) ($row['image'] ?? ''),
+                'description' => (string) ($row['description'] ?? ''),
+                'applications' => (string) ($row['applications'] ?? ''),
+                'barcode' => (string) ($row['barcode'] ?? ''),
             ];
         }
 

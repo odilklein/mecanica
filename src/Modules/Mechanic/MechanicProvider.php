@@ -87,6 +87,7 @@ class MechanicProvider implements ProviderInterface
 
         // Pedidos de peças (CRUD genérico).
         crud_routes($router, '/part-orders', PartOrderController::class);
+        $router->get('/part-orders/{id}', [PartOrderController::class, 'show']);
 
         // Fornecedores de peças.
         crud_routes($router, '/suppliers', SupplierController::class);

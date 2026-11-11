@@ -38,6 +38,23 @@ abstract class CrudController extends Controller
             return $response;
         }
 
+        $userRole = (string) $this->auth->role();
+        $columns = $resource->datatableColumns();
+        $columns = array_values(array_filter(array_map(
+            static function (array $column) use ($userRole): array {
+                if (empty($column['actions']) || !is_array($column['actions'])) {
+                    return $column;
+                }
+                $column['actions'] = array_values(array_filter(
+                    $column['actions'],
+                    static fn (array $action): bool => empty($action['roles'])
+                        || in_array($userRole, (array) $action['roles'], true)
+                ));
+                return $column;
+            },
+            $columns
+        ), static fn (array $column): bool => !isset($column['actions']) || $column['actions'] !== []));
+
         return $this->render($resource->indexView(), [
             'title' => $resource->labels()['plural'],
             'resource' => $resource,
@@ -50,8 +67,8 @@ abstract class CrudController extends Controller
                 'cardTitle' => $resource->labels()['plural'],
                 'newLabel' => $resource->datatableNewLabel(),
                 'canCreate' => !$resource->createRoles() || $this->auth->hasRole($resource->createRoles()),
-                'userRole' => $this->auth->role(),
-                'columns' => $resource->datatableColumns(),
+                'userRole' => $userRole,
+                'columns' => $columns,
                 'order' => $resource->datatableOrder(),
                 'filters' => $resource->datatableFilters(),
                 'selectable' => $resource->selectable(),
