@@ -1,8 +1,8 @@
 # Relatório de Auditoria do Sistema
 
-**Data:** 09/11/2026
+**Data:** 09/11/2026 (auditoria inicial) · 11/11/2026 (revisão incremental)
 **Escopo:** arquitetura, segurança, autorização, regras de negócio, integridade de dados, performance e qualidade.
-**Resultado:** 170 verificações automatizadas executadas, todas passando após as correções.
+**Resultado:** auditoria inicial com 170 verificações + revisão incremental por seção, regressão de páginas/perfis e fluxo completo validados.
 
 ---
 
@@ -307,9 +307,79 @@ Testes manuais complementares:
 
 ---
 
-## 9. Conclusão
+## 9. Revisão incremental por seção (11/11/2026)
 
-O sistema está funcional e as falhas críticas de autorização, login, exclusão de histórico e fluxo de orçamento/entrega foram corrigidas. A base de testes E2E cobre os fluxos principais e pode ser reutilizada em apresentações e regressões. As recomendações restantes são de escala e endurecimento, não bloqueantes para o uso atual.
+Depois da auditoria inicial, cada seção foi revisada com correções de UX, regras de negócio e integridade. Commits principais: `49e1964`, `44f65eb`, `2ce4542`, `96ece93`, `2ccdddc`, `976ff89`, `5f99453`.
+
+### 9.1 Dashboard e tickets
+- Dashboard com KPIs, faturamento de 6 meses, ticket médio, status semanal e escopo por mecânico.
+- Central de tickets com contexto/resumo recolhível, filtros na URL, status/responsável na lista, reatribuição, confirmação estilizada e persistência do estado da sidebar.
+- Notificações e badges de não lidas revisados.
+
+### 9.2 Peças e fornecedores
+- Busca por marca/código, iniciais de avatar, seleção em massa, OEM achatado e fallback para imagens com 403.
+- Estoque/referência, máscara de preço/custo, filtros e paginação server-side do catálogo.
+- Fornecedores sem checkboxes e com filtro de situação.
+
+### 9.3 Pedidos de peças
+- Formulário do mecânico restrito a **OS + peças**, com alerta fixo de status “Solicitado”.
+- Quick view da peça com marca, código, categoria, SKU, código de barras, preço, descrição, aplicação veicular e link.
+- Card do veículo da OS, quantidade no modal e paginação de itens (5 por página).
+- Fluxo **Solicitado → Validado → Pedido → A caminho → Recebido**; Cancelado encerra. Mecânico só cria como Solicitado; gestão mantém fornecedor, previsão e andamento.
+- Página de detalhe somente leitura com itens, resumo, recebimento e histórico de auditoria.
+
+### 9.4 Ordens de serviço
+- Listagem sem checkboxes, com filtros de status/prioridade/responsável e coluna de responsável.
+- Edição não permite pular etapas; “Entregue” só é concluído pelo registro de entrega.
+- Entrega/retirada liberada apenas em “Pronta para entrega”, sem duplicidade; KM de saída valida e atualiza o veículo.
+- Designação de responsável valida mecânico ativo; remoção registra evento.
+- Mecânico edita apenas tarefas próprias ou sem responsável; gestão mantém controle total.
+- Wizard com e-mail do cliente, responsável incluído na equipe e validação de mecânicos/tarefas.
+- Edição de OS filtra veículos pelo cliente e adiciona o responsável à equipe.
+
+### 9.5 Orçamentos
+- Fluxo **Aberto → Aprovado/Reprovado/Cancelado**; reabertura para Aberto; edição somente em Aberto (validada no servidor).
+- Editor com OS visível/filtrada, sugestão de veículo da OS, busca de peça no catálogo, preços em pt-BR e tabela mais legível.
+- Desconto limitado ao subtotal; totais recalculados no servidor.
+- Histórico de criação/status/atualização na tela do orçamento.
+- Impressão com dados da oficina, contato do cliente, detalhes do veículo, termos e assinatura.
+- Listagem com filtros de status/cliente, colunas de OS/validade e total sem quebra.
+
+### 9.6 Clientes e veículos
+- Cliente com CPF (máscara, validação e unicidade), observações e layout revisado.
+- Página do cliente com status, edição, CPF, “cliente desde”, veículos com status/KM/link e novo veículo já vinculado.
+- Listagens sem checkboxes, com filtros de situação/cidade (clientes) e situação/cliente (veículos).
+- Veículo com KM atual, chassi e observações; edição sem FIPE preserva marca/modelo/ano.
+- Cliente pré-selecionado ao criar veículo pela página do cliente.
+- CPF vazio agora é gravado como `NULL`, evitando conflito de chave única.
+
+### 9.7 Relatórios, configurações, auditoria e funcionários
+- Relatórios com período (30 dias, mês, 90 dias, ano, tudo), KPIs no período, ticket médio, tabela de orçamentos por status e exportação CSV.
+- Configurações com dados da oficina (nome, CNPJ/CPF, telefone, e-mail, endereço), validade padrão e termos de orçamento.
+- Dados da oficina usados na impressão e no nome da sidebar/rodapé; validade padrão usada no editor.
+- Auditoria com filtros por tipo/usuário/ação/entidade/período, ações/entidades traduzidas, status legíveis, detalhes amigáveis e links para os registros.
+- Funcionários com salário no formulário, senha mínima de 8 caracteres, filtros de perfil/situação e sem checkboxes.
+- Perfil permite editar telefone.
+
+### 9.8 Validação final
+- **Matriz de acesso:** admin, secretária, mecânico-chefe e mecânico testados em 13 rotas; permissões corretas.
+- **Fluxo completo:** cliente → veículo → OS → orçamento aprovado → pedido de peça → transições de status → entrega, com KM atualizado e dados removidos ao final.
+- **Regressão de páginas:** dashboard, tickets, peças, fornecedores, pedidos, OS, orçamentos, clientes, veículos, relatórios, configurações, auditoria, funcionários e perfil.
+- **Base após limpeza:** 10 funcionários, 49 clientes, 67 veículos, 181 OS, 162 orçamentos e 106 pedidos de peças.
+- PHP lint e JS lint sem erros; nenhum dado temporário remanescente.
+
+### 9.9 Recomendações restantes
+- CSP e HSTS dependem de migração de scripts inline e HTTPS obrigatório.
+- Rate-limit dedicado para o endpoint de transcrição de áudio.
+- Fallback manual de marca/modelo para veículos fora da FIPE.
+- Paginação server-side para OS/orçamentos/funcionários se o volume crescer muito.
+- Rotina de backup/restauração e monitoramento de erros em produção.
+
+---
+
+## 10. Conclusão
+
+O sistema está funcional e as falhas críticas de autorização, login, exclusão de histórico e fluxo de orçamento/entrega foram corrigidas. A revisão incremental por seção consolidou UX, regras de status, permissões e integrações, com regressão de páginas, matriz de acesso por perfil e fluxo completo cliente → veículo → OS → orçamento → pedido → entrega. As recomendações restantes são de escala e endurecimento, não bloqueantes para o uso atual.
 
 
 Nome	E-mail	Senha	Perfil
