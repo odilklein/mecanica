@@ -16,6 +16,33 @@ class BudgetStatus
         'cancelled' => 'Cancelado',
     ];
 
+    /**
+     * Fluxo do orçamento. Aprovado/Reprovado/Cancelado podem ser reabertos
+     * para correção; a edição só é permitida com status "Aberto".
+     */
+    public const TRANSITIONS = [
+        'open' => ['approved', 'rejected', 'cancelled'],
+        'approved' => ['open', 'cancelled'],
+        'rejected' => ['open', 'cancelled'],
+        'cancelled' => ['open'],
+    ];
+
+    /** @return string[] */
+    public static function next(string $status): array
+    {
+        return self::TRANSITIONS[$status] ?? [];
+    }
+
+    public static function canTransition(string $from, string $to): bool
+    {
+        return in_array($to, self::next($from), true);
+    }
+
+    public static function isEditable(string $status): bool
+    {
+        return $status === 'open';
+    }
+
     public static function label(string $status): string
     {
         return self::STATUSES[$status] ?? $status;

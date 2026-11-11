@@ -46,6 +46,10 @@ class BudgetController extends CrudController
             $this->session->flash('error', 'Orçamento não encontrado.');
             return redirect($resource->path());
         }
+        if (!BudgetStatus::isEditable((string) $budget['status'])) {
+            $this->session->flash('error', 'Reabra o orçamento (status Aberto) para editar.');
+            return redirect($resource->path() . '/' . (int) $id);
+        }
         $items = $this->pdo->prepare('SELECT * FROM budget_items WHERE budget_id = :id ORDER BY id');
         $items->execute([':id' => (int) $id]);
 
@@ -64,17 +68,42 @@ class BudgetController extends CrudController
 
         $body = $request->getParsedBody();
         $id = (int) ($body['id'] ?? 0);
+        $isNew = $id <= 0;
+        $returnPath = $resource->path() . ($isNew ? '/create' : '/' . $id . '/edit');
+
+        if (!$isNew) {
+            $currentBudget = $this->findBudget($id);
+            if (!$currentBudget) {
+                $this->session->flash('error', 'Orçamento não encontrado.');
+                return redirect($resource->path());
+            }
+            if (!BudgetStatus::isEditable((string) $currentBudget['status'])) {
+                $this->session->flash('error', 'Reabra o orçamento (status Aberto) para editar.');
+                return redirect($resource->path() . '/' . $id);
+            }
+        }
+
         $clientId = (int) ($body['client_id'] ?? 0);
         $vehicleId = (int) ($body['vehicle_id'] ?? 0) ?: null;
         $serviceOrderId = (int) ($body['service_order_id'] ?? 0) ?: null;
         $validUntil = clean($body['valid_until'] ?? '') ?: null;
-        $discount = max(0, (float) str_replace(',', '.', (string) ($body['discount'] ?? 0)));
+        if ($validUntil !== null && !preg_match('/^\d{4}-\d{2}-\d{2}$/', $validUntil)) {
+            $this->session->flash('error', 'Validade inválida.');
+            return redirect($returnPath);
+        }
+        $discount = $this->parseMoney($body['discount'] ?? 0);
         $notes = clean($body['notes'] ?? '');
         $items = json_decode((string) ($body['items_json'] ?? '[]'), true) ?: [];
 
         if ($clientId <= 0) {
             $this->session->flash('error', 'Selecione o cliente.');
-            return redirect($resource->path() . ($id > 0 ? '/' . $id . '/edit' : '/create'));
+            return redirect($returnPath);
+        }
+        $clientCheck = $this->pdo->prepare('SELECT 1 FROM clients WHERE id = ? AND is_active = 1');
+        $clientCheck->execute([$clientId]);
+        if (!$clientCheck->fetchColumn()) {
+            $this->session->flash('error', 'Cliente inválido ou inativo.');
+            return redirect($returnPath);
         }
 
         if ($vehicleId !== null) {
@@ -84,7 +113,7 @@ class BudgetController extends CrudController
             $vehicleCheck->execute([$vehicleId, $clientId]);
             if (!$vehicleCheck->fetchColumn()) {
                 $this->session->flash('error', 'Veículo inválido ou inativo para o cliente selecionado.');
-                return redirect($resource->path() . ($id > 0 ? '/' . $id . '/edit' : '/create'));
+                return redirect($returnPath);
             }
         }
 
@@ -93,11 +122,9 @@ class BudgetController extends CrudController
             $orderCheck->execute([$serviceOrderId, $clientId]);
             if (!$orderCheck->fetchColumn()) {
                 $this->session->flash('error', 'A OS selecionada não pertence a este cliente.');
-                return redirect($resource->path() . ($id > 0 ? '/' . $id . '/edit' : '/create'));
+                return redirect($returnPath);
             }
         }
-
-        $isNew = $id <= 0;
 
         try {
             $this->pdo->beginTransaction();
@@ -130,8 +157,8 @@ class BudgetController extends CrudController
                     continue;
                 }
                 $type = ($item['type'] ?? 'part') === 'service' ? 'service' : 'part';
-                $qty = max(0.01, (float) ($item['quantity'] ?? 1));
-                $price = max(0, (float) ($item['unit_price'] ?? 0));
+                $qty = max(0.01, $this->parseMoney($item['quantity'] ?? 1));
+                $price = $this->parseMoney($item['unit_price'] ?? 0);
                 $stmt->execute([
                     ':b' => $id, ':t' => $type, ':d' => mb_substr($desc, 0, 200),
                     ':q' => $qty, ':p' => $price, ':s' => round($qty * $price, 2),
@@ -172,12 +199,30 @@ class BudgetController extends CrudController
         $items = $this->pdo->prepare('SELECT * FROM budget_items WHERE budget_id = :id ORDER BY id');
         $items->execute([':id' => (int) $id]);
 
+        $history = $this->pdo->prepare(
+            'SELECT a.*, u.name AS user_name
+               FROM audit_logs a
+               LEFT JOIN users u ON u.id = a.user_id
+              WHERE a.entity = :entity AND a.entity_id = :id
+              ORDER BY a.id DESC
+              LIMIT 30'
+        );
+        $history->execute([':entity' => 'budgets', ':id' => (int) $id]);
+
+        $currentStatus = (string) $budget['status'];
+        $statusAvailable = array_values(array_unique(array_merge(
+            [$currentStatus],
+            BudgetStatus::next($currentStatus)
+        )));
+
         return $this->render('mechanic::budgets/show', [
             'title' => 'Orçamento #' . str_pad((string) $budget['number'], 4, '0', STR_PAD_LEFT),
             'resource' => $resource,
             'budget' => $budget,
             'items' => $items->fetchAll(),
+            'history' => $history->fetchAll(),
             'statuses' => BudgetStatus::STATUSES,
+            'statusAvailable' => $statusAvailable,
         ]);
     }
 
@@ -202,14 +247,26 @@ class BudgetController extends CrudController
             $this->session->flash('error', 'Orçamento não encontrado.');
             return redirect($resource->path());
         }
-        if ((string) $budget['status'] === $status) {
+        $currentStatus = (string) $budget['status'];
+        if ($currentStatus === $status) {
             $this->session->flash('success', 'O status já é "' . BudgetStatus::label($status) . '".');
+            return redirect($resource->path() . '/' . (int) $id);
+        }
+        if (!BudgetStatus::canTransition($currentStatus, $status)) {
+            $this->session->flash(
+                'error',
+                'Transição de status inválida: '
+                    . BudgetStatus::label($currentStatus) . ' → ' . BudgetStatus::label($status) . '.'
+            );
             return redirect($resource->path() . '/' . (int) $id);
         }
 
         $this->pdo->prepare('UPDATE budgets SET status = :s WHERE id = :id')
             ->execute([':s' => $status, ':id' => (int) $id]);
-        record_audit($this->pdo, $this->auth->id(), 'budgets', (int) $id, 'status', ['status' => $status]);
+        record_audit($this->pdo, $this->auth->id(), 'budgets', (int) $id, 'status', [
+            'from' => $currentStatus,
+            'to' => $status,
+        ]);
         $this->notifyBudgetStatus($budget, $status);
         $this->session->flash('success', 'Status do orçamento atualizado para "' . BudgetStatus::label($status) . '".');
         return redirect($resource->path() . '/' . (int) $id);
@@ -284,14 +341,32 @@ class BudgetController extends CrudController
         $vehicles = $this->pdo->query('SELECT id, client_id, plate, model FROM vehicles WHERE is_active = 1 ORDER BY plate')->fetchAll();
 
         return $this->render('mechanic::budgets/editor', [
-            'title' => $budget ? 'Editar orçamento' : 'Novo orçamento',
+            'title' => $budget
+                ? 'Editar orçamento #' . str_pad((string) $budget['number'], 4, '0', STR_PAD_LEFT)
+                : 'Novo orçamento',
             'resource' => $resource,
             'budget' => $budget,
             'items' => $items,
             'defaults' => $defaults,
             'clients' => $clients,
             'vehicles' => $vehicles,
+            'selectOptions' => $resource->selectOptions($this->pdo, $budget ?? $defaults),
         ]);
+    }
+
+    /** Aceita "1.234,56", "1234.56" ou número puro. */
+    private function parseMoney(mixed $value): float
+    {
+        $raw = trim((string) $value);
+        if ($raw === '') {
+            return 0.0;
+        }
+        $raw = preg_replace('/[^\d,.-]/', '', $raw) ?? '';
+        if (str_contains($raw, ',')) {
+            $raw = str_replace('.', '', $raw);
+            $raw = str_replace(',', '.', $raw);
+        }
+        return max(0, (float) $raw);
     }
 
     private function recalcBudget(int $budgetId): void
@@ -312,21 +387,28 @@ class BudgetController extends CrudController
         $discountStmt = $this->pdo->prepare('SELECT discount FROM budgets WHERE id = :id');
         $discountStmt->execute([':id' => $budgetId]);
         $discount = (float) $discountStmt->fetchColumn();
+        // O desconto não pode ultrapassar peças + mão de obra.
+        $discount = min($discount, $parts + $labor);
         $total = max(0, $parts + $labor - $discount);
 
-        $this->pdo->prepare('UPDATE budgets SET parts_total = :p, labor_total = :l, total = :t WHERE id = :id')
-            ->execute([':p' => $parts, ':l' => $labor, ':t' => $total, ':id' => $budgetId]);
+        $this->pdo->prepare(
+            'UPDATE budgets SET parts_total = :p, labor_total = :l, discount = :d, total = :t WHERE id = :id'
+        )->execute([':p' => $parts, ':l' => $labor, ':d' => $discount, ':t' => $total, ':id' => $budgetId]);
     }
 
     private function findBudget(int $id): ?array
     {
         $stmt = $this->pdo->prepare(
-            'SELECT b.*, c.name AS client_name, v.plate AS vehicle_plate, v.model AS vehicle_model,
-                    so.number AS order_number
+            'SELECT b.*, c.name AS client_name, c.phone AS client_phone,
+                    c.email AS client_email, c.cpf AS client_cpf,
+                    v.plate AS vehicle_plate, v.model AS vehicle_model,
+                    v.year AS vehicle_year, v.color AS vehicle_color,
+                    so.number AS order_number, creator.name AS created_by_name
                FROM budgets b
                LEFT JOIN clients c ON c.id = b.client_id
                LEFT JOIN vehicles v ON v.id = b.vehicle_id
                LEFT JOIN service_orders so ON so.id = b.service_order_id
+               LEFT JOIN users creator ON creator.id = b.created_by
               WHERE b.id = :id'
         );
         $stmt->execute([':id' => $id]);

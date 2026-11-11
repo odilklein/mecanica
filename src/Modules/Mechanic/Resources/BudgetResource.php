@@ -44,6 +44,20 @@ class BudgetResource extends Resource
         return 'Novo orçamento';
     }
 
+    /** A listagem não tem ações em massa: sem checkboxes. */
+    public function selectable(): bool
+    {
+        return false;
+    }
+
+    public function datatableFilters(): array
+    {
+        return [
+            ['field' => 'status', 'label' => 'Status', 'options' => BudgetStatus::STATUSES],
+            ['field' => 'client_name', 'label' => 'Cliente'],
+        ];
+    }
+
     public function columns(): array
     {
         return [
@@ -65,7 +79,6 @@ class BudgetResource extends Resource
 
         return [
             $this->dtControlColumn(),
-            $this->dtSelectColumn(),
             $this->dtIdColumn(),
             [
                 'title' => 'Nº',
@@ -76,9 +89,11 @@ class BudgetResource extends Resource
             ],
             ['title' => 'Cliente', 'data' => 'client_name', 'render' => 'text', 'priority' => 5],
             ['title' => 'Veículo', 'data' => 'vehicle_label', 'render' => 'text', 'priority' => 6],
+            ['title' => 'OS', 'data' => 'order_number_label', 'render' => 'text', 'priority' => 7],
             ['title' => 'Status', 'data' => 'status', 'render' => 'badge', 'badge' => $statuses, 'priority' => 4],
-            ['title' => 'Total', 'data' => 'total', 'render' => 'money', 'priority' => 7],
+            ['title' => 'Total', 'data' => 'total', 'render' => 'money', 'priority' => 7, 'className' => 'text-nowrap'],
             ['title' => 'Data', 'data' => 'budget_date', 'render' => 'date', 'priority' => 8],
+            ['title' => 'Validade', 'data' => 'valid_until', 'render' => 'date', 'priority' => 8],
             $this->dtActionsColumn([
                 ['label' => 'Detalhes', 'icon' => 'eye', 'href' => $this->path() . '/{id}'],
                 ['label' => 'Editar', 'icon' => 'pencil', 'href' => $this->path() . '/{id}/edit', 'primary' => true],
@@ -93,6 +108,9 @@ class BudgetResource extends Resource
         $row['vehicle_label'] = trim(
             ($row['vehicle_plate'] ?? '') . (($row['vehicle_model'] ?? '') ? ' · ' . $row['vehicle_model'] : '')
         );
+        $row['order_number_label'] = !empty($row['order_number'])
+            ? '#' . str_pad((string) $row['order_number'], 4, '0', STR_PAD_LEFT)
+            : '—';
         return $row;
     }
 
@@ -112,13 +130,14 @@ class BudgetResource extends Resource
         $where = '1=1';
 
         if ($search !== '') {
-            $where = '(b.number LIKE :s OR c.name LIKE :s OR v.plate LIKE :s)';
+            $where = "CONCAT_WS(' ', b.number, c.name, v.plate, v.model, so.number) LIKE :s";
             $params[':s'] = '%' . $search . '%';
         }
 
         $from = 'FROM budgets b
                  LEFT JOIN clients c ON c.id = b.client_id
-                 LEFT JOIN vehicles v ON v.id = b.vehicle_id';
+                 LEFT JOIN vehicles v ON v.id = b.vehicle_id
+                 LEFT JOIN service_orders so ON so.id = b.service_order_id';
 
         $count = $pdo->prepare("SELECT COUNT(*) {$from} WHERE {$where}");
         $count->execute($params);
@@ -129,7 +148,8 @@ class BudgetResource extends Resource
         $offset = ($page - 1) * $perPage;
 
         $stmt = $pdo->prepare(
-            "SELECT b.*, c.name AS client_name, v.plate AS vehicle_plate, v.model AS vehicle_model
+            "SELECT b.*, c.name AS client_name, v.plate AS vehicle_plate, v.model AS vehicle_model,
+                    so.number AS order_number
              {$from} WHERE {$where} ORDER BY b.number DESC LIMIT {$perPage} OFFSET {$offset}"
         );
         $stmt->execute($params);
@@ -156,14 +176,28 @@ class BudgetResource extends Resource
         }
 
         $orders = [];
-        foreach ($pdo->query('SELECT id, number FROM service_orders ORDER BY number DESC')->fetchAll() as $row) {
-            $orders[(int) $row['id']] = 'OS #' . str_pad((string) $row['number'], 4, '0', STR_PAD_LEFT);
+        $orderClients = [];
+        $orderVehicles = [];
+        $orderStmt = $pdo->query(
+            'SELECT so.id, so.number, so.client_id, so.vehicle_id, c.name AS client_name
+               FROM service_orders so
+               LEFT JOIN clients c ON c.id = so.client_id
+              ORDER BY so.number DESC'
+        );
+        foreach ($orderStmt->fetchAll() as $row) {
+            $orderId = (int) $row['id'];
+            $orders[$orderId] = 'OS #' . str_pad((string) $row['number'], 4, '0', STR_PAD_LEFT)
+                . (!empty($row['client_name']) ? ' - ' . $row['client_name'] : '');
+            $orderClients[$orderId] = (int) ($row['client_id'] ?? 0);
+            $orderVehicles[$orderId] = (int) ($row['vehicle_id'] ?? 0);
         }
 
         return [
             'client_id' => $clients,
             'vehicle_id' => $vehicles,
             'service_order_id' => $orders,
+            'order_clients' => $orderClients,
+            'order_vehicles' => $orderVehicles,
             'status' => BudgetStatus::STATUSES,
         ];
     }

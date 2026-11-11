@@ -18,7 +18,13 @@
         .totals .total { border-top: 2px solid #b8270f; font-size: 18px; font-weight: bold; padding-top: 10px; }
         .actions { margin-top: 24px; }
         .actions button { padding: 10px 20px; background: #b8270f; color: #fff; border: 0; border-radius: 6px; cursor: pointer; }
-        @media print { .actions { display: none; } body { padding: 0; } }
+        .signature { margin-top: 56px; width: 320px; }
+        .signature .line { border-top: 1px solid #333; margin-bottom: 6px; }
+        @media print {
+            .actions { display: none; }
+            body { padding: 0; }
+            .signature { page-break-inside: avoid; }
+        }
     </style>
 </head>
 <body>
@@ -35,8 +41,21 @@
     </div>
 
     <div style="display:flex; gap:40px; font-size:13px">
-        <div><strong>Cliente</strong><br><?= e($budget['client_name'] ?: '—') ?></div>
-        <div><strong>Veículo</strong><br><?= e($budget['vehicle_plate'] ?: '—') ?><?= $budget['vehicle_model'] ? ' · ' . e($budget['vehicle_model']) : '' ?></div>
+        <div>
+            <strong>Cliente</strong><br>
+            <?= e($budget['client_name'] ?: '—') ?>
+            <?php if (!empty($budget['client_phone'])): ?><br><span class="muted"><?= e($budget['client_phone']) ?></span><?php endif; ?>
+            <?php if (!empty($budget['client_email'])): ?><br><span class="muted"><?= e($budget['client_email']) ?></span><?php endif; ?>
+        </div>
+        <div>
+            <strong>Veículo</strong><br>
+            <?= e($budget['vehicle_plate'] ?: '—') ?>
+            <br><span class="muted">
+                <?= e($budget['vehicle_model'] ?: 'Modelo não informado') ?>
+                <?= !empty($budget['vehicle_year']) ? ' · ' . (int) $budget['vehicle_year'] : '' ?>
+                <?= !empty($budget['vehicle_color']) ? ' · ' . e($budget['vehicle_color']) : '' ?>
+            </span>
+        </div>
         <?php if (!empty($budget['order_number'])): ?>
         <div><strong>OS</strong><br>#<?= str_pad((string) $budget['order_number'], 4, '0', STR_PAD_LEFT) ?></div>
         <?php endif; ?>
@@ -68,6 +87,13 @@
         <div><span>Desconto</span><strong>R$ <?= number_format((float) $budget['discount'], 2, ',', '.') ?></strong></div>
         <div class="total"><span>TOTAL</span><span>R$ <?= number_format((float) $budget['total'], 2, ',', '.') ?></span></div>
     </div>
+
+    <div class="signature">
+        <div class="line"></div>
+        <div class="muted">Assinatura do cliente</div>
+    </div>
+
+    <p class="muted" style="margin-top:32px">Documento gerado em <?= e(date('d/m/Y H:i')) ?>.</p>
 
     <div class="actions">
         <button type="button" onclick="window.print()">Imprimir</button>

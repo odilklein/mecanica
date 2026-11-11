@@ -15,6 +15,17 @@ $itemsJson = json_encode(array_map(static function ($i) {
     ];
 }, $items), JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT);
 $vehiclesJson = json_encode($vehicles, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT);
+$opts = $selectOptions ?? [];
+$ordersData = [];
+foreach (($opts['service_order_id'] ?? []) as $orderId => $orderLabel) {
+    $ordersData[] = [
+        'id' => (int) $orderId,
+        'label' => (string) $orderLabel,
+        'client_id' => (int) ($opts['order_clients'][$orderId] ?? 0),
+        'vehicle_id' => (int) ($opts['order_vehicles'][$orderId] ?? 0),
+    ];
+}
+$ordersJson = json_encode($ordersData, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT);
 ?>
 <div class="page-header">
     <div>
@@ -27,11 +38,10 @@ $vehiclesJson = json_encode($vehicles, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | J
 <form method="POST" action="<?= e($path) ?>/save" id="formOrcamento">
     <input type="hidden" name="csrf_token" value="<?= e($csrf) ?>">
     <input type="hidden" name="id" value="<?= $bid ?>">
-    <input type="hidden" name="service_order_id" value="<?= $curServiceOrder ?>">
     <input type="hidden" name="items_json" id="items_json" value="[]">
 
     <div class="row g-3">
-        <div class="col-lg-8">
+        <div class="col-lg-8 col-xl-9">
             <div class="card mb-3">
                 <div class="card-body">
                     <div class="panel-header"><i class="icon-base ti tabler-user"></i><div><h3 class="panel-title">Cliente e veículo</h3></div></div>
@@ -50,6 +60,17 @@ $vehiclesJson = json_encode($vehicles, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | J
                             <select class="select2 form-select" id="veiculo_id" name="vehicle_id" data-placeholder="Selecione o cliente" data-current="<?= $curVehicle ?>">
                                 <option value="">Selecione o cliente</option>
                             </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label" for="service_order_id">Ordem de serviço</label>
+                            <select class="select2 form-select" id="service_order_id" name="service_order_id"
+                                    data-placeholder="Sem OS vinculada" data-current="<?= $curServiceOrder ?>">
+                                <option value="">Sem OS vinculada</option>
+                                <?php foreach (($opts['service_order_id'] ?? []) as $orderId => $orderLabel): ?>
+                                <option value="<?= (int) $orderId ?>" <?= $curServiceOrder === (int) $orderId ? 'selected' : '' ?>><?= e($orderLabel) ?></option>
+                                <?php endforeach; ?>
+                            </select>
+                            <div class="form-text">Opcional. Ao escolher a OS, o veículo dela é sugerido.</div>
                         </div>
                         <div class="col-md-6">
                             <label class="form-label" for="valid_until">Validade</label>
@@ -73,9 +94,18 @@ $vehiclesJson = json_encode($vehicles, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | J
                         <div class="d-flex align-items-center gap-2"><i class="icon-base ti tabler-list"></i><h3 class="panel-title mb-0">Itens do orçamento</h3></div>
                         <button type="button" class="btn btn-sm btn-outline-primary" id="btnAddItem"><i class="icon-base ti tabler-plus"></i> Adicionar item</button>
                     </div>
+                    <div class="row g-2 align-items-end mb-3">
+                        <div class="col-md-8">
+                            <label class="form-label" for="budgetPartSearch">Buscar peça no catálogo</label>
+                            <select class="form-select part-autocomplete" id="budgetPartSearch" data-placeholder="Buscar por nome, marca ou código..."></select>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="form-text">A peça entra como item com o preço de referência.</div>
+                        </div>
+                    </div>
                     <div class="table-responsive">
                         <table class="table table-sm align-middle">
-                            <thead><tr><th style="width:20%">Tipo</th><th>Item</th><th style="width:90px">Qtd</th><th style="width:150px">Preço</th><th style="width:130px">Subtotal</th><th style="width:40px"></th></tr></thead>
+                            <thead><tr><th style="width:18%">Tipo</th><th>Item</th><th style="width:86px">Qtd</th><th style="width:120px">Preço</th><th style="width:110px">Subtotal</th><th style="width:40px"></th></tr></thead>
                             <tbody id="corpoItens"></tbody>
                         </table>
                     </div>
@@ -83,7 +113,7 @@ $vehiclesJson = json_encode($vehicles, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | J
             </div>
         </div>
 
-        <div class="col-lg-4">
+        <div class="col-lg-4 col-xl-3">
             <div class="card sticky-top" style="top: 80px;">
                 <div class="card-body">
                     <div class="panel-header"><i class="icon-base ti tabler-calculator"></i><div><h3 class="panel-title">Resumo</h3></div></div>
@@ -102,5 +132,7 @@ $vehiclesJson = json_encode($vehicles, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | J
 <script>
 window.BUDGET_ITEMS = <?= $itemsJson ?>;
 window.BUDGET_VEHICLES = <?= $vehiclesJson ?>;
+window.BUDGET_ORDERS = <?= $ordersJson ?>;
 </script>
+<script src="<?= e(asset('/js/part-autocomplete.js')) ?>"></script>
 <script src="<?= e(asset('/js/budget-editor.js')) ?>"></script>
