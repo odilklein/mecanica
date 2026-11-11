@@ -5,12 +5,14 @@ $isEdit = $record !== null;
 $action = $isEdit ? $path . '/' . (int) $record['id'] : $path;
 $opts = $selectOptions ?? [];
 
-$select = static function (string $name, string $label, string $icon, array $options, $value, string $col, bool $required = false): string {
+$select = static function (string $name, string $label, string $icon, array $options, $value, string $col, bool $required = false, bool $allowEmpty = true): string {
     $priorityClass = $name === 'priority' ? ' select2-priority' : '';
     $html = '<div class="' . e($col) . '">';
     $html .= '<label class="form-label" for="' . e($name) . '">' . e($label) . ($required ? ' *' : '') . '</label>';
     $html .= '<select class="select2 form-select' . $priorityClass . '" id="' . e($name) . '" name="' . e($name) . '" data-placeholder="Selecione...">';
-    $html .= '<option value=""></option>';
+    if ($allowEmpty) {
+        $html .= '<option value=""></option>';
+    }
     foreach ($options as $ov => $ol) {
         $selected = ((string) $value === (string) $ov) ? ' selected' : '';
         $html .= '<option value="' . e((string) $ov) . '"' . $selected . '>' . e($ol) . '</option>';
@@ -21,7 +23,11 @@ $select = static function (string $name, string $label, string $icon, array $opt
 ?>
 <div class="page-header">
     <div>
-        <h1><i class="icon-base ti tabler-clipboard-list"></i><?= e($title) ?></h1>
+        <h1>
+            <i class="icon-base ti tabler-clipboard-list"></i><?= e($title) ?><?= $isEdit && !empty($record['number'])
+                ? ' #' . str_pad((string) $record['number'], 4, '0', STR_PAD_LEFT)
+                : '' ?>
+        </h1>
         <span class="page-subtitle"><?= $isEdit ? 'Atualize os dados' : 'Preencha os dados' ?> da ordem de serviço</span>
     </div>
     <div class="page-header-actions">
@@ -31,7 +37,7 @@ $select = static function (string $name, string $label, string $icon, array $opt
 
 <div class="row justify-content-center">
     <div class="col-xl-10">
-        <form method="POST" action="<?= e($action) ?>">
+        <form method="POST" action="<?= e($action) ?>" id="formSO">
             <input type="hidden" name="csrf_token" value="<?= e($csrf) ?>">
 
             <?php if (!empty($errors['_form'])): ?>
@@ -51,6 +57,11 @@ $select = static function (string $name, string $label, string $icon, array $opt
                     <div class="row g-3">
                         <?= $select('client_id', 'Cliente', 'user', $opts['client_id'] ?? [], $old['client_id'] ?? '', 'col-md-6', true) ?>
                         <?= $select('vehicle_id', 'Veículo', 'car', $opts['vehicle_id'] ?? [], $old['vehicle_id'] ?? '', 'col-md-6') ?>
+                        <div class="col-12">
+                            <div class="form-text text-warning d-none" id="vehicleEmptyHint">
+                                Nenhum veículo cadastrado para este cliente.
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -67,7 +78,25 @@ $select = static function (string $name, string $label, string $icon, array $opt
                     </div>
                     <div class="row g-3">
                         <?= $select('priority', 'Prioridade', 'flag', $opts['priority'] ?? [], $old['priority'] ?? 'normal', 'col-md-4', true) ?>
-                        <?= $select('status', 'Status', 'activity', $opts['status'] ?? [], $old['status'] ?? 'received', 'col-md-4', true) ?>
+                        <?php if ($isEdit && count($opts['status'] ?? []) <= 1): ?>
+                        <div class="col-md-4">
+                            <label class="form-label" for="statusReadonly">Status</label>
+                            <div class="input-group input-group-merge">
+                                <span class="input-group-text"><i class="icon-base ti tabler-activity"></i></span>
+                                <input type="text" class="form-control" id="statusReadonly"
+                                       value="<?= e((string) (array_values($opts['status'] ?? [])[0] ?? '—')) ?>" readonly>
+                            </div>
+                            <input type="hidden" name="status" value="<?= e((string) (array_key_first($opts['status'] ?? []) ?: ($old['status'] ?? 'received'))) ?>">
+                        </div>
+                        <?php else: ?>
+                        <?= $select('status', 'Status', 'activity', $opts['status'] ?? [], $old['status'] ?? 'received', 'col-md-4', true, false) ?>
+                        <?php endif; ?>
+                        <div class="col-12">
+                            <div class="form-text">
+                                Fluxo: Recebida → Em análise → Aguardando aprovação/peça → Em execução → Pronta para entrega.
+                                “Entregue” é registrada na página da OS.
+                            </div>
+                        </div>
                         <div class="col-md-4">
                             <label class="form-label" for="entry_date">Entrada</label>
                             <div class="input-group input-group-merge">
@@ -116,3 +145,17 @@ $select = static function (string $name, string $label, string $icon, array $opt
         </form>
     </div>
 </div>
+
+<?php
+$vehicleData = [];
+foreach (($opts['vehicle_id'] ?? []) as $vehicleId => $vehicleLabel) {
+    $vehicleData[] = [
+        'id' => (int) $vehicleId,
+        'label' => (string) $vehicleLabel,
+        'client_id' => (int) ($opts['vehicle_clients'][$vehicleId] ?? 0),
+    ];
+}
+?>
+<script>
+window.SO_VEHICLES = <?= json_encode($vehicleData, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?>;
+</script>

@@ -54,6 +54,26 @@ class ServiceOrderResource extends Resource
         return 'Nova OS';
     }
 
+    /** A listagem não tem ações em massa: sem checkboxes. */
+    public function selectable(): bool
+    {
+        return false;
+    }
+
+    public function formScripts(): array
+    {
+        return ['/js/service-order-form.js'];
+    }
+
+    public function datatableFilters(): array
+    {
+        return [
+            ['field' => 'status', 'label' => 'Status', 'options' => ServiceOrderStatus::STATUSES],
+            ['field' => 'priority', 'label' => 'Prioridade', 'options' => ServiceOrderStatus::PRIORITIES],
+            ['field' => 'lead_mechanic', 'label' => 'Responsável'],
+        ];
+    }
+
     public function columns(): array
     {
         return [
@@ -79,7 +99,6 @@ class ServiceOrderResource extends Resource
 
         return [
             $this->dtControlColumn(),
-            $this->dtSelectColumn(),
             $this->dtIdColumn(),
             [
                 'title' => 'OS',
@@ -90,6 +109,7 @@ class ServiceOrderResource extends Resource
             ],
             ['title' => 'Cliente', 'data' => 'client_name', 'render' => 'text', 'priority' => 5],
             ['title' => 'Veículo', 'data' => 'vehicle_label', 'render' => 'text', 'priority' => 6],
+            ['title' => 'Responsável', 'data' => 'lead_mechanic', 'render' => 'text', 'priority' => 6],
             ['title' => 'Status', 'data' => 'status', 'render' => 'badge', 'badge' => $statuses, 'priority' => 4],
             ['title' => 'Prioridade', 'data' => 'priority', 'render' => 'badge', 'badge' => $priorities, 'priority' => 3],
             ['title' => 'Entrada', 'data' => 'entry_date', 'render' => 'date', 'priority' => 7],
@@ -126,7 +146,7 @@ class ServiceOrderResource extends Resource
         $where = '1=1';
 
         if ($search !== '') {
-            $where = '(so.number LIKE :s OR c.name LIKE :s OR v.plate LIKE :s OR v.model LIKE :s)';
+            $where = "CONCAT_WS(' ', so.number, c.name, v.plate, v.model) LIKE :s";
             $params[':s'] = '%' . $search . '%';
         }
 
@@ -141,7 +161,8 @@ class ServiceOrderResource extends Resource
 
         $from = 'FROM service_orders so
                  LEFT JOIN clients c ON c.id = so.client_id
-                 LEFT JOIN vehicles v ON v.id = so.vehicle_id';
+                 LEFT JOIN vehicles v ON v.id = so.vehicle_id
+                 LEFT JOIN users lm ON lm.id = so.lead_mechanic_id';
 
         $count = $pdo->prepare("SELECT COUNT(*) {$from} WHERE {$where}");
         $count->execute($params);
@@ -152,7 +173,8 @@ class ServiceOrderResource extends Resource
         $offset = ($page - 1) * $perPage;
 
         $stmt = $pdo->prepare(
-            "SELECT so.*, c.name AS client_name, v.plate AS vehicle_plate, v.model AS vehicle_model
+            "SELECT so.*, c.name AS client_name, v.plate AS vehicle_plate, v.model AS vehicle_model,
+                    lm.name AS lead_mechanic
              {$from} WHERE {$where} ORDER BY so.number DESC LIMIT {$perPage} OFFSET {$offset}"
         );
         $stmt->execute($params);
@@ -173,19 +195,14 @@ class ServiceOrderResource extends Resource
             $clients[(int) $row['id']] = $row['name'];
         }
 
-        $clientId = (int) ($data['client_id'] ?? 0);
+        // Todos os veículos ativos + mapa cliente → veículo. O formulário de
+        // edição filtra no navegador quando o cliente muda.
         $vehicles = [];
-        $vehicleSql = 'SELECT id, plate, model FROM vehicles WHERE is_active = 1';
-        $vehicleParams = [];
-        if ($clientId > 0) {
-            $vehicleSql .= ' AND client_id = :cid';
-            $vehicleParams[':cid'] = $clientId;
-        }
-        $vehicleSql .= ' ORDER BY plate';
-        $vehicleStmt = $pdo->prepare($vehicleSql);
-        $vehicleStmt->execute($vehicleParams);
-        foreach ($vehicleStmt->fetchAll() as $row) {
-            $vehicles[(int) $row['id']] = trim(($row['plate'] ?? '') . ' - ' . ($row['model'] ?? ''));
+        $vehicleClients = [];
+        foreach ($pdo->query('SELECT id, client_id, plate, model FROM vehicles WHERE is_active = 1 ORDER BY plate')->fetchAll() as $row) {
+            $vehicleId = (int) $row['id'];
+            $vehicles[$vehicleId] = trim(($row['plate'] ?? '') . ' - ' . ($row['model'] ?? ''));
+            $vehicleClients[$vehicleId] = (int) ($row['client_id'] ?? 0);
         }
 
         $mechanics = [];
@@ -193,11 +210,29 @@ class ServiceOrderResource extends Resource
             $mechanics[(int) $row['id']] = $row['name'];
         }
 
+        // Na edição, só o status atual e os próximos válidos. "Entregue" é
+        // concluído exclusivamente pelo registro de entrega/retirada.
+        $currentStatus = (string) ($data['status'] ?? '');
+        if ($currentStatus !== '' && isset(ServiceOrderStatus::STATUSES[$currentStatus])) {
+            $statuses = [];
+            foreach (array_unique(array_merge([$currentStatus], ServiceOrderStatus::next($currentStatus))) as $status) {
+                // "Entregue" nunca é escolhido na edição, exceto se já for o
+                // status atual (aí aparece somente para leitura).
+                if ($status === 'delivered' && $status !== $currentStatus) {
+                    continue;
+                }
+                $statuses[$status] = ServiceOrderStatus::STATUSES[$status];
+            }
+        } else {
+            $statuses = ServiceOrderStatus::STATUSES;
+        }
+
         return [
             'client_id' => $clients,
             'vehicle_id' => $vehicles,
+            'vehicle_clients' => $vehicleClients,
             'lead_mechanic_id' => $mechanics,
-            'status' => ServiceOrderStatus::STATUSES,
+            'status' => $statuses,
             'priority' => ServiceOrderStatus::PRIORITIES,
         ];
     }

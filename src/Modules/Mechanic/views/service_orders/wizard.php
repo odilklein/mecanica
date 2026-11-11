@@ -117,6 +117,13 @@ $ticketUsers = $ticketUsers ?? $mechanics;
                                             <input type="text" class="form-control" id="client_phone" name="client_phone" maxlength="20" data-mask="phone" placeholder="(11) 98888-7777">
                                         </div>
                                     </div>
+                                    <div class="col-md-8">
+                                        <label class="form-label" for="client_email">E-mail</label>
+                                        <div class="input-group input-group-merge">
+                                            <span class="input-group-text"><i class="icon-base ti tabler-mail"></i></span>
+                                            <input type="email" class="form-control" id="client_email" name="client_email" maxlength="120" autocomplete="off" placeholder="cliente@email.com">
+                                        </div>
+                                    </div>
                                     <div class="col-md-4">
                                         <label class="form-label" for="zip">CEP</label>
                                         <div class="input-group input-group-merge">
@@ -196,7 +203,7 @@ $ticketUsers = $ticketUsers ?? $mechanics;
                                 <h6 class="mb-3"><i class="icon-base ti tabler-car me-1"></i>Novo veículo</h6>
                                 <div class="row g-3">
                                     <div class="col-md-6">
-                                        <label class="form-label" for="fipe_brand_code">Marca *</label>
+                                        <label class="form-label" for="fipe_brand_code">Marca</label>
                                         <select class="select2 form-select" id="fipe_brand_code" name="fipe_brand_code" data-placeholder="Buscar marca">
                                             <option value=""></option>
                                             <?php foreach ($brands as $b): ?>
@@ -205,13 +212,13 @@ $ticketUsers = $ticketUsers ?? $mechanics;
                                         </select>
                                     </div>
                                     <div class="col-md-6">
-                                        <label class="form-label" for="fipe_model_code">Modelo *</label>
+                                        <label class="form-label" for="fipe_model_code">Modelo</label>
                                         <select class="select2 form-select" id="fipe_model_code" name="fipe_model_code" data-placeholder="Buscar modelo">
                                             <option value=""></option>
                                         </select>
                                     </div>
                                     <div class="col-md-4">
-                                        <label class="form-label" for="fipe_year_code">Ano *</label>
+                                        <label class="form-label" for="fipe_year_code">Ano</label>
                                         <select class="select2 form-select" id="fipe_year_code" name="fipe_year_code" data-placeholder="Buscar ano">
                                             <option value=""></option>
                                         </select>
@@ -228,7 +235,7 @@ $ticketUsers = $ticketUsers ?? $mechanics;
                                         <label class="form-label" for="plate">Placa *</label>
                                         <div class="input-group input-group-merge">
                                             <span class="input-group-text"><i class="icon-base ti tabler-license"></i></span>
-                                            <input type="text" class="form-control" id="plate" name="plate" maxlength="10" data-mask="plate" placeholder="ABC-1234">
+                                            <input type="text" class="form-control" id="plate" name="plate" maxlength="10" data-mask="plate" placeholder="ABC-1234" required>
                                         </div>
                                     </div>
                                     <div class="col-md-4">

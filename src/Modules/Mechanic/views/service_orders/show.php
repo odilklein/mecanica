@@ -270,8 +270,13 @@ $canManage = $canManage ?? false;
                     <!-- ABA TAREFAS -->
                     <div class="tab-pane fade show active" id="osTabTasks" role="tabpanel">
                         <?php foreach ($tasks as $task): ?>
-                        <?php $taskTone = $task['status'] === 'done' ? 'success' : ($task['status'] === 'in_progress' ? 'primary' : 'secondary'); ?>
+                        <?php
+                        $taskTone = $task['status'] === 'done' ? 'success' : ($task['status'] === 'in_progress' ? 'primary' : 'secondary');
+                        $taskAssigned = (int) ($task['assigned_to'] ?? 0);
+                        $taskEditable = $canManage || $taskAssigned === 0 || $taskAssigned === $me;
+                        ?>
                         <div class="os-task-card">
+                            <?php if ($taskEditable): ?>
                             <form method="POST" action="<?= e($path . '/' . $orderId . '/task-update') ?>">
                                 <input type="hidden" name="csrf_token" value="<?= e($csrf) ?>">
                                 <input type="hidden" name="task_id" value="<?= (int) $task['id'] ?>">
@@ -291,6 +296,7 @@ $canManage = $canManage ?? false;
                                     </div>
                                     <div class="col-12 col-sm-4">
                                         <label class="form-label small mb-1">Responsável</label>
+                                        <?php if ($canManage): ?>
                                         <select class="form-select form-select-sm" name="assigned_to">
                                             <option value="">Sem responsável</option>
                                             <?php foreach ($mechanics as $mechanic): ?>
@@ -299,6 +305,9 @@ $canManage = $canManage ?? false;
                                             </option>
                                             <?php endforeach; ?>
                                         </select>
+                                        <?php else: ?>
+                                        <div class="form-control form-control-sm bg-light"><?= e($task['assigned_name'] ?: 'Você') ?></div>
+                                        <?php endif; ?>
                                     </div>
                                     <div class="col-12 col-sm-4">
                                         <label class="form-label small mb-1">Prazo</label>
@@ -324,6 +333,26 @@ $canManage = $canManage ?? false;
                                     </button>
                                 </div>
                             </form>
+                            <?php else: ?>
+                            <div class="d-flex justify-content-between align-items-center gap-2 mb-2">
+                                <h6 class="mb-0"><?= e((string) $task['description']) ?></h6>
+                                <span class="badge bg-label-<?= $taskTone ?> flex-shrink-0"><?= e($taskStatuses[$task['status']] ?? $task['status']) ?></span>
+                            </div>
+                            <div class="d-flex flex-wrap gap-3 small text-body-secondary">
+                                <span><i class="icon-base ti tabler-user icon-xs me-1"></i><?= e($task['assigned_name'] ?: 'Sem responsável') ?></span>
+                                <?php if (!empty($task['due_date'])): ?>
+                                <span><i class="icon-base ti tabler-calendar icon-xs me-1"></i>Prazo <?= e(date('d/m/Y', strtotime((string) $task['due_date']))) ?></span>
+                                <?php endif; ?>
+                                <span>Criada por <?= e($task['creator_name'] ?: 'Sistema') ?></span>
+                            </div>
+                            <?php if (!empty($task['notes'])): ?>
+                            <p class="mt-2 mb-0 small"><?= nl2br(e((string) $task['notes'])) ?></p>
+                            <?php endif; ?>
+                            <div class="alert alert-secondary py-2 mt-2 mb-0 small">
+                                <i class="icon-base ti tabler-lock icon-xs me-1"></i>
+                                Somente o responsável ou a gestão pode editar esta tarefa.
+                            </div>
+                            <?php endif; ?>
                         </div>
                         <?php endforeach; ?>
 
@@ -335,10 +364,11 @@ $canManage = $canManage ?? false;
                             <input type="hidden" name="csrf_token" value="<?= e($csrf) ?>">
                             <h6 class="mb-3"><i class="icon-base ti tabler-plus"></i> Nova tarefa</h6>
                             <div class="row g-2">
-                                <div class="col-12 col-md-5">
+                                <div class="col-12 <?= $canManage ? 'col-md-5' : 'col-md-7' ?>">
                                     <input type="text" class="form-control form-control-sm" name="description"
                                            placeholder="Descrição da tarefa..." maxlength="255" required>
                                 </div>
+                                <?php if ($canManage): ?>
                                 <div class="col-6 col-md-3">
                                     <select class="form-select form-select-sm" name="assigned_to">
                                         <option value="">Sem responsável</option>
@@ -347,7 +377,8 @@ $canManage = $canManage ?? false;
                                         <?php endforeach; ?>
                                     </select>
                                 </div>
-                                <div class="col-6 col-md-2">
+                                <?php endif; ?>
+                                <div class="col-6 <?= $canManage ? 'col-md-2' : 'col-md-3' ?>">
                                     <input type="date" class="form-control form-control-sm" name="due_date">
                                 </div>
                                 <div class="col-12 col-md-2">
@@ -357,6 +388,9 @@ $canManage = $canManage ?? false;
                                 </div>
                                 <div class="col-12">
                                     <textarea class="form-control form-control-sm" name="notes" rows="2" placeholder="Observações (opcional)"></textarea>
+                                    <?php if (!$canManage): ?>
+                                    <div class="form-text">A tarefa será atribuída a você.</div>
+                                    <?php endif; ?>
                                 </div>
                             </div>
                         </form>
@@ -575,7 +609,7 @@ $canManage = $canManage ?? false;
         </div>
 
         <!-- Status -->
-        <?php if ($canManage): ?>
+        <?php if ($canManage && count($statusAvailable) > 1): ?>
         <div class="card mb-6">
             <div class="card-header">
                 <h5 class="card-title m-0">Status</h5>
@@ -593,6 +627,12 @@ $canManage = $canManage ?? false;
                     <button type="submit" class="btn btn-primary w-100">
                         <i class="icon-base ti tabler-activity"></i> Atualizar status
                     </button>
+                    <?php if ($status === 'ready_for_delivery'): ?>
+                    <div class="alert alert-info py-2 mt-3 mb-0 small">
+                        <i class="icon-base ti tabler-info-circle me-1"></i>
+                        Registre a entrega/retirada para concluir a OS.
+                    </div>
+                    <?php endif; ?>
                 </form>
             </div>
         </div>
@@ -628,8 +668,8 @@ $canManage = $canManage ?? false;
                 <p class="mb-1">Responsável: <?= e($delivery['responsible'] ?: '—') ?></p>
                 <p class="mb-1">Destino: <?= e($delivery['destination'] ?: '—') ?></p>
                 <p class="mb-0">KM na saída: <?= $delivery['exit_km'] !== null ? (int) $delivery['exit_km'] : '—' ?></p>
-                <?php else: ?>
-                <?php if ($canManage): ?>
+                <?php elseif ($canManage && $status === 'ready_for_delivery'): ?>
+                <?php $currentKm = $order['vehicle_km'] !== null ? (int) $order['vehicle_km'] : 0; ?>
                 <form method="POST" action="<?= e($path . '/' . $orderId . '/delivery') ?>">
                     <input type="hidden" name="csrf_token" value="<?= e($csrf) ?>">
                     <div class="mb-3">
@@ -649,15 +689,23 @@ $canManage = $canManage ?? false;
                     </div>
                     <div class="input-group input-group-merge mb-3">
                         <span class="input-group-text"><i class="icon-base ti tabler-road"></i></span>
-                        <input class="form-control" type="number" name="exit_km" min="0" placeholder="KM na saída">
+                        <input class="form-control" type="number" name="exit_km"
+                               min="<?= $currentKm > 0 ? $currentKm : 0 ?>"
+                               value="<?= $currentKm > 0 ? $currentKm : '' ?>"
+                               placeholder="KM na saída">
                     </div>
+                    <div class="form-text mb-3">O KM informado atualiza o veículo.</div>
                     <button type="submit" class="btn btn-outline-primary w-100">
                         <i class="icon-base ti tabler-device-floppy"></i> Registrar
                     </button>
                 </form>
+                <?php elseif ($canManage): ?>
+                <div class="alert alert-info py-2 mb-0 small">
+                    <i class="icon-base ti tabler-info-circle me-1"></i>
+                    A entrega/retirada fica disponível quando a OS estiver <strong>Pronta para entrega</strong>.
+                </div>
                 <?php else: ?>
                 <p class="text-body-secondary mb-0">Aguardando registro pela equipe.</p>
-                <?php endif; ?>
                 <?php endif; ?>
             </div>
         </div>
@@ -668,11 +716,31 @@ $canManage = $canManage ?? false;
                 <h5 class="card-title m-0">Equipe</h5>
             </div>
             <div class="card-body">
+                <?php
+                $responsibleIds = array_map(static fn (array $r): int => (int) $r['user_id'], $responsibles);
+                $leadId = (int) ($order['lead_mechanic_id'] ?? 0);
+                $showLeadRow = $leadId > 0
+                    && !empty($order['lead_mechanic'])
+                    && !in_array($leadId, $responsibleIds, true);
+                ?>
+                <?php if ($showLeadRow): ?>
+                <div class="d-flex align-items-center gap-2 mb-3">
+                    <span class="avatar avatar-sm">
+                        <span class="avatar-initial rounded-circle bg-label-info">
+                            <?= e(strtoupper(mb_substr((string) $order['lead_mechanic'], 0, 1))) ?>
+                        </span>
+                    </span>
+                    <div class="flex-grow-1">
+                        <h6 class="mb-0"><?= e((string) $order['lead_mechanic']) ?></h6>
+                        <small class="text-body-secondary">Responsável pela OS</small>
+                    </div>
+                </div>
+                <?php endif; ?>
                 <?php foreach ($responsibles as $r): ?>
                 <div class="d-flex align-items-center gap-2 mb-3">
                     <span class="avatar avatar-sm">
                         <span class="avatar-initial rounded-circle bg-label-primary">
-                            <?= e(strtoupper(substr((string) $r['name'], 0, 1))) ?>
+                            <?= e(strtoupper(mb_substr((string) $r['name'], 0, 1))) ?>
                         </span>
                     </span>
                     <div class="flex-grow-1">
@@ -690,7 +758,7 @@ $canManage = $canManage ?? false;
                 </div>
                 <?php endforeach; ?>
 
-                <?php if (!$responsibles): ?>
+                <?php if (!$responsibles && !$showLeadRow): ?>
                 <p class="text-body-secondary">Nenhum mecânico designado.</p>
                 <?php endif; ?>
 

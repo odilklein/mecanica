@@ -31,12 +31,7 @@
 
         // Etapa Atendimento (ticket)
         var $ticketAssigned = $('#ticket_assigned_to');
-        var createTicket = document.getElementById('create_ticket');
-        var ticketFields = document.getElementById('ticketFields');
-        var ticketDisabledHint = document.getElementById('ticketDisabledHint');
-        var ticketMessage = document.getElementById('ticket_initial_message');
         var complaint = document.getElementById('initial_complaint');
-        var ticketMessageTouched = false;
 
         function setVehicleOptions(list) {
             $vehicle.empty();
@@ -87,29 +82,7 @@
 
         $client.on('change', updateClientState);
 
-        // ----- Etapa Atendimento: estado do ticket -----
-        function syncTicketState() {
-            var enabled = createTicket ? createTicket.checked : true;
-
-            if (ticketFields) {
-                ticketFields.hidden = !enabled;
-                ticketFields.querySelectorAll('input, select, textarea').forEach(function (el) {
-                    el.disabled = !enabled;
-                });
-            }
-            if (ticketDisabledHint) {
-                ticketDisabledHint.hidden = enabled;
-            }
-            updateReview();
-        }
-
-        function syncTicketMessage() {
-            if (ticketMessage && !ticketMessageTouched) {
-                ticketMessage.value = complaint ? complaint.value : '';
-            }
-            updateReview();
-        }
-
+        // ----- Etapa Atendimento: responsável do ticket -----
         function syncTicketAssignee() {
             if (!$ticketAssigned.length || $ticketAssigned.val()) {
                 return;
@@ -120,25 +93,23 @@
             }
         }
 
-        if (createTicket) {
-            createTicket.addEventListener('change', syncTicketState);
-        }
         if (complaint) {
-            complaint.addEventListener('input', syncTicketMessage);
-        }
-        if (ticketMessage) {
-            ticketMessage.addEventListener('input', function () {
-                ticketMessageTouched = true;
-                updateReview();
-            });
+            complaint.addEventListener('input', updateReview);
         }
         $lead.on('change', function () {
+            // O responsável sempre entra na equipe da OS.
+            var leadId = String($lead.val() || '');
+            if (leadId) {
+                document.querySelectorAll('input[name="mechanics[]"]').forEach(function (checkbox) {
+                    if (String(checkbox.value) === leadId) {
+                        checkbox.checked = true;
+                    }
+                });
+            }
             syncTicketAssignee();
             updateReview();
         });
 
-        syncTicketState();
-        syncTicketMessage();
         syncTicketAssignee();
 
         $vehicle.on('change', function () {
@@ -407,16 +378,11 @@
             }
 
             if (el('reviewTicket')) {
-                var ticketEnabled = createTicket ? createTicket.checked : true;
-                if (!ticketEnabled) {
-                    el('reviewTicket').textContent = 'Sem OS';
-                } else {
-                    var assigned = $ticketAssigned.find('option:selected').text().trim();
-                    if (!assigned) {
-                        assigned = $lead.find('option:selected').text().trim();
-                    }
-                    el('reviewTicket').textContent = 'OS será criada' + (assigned ? ' · ' + assigned : '');
+                var assigned = $ticketAssigned.find('option:selected').text().trim();
+                if (!assigned) {
+                    assigned = $lead.find('option:selected').text().trim();
                 }
+                el('reviewTicket').textContent = 'OS será criada' + (assigned ? ' · ' + assigned : '');
             }
 
             if (el('reviewPecas')) {

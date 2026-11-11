@@ -157,8 +157,31 @@ class ServiceOrderController extends CrudController
                 throw new \RuntimeException('Veículo inválido ou inativo para o cliente selecionado.');
             }
 
-            $mechanics = array_values(array_filter(array_map('intval', (array) ($body['mechanics'] ?? []))));
-            $lead = (int) ($body['lead_mechanic_id'] ?? 0) ?: ($mechanics[0] ?? null);
+            $mechanics = array_values(array_unique(array_filter(
+                array_map('intval', (array) ($body['mechanics'] ?? []))
+            )));
+            if ($mechanics) {
+                $in = implode(',', array_fill(0, count($mechanics), '?'));
+                $validStmt = $this->pdo->prepare(
+                    "SELECT id FROM users WHERE is_active = 1 AND role IN ('lead_mechanic','mechanic') AND id IN ({$in})"
+                );
+                $validStmt->execute($mechanics);
+                $mechanics = array_values(array_map('intval', $validStmt->fetchAll(\PDO::FETCH_COLUMN)));
+            }
+
+            $lead = (int) ($body['lead_mechanic_id'] ?? 0);
+            if ($lead > 0 && !in_array($lead, $mechanics, true)) {
+                $leadCheck = $this->pdo->prepare(
+                    "SELECT 1 FROM users WHERE id = ? AND is_active = 1 AND role IN ('lead_mechanic','mechanic')"
+                );
+                $leadCheck->execute([$lead]);
+                if ($leadCheck->fetchColumn()) {
+                    $mechanics[] = $lead;
+                } else {
+                    $lead = 0;
+                }
+            }
+            $lead = $lead ?: ($mechanics[0] ?? null);
 
             $priority = clean($body['priority'] ?? 'normal');
             if (!isset(ServiceOrderStatus::PRIORITIES[$priority])) {
@@ -196,6 +219,15 @@ class ServiceOrderController extends CrudController
                 if (is_array($task)) {
                     $desc = trim((string) ($task['description'] ?? ''));
                     $assignedTo = (int) ($task['assigned_to'] ?? 0) ?: null;
+                    if ($assignedTo !== null) {
+                        $assignedCheck = $this->pdo->prepare(
+                            "SELECT 1 FROM users WHERE id = ? AND is_active = 1 AND role IN ('lead_mechanic','mechanic')"
+                        );
+                        $assignedCheck->execute([$assignedTo]);
+                        if (!$assignedCheck->fetchColumn()) {
+                            $assignedTo = null;
+                        }
+                    }
                     $dueDate = trim((string) ($task['due_date'] ?? ''));
                     $dueDate = preg_match('/^\d{4}-\d{2}-\d{2}$/', $dueDate) ? $dueDate : null;
                     $notes = trim((string) ($task['notes'] ?? '')) ?: null;
@@ -266,17 +298,25 @@ class ServiceOrderController extends CrudController
                 ->execute([':o' => $orderId, ':t' => 'created', ':d' => 'OS criada.', ':u' => $userId]);
 
             // Ticket da OS: todo atendimento cria uma conversa vinculada.
+            $ticketAssigned = (int) ($body['ticket_assigned_to'] ?? 0) ?: null;
+            if ($ticketAssigned !== null) {
+                $ticketUserCheck = $this->pdo->prepare('SELECT 1 FROM users WHERE id = ? AND is_active = 1');
+                $ticketUserCheck->execute([$ticketAssigned]);
+                if (!$ticketUserCheck->fetchColumn()) {
+                    $ticketAssigned = null;
+                }
+            }
+
             $ticketService = new TicketService($this->pdo);
             $ticketId = $ticketService->ensureForOrder($orderId, [
                 'subject' => clean($body['ticket_subject'] ?? ''),
-                'assigned_to' => (int) ($body['ticket_assigned_to'] ?? 0) ?: null,
+                'assigned_to' => $ticketAssigned,
             ]);
 
             $initialMessage = trim((string) ($body['ticket_initial_message'] ?? ''));
             if ($initialMessage !== '') {
                 $ticketService->send($ticketId, (int) $userId, $initialMessage);
             }
-            $ticketAssigned = (int) ($body['ticket_assigned_to'] ?? 0) ?: null;
 
             $this->pdo->commit();
 
@@ -569,6 +609,18 @@ class ServiceOrderController extends CrudController
         $body = $request->getParsedBody();
         $clientId = (int) ($body['client_id'] ?? 0);
         $vehicleId = (int) ($body['vehicle_id'] ?? 0);
+
+        if ($clientId <= 0) {
+            $this->session->flash('error', 'Selecione o cliente.');
+            return redirect('/service-orders/' . (int) $id . '/edit');
+        }
+        $clientCheck = $this->pdo->prepare('SELECT 1 FROM clients WHERE id = ? AND is_active = 1');
+        $clientCheck->execute([$clientId]);
+        if (!$clientCheck->fetchColumn()) {
+            $this->session->flash('error', 'Cliente inválido ou inativo.');
+            return redirect('/service-orders/' . (int) $id . '/edit');
+        }
+
         if ($vehicleId > 0) {
             $vehicleCheck = $this->pdo->prepare(
                 'SELECT 1 FROM vehicles WHERE id = ? AND client_id = ? AND is_active = 1'
@@ -580,7 +632,50 @@ class ServiceOrderController extends CrudController
             }
         }
 
-        return parent::update($request, $id);
+        // A edição não pode pular etapas: só o status atual e os próximos
+        // válidos. "Entregue" é concluído exclusivamente pela entrega.
+        $currentStatus = (string) ($order['status'] ?? '');
+        $newStatus = (string) ($body['status'] ?? '');
+        if ($newStatus === '' || !isset(ServiceOrderStatus::STATUSES[$newStatus])) {
+            $this->session->flash('error', 'Status inválido.');
+            return redirect('/service-orders/' . (int) $id . '/edit');
+        }
+        $allowedStatuses = array_values(array_diff(
+            array_merge([$currentStatus], ServiceOrderStatus::next($currentStatus)),
+            ['delivered']
+        ));
+        if (!in_array($newStatus, $allowedStatuses, true)) {
+            $this->session->flash(
+                'error',
+                'Transição de status inválida: '
+                    . ServiceOrderStatus::label($currentStatus) . ' → ' . ServiceOrderStatus::label($newStatus) . '.'
+            );
+            return redirect('/service-orders/' . (int) $id . '/edit');
+        }
+
+        $priority = (string) ($body['priority'] ?? 'normal');
+        if (!isset(ServiceOrderStatus::PRIORITIES[$priority])) {
+            $priority = 'normal';
+        }
+        $body['priority'] = $priority;
+
+        // O responsável também entra na equipe da OS.
+        $leadId = (int) ($body['lead_mechanic_id'] ?? 0);
+        if ($leadId > 0) {
+            $leadCheck = $this->pdo->prepare(
+                "SELECT name FROM users WHERE id = ? AND is_active = 1 AND role IN ('lead_mechanic','mechanic')"
+            );
+            $leadCheck->execute([$leadId]);
+            if (!$leadCheck->fetchColumn()) {
+                $this->session->flash('error', 'Selecione um mecânico ativo como responsável.');
+                return redirect('/service-orders/' . (int) $id . '/edit');
+            }
+            $this->pdo->prepare(
+                'INSERT IGNORE INTO service_order_responsibles (order_id, user_id) VALUES (:o, :u)'
+            )->execute([':o' => (int) $id, ':u' => $leadId]);
+        }
+
+        return parent::update($request->withParsedBody($body), $id);
     }
 
     /** OS não é excluída: o fluxo correto é cancelar (status). */
@@ -740,30 +835,46 @@ class ServiceOrderController extends CrudController
             $this->session->flash('error', 'Ordem de serviço não encontrada.');
             return redirect($resource->path());
         }
+        if ($response = $this->guardOrderAccess($order)) {
+            return $response;
+        }
 
         $userId = (int) ($request->getParsedBody()['user_id'] ?? 0);
-        if ($userId > 0) {
-            $exists = $this->pdo->prepare('SELECT 1 FROM service_order_responsibles WHERE order_id = ? AND user_id = ?');
-            $exists->execute([(int) $id, $userId]);
-            if ($exists->fetchColumn()) {
-                $this->session->flash('success', 'Mecânico já está designado para esta OS.');
-                return redirect($resource->path() . '/' . (int) $id);
-            }
+        if ($userId <= 0) {
+            $this->session->flash('error', 'Selecione um mecânico.');
+            return redirect($resource->path() . '/' . (int) $id);
+        }
 
-            $this->pdo->prepare('INSERT IGNORE INTO service_order_responsibles (order_id, user_id) VALUES (:o, :u)')
-                ->execute([':o' => (int) $id, ':u' => $userId]);
-            $this->event((int) $id, 'responsible', 'Mecânico designado.');
+        $userStmt = $this->pdo->prepare(
+            "SELECT name FROM users WHERE id = ? AND is_active = 1 AND role IN ('lead_mechanic','mechanic')"
+        );
+        $userStmt->execute([$userId]);
+        $userName = (string) ($userStmt->fetchColumn() ?: '');
+        if ($userName === '') {
+            $this->session->flash('error', 'Selecione um mecânico ativo.');
+            return redirect($resource->path() . '/' . (int) $id);
+        }
 
-            if ($userId !== (int) $this->auth->id()) {
-                Notify::to(
-                    $this->pdo,
-                    [$userId],
-                    'os_responsible',
-                    'Você foi designado para a OS #' . str_pad((string) $order['number'], 4, '0', STR_PAD_LEFT) . '.',
-                    '/service-orders/' . (int) $id,
-                    $this->auth->id()
-                );
-            }
+        $exists = $this->pdo->prepare('SELECT 1 FROM service_order_responsibles WHERE order_id = ? AND user_id = ?');
+        $exists->execute([(int) $id, $userId]);
+        if ($exists->fetchColumn()) {
+            $this->session->flash('success', 'Mecânico já está designado para esta OS.');
+            return redirect($resource->path() . '/' . (int) $id);
+        }
+
+        $this->pdo->prepare('INSERT IGNORE INTO service_order_responsibles (order_id, user_id) VALUES (:o, :u)')
+            ->execute([':o' => (int) $id, ':u' => $userId]);
+        $this->event((int) $id, 'responsible', 'Mecânico designado: ' . $userName . '.');
+
+        if ($userId !== (int) $this->auth->id()) {
+            Notify::to(
+                $this->pdo,
+                [$userId],
+                'os_responsible',
+                'Você foi designado para a OS #' . str_pad((string) $order['number'], 4, '0', STR_PAD_LEFT) . '.',
+                '/service-orders/' . (int) $id,
+                $this->auth->id()
+            );
         }
 
         return redirect($resource->path() . '/' . (int) $id);
@@ -779,8 +890,24 @@ class ServiceOrderController extends CrudController
             return $response;
         }
 
-        $this->pdo->prepare('DELETE FROM service_order_responsibles WHERE order_id = :o AND user_id = :u')
-            ->execute([':o' => (int) $id, ':u' => (int) $userId]);
+        $order = $this->findOrder((int) $id);
+        if (!$order) {
+            $this->session->flash('error', 'Ordem de serviço não encontrada.');
+            return redirect($resource->path());
+        }
+        if ($response = $this->guardOrderAccess($order)) {
+            return $response;
+        }
+
+        $userStmt = $this->pdo->prepare('SELECT name FROM users WHERE id = ?');
+        $userStmt->execute([(int) $userId]);
+        $userName = (string) ($userStmt->fetchColumn() ?: 'Mecânico');
+
+        $stmt = $this->pdo->prepare('DELETE FROM service_order_responsibles WHERE order_id = :o AND user_id = :u');
+        $stmt->execute([':o' => (int) $id, ':u' => (int) $userId]);
+        if ($stmt->rowCount() > 0) {
+            $this->event((int) $id, 'responsible', 'Mecânico removido da equipe: ' . $userName . '.');
+        }
 
         return redirect($resource->path() . '/' . (int) $id);
     }
@@ -808,6 +935,19 @@ class ServiceOrderController extends CrudController
         $desc = clean($body['description'] ?? '');
         if ($desc !== '') {
             $assignedTo = (int) ($body['assigned_to'] ?? 0) ?: null;
+            // Mecânico cria tarefas para si; a gestão pode designar qualquer um.
+            if (OrderAccess::isMechanicOnly($this->auth)) {
+                $assignedTo = (int) $this->auth->id();
+            }
+            if ($assignedTo !== null) {
+                $assignedCheck = $this->pdo->prepare(
+                    "SELECT 1 FROM users WHERE id = ? AND is_active = 1 AND role IN ('lead_mechanic','mechanic')"
+                );
+                $assignedCheck->execute([$assignedTo]);
+                if (!$assignedCheck->fetchColumn()) {
+                    $assignedTo = null;
+                }
+            }
             $dueDate = clean($body['due_date'] ?? '');
             $dueDate = preg_match('/^\d{4}-\d{2}-\d{2}$/', $dueDate) ? $dueDate : null;
             $notes = trim((string) ($body['notes'] ?? '')) ?: null;
@@ -871,6 +1011,14 @@ class ServiceOrderController extends CrudController
                 return redirect($resource->path() . '/' . (int) $id);
             }
 
+            $assignedTo = (int) ($task['assigned_to'] ?? 0);
+            if (OrderAccess::isMechanicOnly($this->auth)
+                && $assignedTo > 0
+                && $assignedTo !== (int) $this->auth->id()) {
+                $this->session->flash('error', 'Você só pode atualizar tarefas atribuídas a você.');
+                return redirect($resource->path() . '/' . (int) $id);
+            }
+
             $previousStatus = (string) ($task['status'] ?? 'pending');
 
             $completedAt = $status === 'done' ? date('Y-m-d H:i:s') : null;
@@ -890,7 +1038,6 @@ class ServiceOrderController extends CrudController
             $labels = ['pending' => 'Pendente', 'in_progress' => 'Em execução', 'done' => 'Concluída'];
             $this->event((int) $id, 'task', 'Tarefa atualizada para "' . ($labels[$status] ?? $status) . '".');
 
-            $assignedTo = (int) ($task['assigned_to'] ?? 0);
             if ($order && $previousStatus !== $status && $assignedTo > 0 && $assignedTo !== (int) $this->auth->id()) {
                 Notify::to(
                     $this->pdo,
@@ -936,6 +1083,12 @@ class ServiceOrderController extends CrudController
         $taskStmt->execute([$taskId, (int) $id]);
         $oldAssigned = (int) ($taskStmt->fetchColumn() ?: 0);
 
+        $isMechanicOnly = OrderAccess::isMechanicOnly($this->auth);
+        if ($isMechanicOnly && $oldAssigned > 0 && $oldAssigned !== (int) $this->auth->id()) {
+            $this->session->flash('error', 'Você só pode editar tarefas atribuídas a você.');
+            return redirect($resource->path() . '/' . (int) $id);
+        }
+
         $desc = clean($body['description'] ?? '');
         if ($desc === '') {
             return redirect($resource->path() . '/' . (int) $id);
@@ -946,6 +1099,19 @@ class ServiceOrderController extends CrudController
             $status = 'pending';
         }
         $assignedTo = (int) ($body['assigned_to'] ?? 0) ?: null;
+        if ($isMechanicOnly) {
+            // Mecânico não reatribui tarefas: mantém o responsável atual ou
+            // assume a tarefa se ela estiver sem responsável.
+            $assignedTo = $oldAssigned ?: (int) $this->auth->id();
+        } elseif ($assignedTo !== null) {
+            $assignedCheck = $this->pdo->prepare(
+                "SELECT 1 FROM users WHERE id = ? AND is_active = 1 AND role IN ('lead_mechanic','mechanic')"
+            );
+            $assignedCheck->execute([$assignedTo]);
+            if (!$assignedCheck->fetchColumn()) {
+                $assignedTo = null;
+            }
+        }
         $dueDate = clean($body['due_date'] ?? '');
         $dueDate = preg_match('/^\d{4}-\d{2}-\d{2}$/', $dueDate) ? $dueDate : null;
         $notes = trim((string) ($body['notes'] ?? '')) ?: null;
@@ -1006,40 +1172,83 @@ class ServiceOrderController extends CrudController
             return $response;
         }
 
+        $currentStatus = (string) ($order['status'] ?? '');
+        if ($currentStatus !== 'ready_for_delivery') {
+            $this->session->flash('error', 'A entrega só pode ser registrada quando a OS estiver "Pronta para entrega".');
+            return redirect($resource->path() . '/' . (int) $id);
+        }
+
+        $deliveryCheck = $this->pdo->prepare('SELECT 1 FROM service_order_deliveries WHERE order_id = ?');
+        $deliveryCheck->execute([(int) $id]);
+        if ($deliveryCheck->fetchColumn()) {
+            $this->session->flash('error', 'Esta OS já possui entrega/retirada registrada.');
+            return redirect($resource->path() . '/' . (int) $id);
+        }
+
         $body = $request->getParsedBody();
-        $this->pdo->prepare(
-            'INSERT INTO service_order_deliveries (order_id, modality, responsible, destination, exit_km)
-             VALUES (:o, :m, :r, :d, :km)'
-        )->execute([
-            ':o' => (int) $id,
-            ':m' => ($body['modality'] ?? 'pickup') === 'delivery' ? 'delivery' : 'pickup',
-            ':r' => clean($body['responsible'] ?? ''),
-            ':d' => clean($body['destination'] ?? ''),
-            ':km' => (int) ($body['exit_km'] ?? 0) ?: null,
-        ]);
+        $exitKm = (int) ($body['exit_km'] ?? 0) ?: null;
+        $currentKm = $order['vehicle_km'] !== null ? (int) $order['vehicle_km'] : null;
+        if ($exitKm !== null && $currentKm !== null && $currentKm > 0 && $exitKm < $currentKm) {
+            $this->session->flash(
+                'error',
+                'O KM de saída não pode ser menor que o KM atual do veículo ('
+                    . number_format($currentKm, 0, ',', '.') . ').'
+            );
+            return redirect($resource->path() . '/' . (int) $id);
+        }
 
-        $this->event((int) $id, 'delivery', 'Entrega/retirada registrada.');
+        $this->pdo->beginTransaction();
+        try {
+            $this->pdo->prepare(
+                'INSERT INTO service_order_deliveries (order_id, modality, responsible, destination, exit_km)
+                 VALUES (:o, :m, :r, :d, :km)'
+            )->execute([
+                ':o' => (int) $id,
+                ':m' => ($body['modality'] ?? 'pickup') === 'delivery' ? 'delivery' : 'pickup',
+                ':r' => clean($body['responsible'] ?? ''),
+                ':d' => clean($body['destination'] ?? ''),
+                ':km' => $exitKm,
+            ]);
 
-        // A entrega/retirada conclui o atendimento.
-        if ((string) ($order['status'] ?? '') !== 'delivered') {
+            // O KM de saída é o novo KM do veículo (nunca retrocede).
+            if ($exitKm !== null && !empty($order['vehicle_id'])) {
+                $this->pdo->prepare(
+                    'UPDATE vehicles SET current_km = :km
+                      WHERE id = :id AND (current_km IS NULL OR current_km <= :km2)'
+                )->execute([
+                    ':km' => $exitKm,
+                    ':id' => (int) $order['vehicle_id'],
+                    ':km2' => $exitKm,
+                ]);
+            }
+
+            // A entrega/retirada conclui o atendimento.
             $this->pdo->prepare('UPDATE service_orders SET status = :s, completion_date = :c WHERE id = :id')
                 ->execute([':s' => 'delivered', ':c' => date('Y-m-d'), ':id' => (int) $id]);
-            $this->event((int) $id, 'status', 'Status alterado para "Entregue".');
+            $this->pdo->commit();
+        } catch (\Throwable $e) {
+            $this->pdo->rollBack();
+            error_log('OS delivery: ' . $e->getMessage());
+            $this->session->flash('error', 'Não foi possível registrar a entrega.');
+            return redirect($resource->path() . '/' . (int) $id);
+        }
 
-            $recipients = array_values(array_filter(
-                $this->orderParticipants((int) $id, $order),
-                fn (int $uid): bool => $uid !== (int) $this->auth->id()
-            ));
-            if ($recipients) {
-                Notify::to(
-                    $this->pdo,
-                    $recipients,
-                    'os_status',
-                    'OS #' . str_pad((string) $order['number'], 4, '0', STR_PAD_LEFT) . ' foi entregue.',
-                    '/service-orders/' . (int) $id,
-                    $this->auth->id()
-                );
-            }
+        $this->event((int) $id, 'delivery', 'Entrega/retirada registrada.');
+        $this->event((int) $id, 'status', 'Status alterado para "Entregue".');
+
+        $recipients = array_values(array_filter(
+            $this->orderParticipants((int) $id, $order),
+            fn (int $uid): bool => $uid !== (int) $this->auth->id()
+        ));
+        if ($recipients) {
+            Notify::to(
+                $this->pdo,
+                $recipients,
+                'os_status',
+                'OS #' . str_pad((string) $order['number'], 4, '0', STR_PAD_LEFT) . ' foi entregue.',
+                '/service-orders/' . (int) $id,
+                $this->auth->id()
+            );
         }
 
         $this->session->flash('success', 'Entrega registrada.');
