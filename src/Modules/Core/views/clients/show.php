@@ -5,11 +5,17 @@ $Status = \Modules\Mechanic\Support\ServiceOrderStatus::class;
 ?>
 <div class="page-header">
     <div>
-        <h1><i class="icon-base ti tabler-user"></i><?= e($client['name']) ?></h1>
+        <h1>
+            <i class="icon-base ti tabler-user"></i><?= e($client['name']) ?>
+            <span class="badge <?= !empty($client['is_active']) ? 'bg-label-success' : 'bg-label-secondary' ?> ms-2">
+                <?= !empty($client['is_active']) ? 'Ativo' : 'Inativo' ?>
+            </span>
+        </h1>
         <span class="page-subtitle">Dados, veículos e histórico de atendimentos</span>
     </div>
     <div class="page-header-actions">
-        <a href="/vehicles/create" class="btn btn-primary"><i class="icon-base ti tabler-car"></i> Novo veículo</a>
+        <a href="<?= e($path . '/' . $clientId . '/edit') ?>" class="btn btn-primary"><i class="icon-base ti tabler-pencil"></i> Editar</a>
+        <a href="/vehicles/create?client_id=<?= $clientId ?>" class="btn btn-outline-primary"><i class="icon-base ti tabler-car"></i> Novo veículo</a>
         <a href="<?= e($path) ?>" class="btn btn-outline-secondary"><i class="icon-base ti tabler-arrow-left"></i> Voltar</a>
     </div>
 </div>
@@ -18,17 +24,45 @@ $Status = \Modules\Mechanic\Support\ServiceOrderStatus::class;
     <div class="col-lg-4">
         <div class="card mb-3"><div class="card-body">
             <div class="panel-header"><i class="icon-base ti tabler-address-book"></i><div><h3 class="panel-title">Contato</h3></div></div>
+            <?php if (!empty($client['cpf'])): ?>
+            <p class="mb-2"><small class="text-body-secondary d-block">CPF</small><?= e($client['cpf']) ?></p>
+            <?php endif; ?>
             <p class="mb-2"><small class="text-body-secondary d-block">Telefone</small><?= e($client['phone'] ?: '—') ?></p>
             <p class="mb-2"><small class="text-body-secondary d-block">E-mail</small><?= e($client['email'] ?: '—') ?></p>
-            <p class="mb-0"><small class="text-body-secondary d-block">Endereço</small><?= e(trim(($client['address'] ?? '') . ' ' . ($client['address_number'] ?? '') . ' ' . ($client['neighborhood'] ?? '') . ' ' . ($client['city'] ?? '') . ' ' . ($client['state'] ?? '')) ?: '—') ?></p>
+            <p class="mb-2">
+                <small class="text-body-secondary d-block">Endereço</small>
+                <?= e(preg_replace('/\s+/', ' ', trim(
+                    ($client['address'] ?? '') . ' ' . ($client['address_number'] ?? '') . ' '
+                    . ($client['neighborhood'] ?? '') . ' ' . ($client['city'] ?? '') . ' ' . ($client['state'] ?? '')
+                )) ?: '—') ?>
+            </p>
+            <?php if (!empty($client['created_at'])): ?>
+            <p class="mb-2"><small class="text-body-secondary d-block">Cliente desde</small><?= e(date('d/m/Y', strtotime((string) $client['created_at']))) ?></p>
+            <?php endif; ?>
+            <?php if (!empty($client['notes'])): ?>
+            <p class="mb-0"><small class="text-body-secondary d-block">Observações</small><?= nl2br(e((string) $client['notes'])) ?></p>
+            <?php endif; ?>
         </div></div>
 
         <div class="card"><div class="card-body">
             <div class="panel-header"><i class="icon-base ti tabler-car"></i><div><h3 class="panel-title">Veículos</h3></div></div>
             <?php foreach ($vehicles as $v): ?>
             <div class="border-bottom pb-2 mb-2">
-                <strong><?= e(trim(($v['brand'] ?? '') . ' ' . ($v['model'] ?? '')) ?: 'Veículo') ?></strong><br>
+                <div class="d-flex justify-content-between align-items-start gap-2">
+                    <div>
+                        <strong><?= e(trim(($v['brand'] ?? '') . ' ' . ($v['model'] ?? '')) ?: 'Veículo') ?></strong>
+                        <span class="badge <?= !empty($v['is_active']) ? 'bg-label-success' : 'bg-label-secondary' ?> ms-1">
+                            <?= !empty($v['is_active']) ? 'Ativo' : 'Inativo' ?>
+                        </span>
+                    </div>
+                    <a href="/vehicles/<?= (int) $v['id'] ?>/edit" class="btn btn-sm btn-icon btn-text-primary" title="Editar veículo">
+                        <i class="icon-base ti tabler-pencil"></i>
+                    </a>
+                </div>
                 <small class="text-body-secondary"><?= e($v['plate'] ?: 'Placa não informada') ?><?= $v['year'] ? ' · ' . (int) $v['year'] : '' ?></small>
+                <?php if ($v['current_km'] !== null): ?>
+                <br><small class="text-body-secondary">KM: <?= number_format((int) $v['current_km'], 0, ',', '.') ?></small>
+                <?php endif; ?>
                 <?php if (!empty($v['fipe_value'])): ?>
                 <br><small class="text-body-secondary">FIPE: R$ <?= number_format((float) $v['fipe_value'], 2, ',', '.') ?></small>
                 <?php endif; ?>

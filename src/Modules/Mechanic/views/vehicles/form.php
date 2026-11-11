@@ -4,6 +4,10 @@ $path = $resource->path();
 $isEdit = $record !== null;
 $action = $isEdit ? $path . '/' . (int) $record['id'] : $path;
 $opts = $selectOptions ?? [];
+$old = $old ?? [];
+if (!$isEdit && empty($old['client_id']) && !empty($_GET['client_id'])) {
+    $old['client_id'] = (int) $_GET['client_id'];
+}
 
 $select = static function (string $name, string $label, string $icon, array $options, $value, string $col, array $attrs = []): string {
     $extra = '';
@@ -52,6 +56,16 @@ $select = static function (string $name, string $label, string $icon, array $opt
                     </div>
 
                     <div class="row g-3">
+                        <?php if ($isEdit && (!empty($old['brand']) || !empty($old['model']) || !empty($old['year']))): ?>
+                        <div class="col-12">
+                            <div class="alert alert-secondary py-2 mb-0 small">
+                                <i class="icon-base ti tabler-car me-1"></i>
+                                Cadastro atual:
+                                <strong><?= e(trim(($old['brand'] ?? '') . ' ' . ($old['model'] ?? '')) ?: 'Veículo') ?></strong>
+                                <?= !empty($old['year']) ? ' · ' . (int) $old['year'] : '' ?>
+                            </div>
+                        </div>
+                        <?php endif; ?>
                         <?= $select('client_id', 'Cliente *', 'user', $opts['client_id'] ?? [], $old['client_id'] ?? '', 'col-md-8') ?>
                         <div class="col-md-4">
                             <label class="form-label" for="plate">Placa *</label>
@@ -62,10 +76,10 @@ $select = static function (string $name, string $label, string $icon, array $opt
                             <?php if (isset($errors['plate'])): ?><div class="invalid-feedback d-block"><?= e($errors['plate']) ?></div><?php endif; ?>
                         </div>
 
-                        <?= $select('fipe_brand_code', 'Marca *', 'building-factory-2', $opts['fipe_brand_code'] ?? [], $old['fipe_brand_code'] ?? '', 'col-md-6', ['data-fipe-brand' => '1']) ?>
-                        <?= $select('fipe_model_code', 'Modelo *', 'car', $opts['fipe_model_code'] ?? [], $old['fipe_model_code'] ?? '', 'col-md-6', ['data-fipe-model' => '1']) ?>
+                        <?= $select('fipe_brand_code', 'Marca (FIPE)', 'building-factory-2', $opts['fipe_brand_code'] ?? [], $old['fipe_brand_code'] ?? '', 'col-md-6', ['data-fipe-brand' => '1']) ?>
+                        <?= $select('fipe_model_code', 'Modelo (FIPE)', 'car', $opts['fipe_model_code'] ?? [], $old['fipe_model_code'] ?? '', 'col-md-6', ['data-fipe-model' => '1']) ?>
 
-                        <?= $select('fipe_year_code', 'Ano *', 'calendar-event', $opts['fipe_year_code'] ?? [], $old['fipe_year_code'] ?? '', 'col-md-4', ['data-fipe-year' => '1']) ?>
+                        <?= $select('fipe_year_code', 'Ano (FIPE)', 'calendar-event', $opts['fipe_year_code'] ?? [], $old['fipe_year_code'] ?? '', 'col-md-4', ['data-fipe-year' => '1']) ?>
 
                         <div class="col-md-4">
                             <label class="form-label" for="fipe_value_display">Valor FIPE</label>
@@ -85,10 +99,34 @@ $select = static function (string $name, string $label, string $icon, array $opt
                         </div>
 
                         <div class="col-12">
-                            <div class="form-check form-switch">
+                            <div class="form-text">Opcional: ao selecionar marca, modelo e ano, o valor FIPE é atualizado.</div>
+                        </div>
+
+                        <div class="col-md-4">
+                            <label class="form-label" for="current_km">KM atual</label>
+                            <div class="input-group input-group-merge">
+                                <span class="input-group-text"><i class="icon-base ti tabler-road"></i></span>
+                                <input type="number" class="form-control" id="current_km" name="current_km" min="0" step="1" value="<?= e($old['current_km'] ?? '') ?>" placeholder="Ex.: 120000">
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label" for="chassis">Chassi</label>
+                            <div class="input-group input-group-merge">
+                                <span class="input-group-text"><i class="icon-base ti tabler-barcode"></i></span>
+                                <input type="text" class="form-control" id="chassis" name="chassis" value="<?= e($old['chassis'] ?? '') ?>" maxlength="30" placeholder="Opcional">
+                            </div>
+                        </div>
+
+                        <div class="col-md-4 d-flex align-items-center">
+                            <div class="form-check form-switch mb-0">
                                 <input class="form-check-input" type="checkbox" role="switch" id="is_active" name="is_active" value="1" <?= ((string) ($old['is_active'] ?? '1') !== '0') ? 'checked' : '' ?>>
                                 <label class="form-check-label" for="is_active"><i class="icon-base ti tabler-toggle-right me-1"></i>Veículo ativo</label>
                             </div>
+                        </div>
+
+                        <div class="col-12">
+                            <label class="form-label" for="notes">Observações</label>
+                            <textarea class="form-control" id="notes" name="notes" rows="3" placeholder="Informações internas sobre o veículo"><?= e($old['notes'] ?? '') ?></textarea>
                         </div>
 
                         <div class="col-12 d-flex justify-content-end gap-2 mt-3">

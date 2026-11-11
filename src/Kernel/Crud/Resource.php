@@ -56,6 +56,12 @@ abstract class Resource
         return true;
     }
 
+    /** Título do formulário; pode ser sobrescrito para gênero/plural. */
+    public function formTitle(bool $isEdit): string
+    {
+        return ($isEdit ? 'Editar ' : 'Novo(a) ') . $this->labels()['singular'];
+    }
+
     /** Ícone Tabler do recurso (para cabeçalhos). */
     public function icon(): string
     {

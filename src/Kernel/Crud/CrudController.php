@@ -230,7 +230,7 @@ abstract class CrudController extends Controller
     private function formData(Resource $resource, ?array $record, array $old, array $errors): array
     {
         return [
-            'title' => ($record ? 'Editar ' : 'Novo(a) ') . $resource->labels()['singular'],
+            'title' => $resource->formTitle($record !== null),
             'resource' => $resource,
             'record' => $record,
             'old' => $old,

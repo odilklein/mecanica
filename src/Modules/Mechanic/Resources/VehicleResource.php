@@ -23,6 +23,11 @@ class VehicleResource extends Resource
         return ['singular' => 'Veículo', 'plural' => 'Veículos'];
     }
 
+    public function formTitle(bool $isEdit): string
+    {
+        return $isEdit ? 'Editar veículo' : 'Novo veículo';
+    }
+
     public function icon(): string
     {
         return 'car';
@@ -67,7 +72,24 @@ class VehicleResource extends Resource
 
     public function datatableOrder(): array
     {
-        return [[3, 'asc']];
+        return [[2, 'asc']];
+    }
+
+    /** A listagem não tem ações em massa: sem checkboxes. */
+    public function selectable(): bool
+    {
+        return false;
+    }
+
+    public function datatableFilters(): array
+    {
+        return [
+            ['field' => 'status', 'label' => 'Situação', 'options' => [
+                1 => 'Ativo',
+                0 => 'Inativo',
+            ]],
+            ['field' => 'client_name', 'label' => 'Cliente'],
+        ];
     }
 
     public function datatableRows(\PDO $pdo): array
@@ -84,7 +106,6 @@ class VehicleResource extends Resource
     {
         return [
             $this->dtControlColumn(),
-            $this->dtSelectColumn(),
             $this->dtIdColumn(),
             [
                 'title' => 'Veículo',
@@ -124,7 +145,7 @@ class VehicleResource extends Resource
     public function fillable(): array
     {
         return [
-            'client_id', 'plate', 'brand', 'model', 'year', 'color', 'is_active',
+            'client_id', 'plate', 'brand', 'model', 'year', 'color', 'current_km', 'chassis', 'notes', 'is_active',
             'fipe_brand_code', 'fipe_model_code', 'fipe_year_code', 'fipe_year', 'fipe_value', 'fipe_reference',
         ];
     }
@@ -186,6 +207,9 @@ class VehicleResource extends Resource
             $data['fipe_value'] = null;
         }
 
+        // current_km é NOT NULL no banco; vazio vira 0.
+        $data['current_km'] = max(0, (int) ($data['current_km'] ?? 0));
+
         return $data;
     }
 
@@ -194,12 +218,14 @@ class VehicleResource extends Resource
         return [
             ['name' => 'client_id', 'label' => 'Cliente', 'type' => 'select', 'required' => true, 'col' => 'col-md-6'],
             ['name' => 'plate', 'label' => 'Placa', 'type' => 'text', 'mask' => 'plate', 'validate' => 'plate', 'unique' => true, 'required' => true, 'max' => 10, 'col' => 'col-md-3'],
-            ['name' => 'year', 'label' => 'Ano', 'type' => 'number', 'min' => 1950, 'max' => 2030, 'col' => 'col-md-3'],
             ['name' => 'fipe_brand_code', 'label' => 'Marca (FIPE)', 'type' => 'select', 'col' => 'col-md-6'],
             ['name' => 'fipe_model_code', 'label' => 'Modelo (FIPE)', 'type' => 'select', 'col' => 'col-md-6'],
             ['name' => 'fipe_year_code', 'label' => 'Ano (FIPE)', 'type' => 'select', 'col' => 'col-md-3'],
             ['name' => 'fipe_value', 'label' => 'Valor FIPE', 'type' => 'text', 'col' => 'col-md-3'],
             ['name' => 'color', 'label' => 'Cor', 'type' => 'text', 'max' => 30, 'col' => 'col-md-4'],
+            ['name' => 'current_km', 'label' => 'KM atual', 'type' => 'number', 'min' => 0, 'col' => 'col-md-4'],
+            ['name' => 'chassis', 'label' => 'Chassi', 'type' => 'text', 'max' => 30, 'col' => 'col-md-4'],
+            ['name' => 'notes', 'label' => 'Observações', 'type' => 'textarea', 'col' => 'col-12'],
             ['name' => 'is_active', 'label' => 'Veículo ativo', 'type' => 'boolean', 'icon' => 'toggle-right', 'default' => 1, 'col' => 'col-md-6'],
         ];
     }

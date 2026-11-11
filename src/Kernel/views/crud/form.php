@@ -1,13 +1,13 @@
 <?php
-$labels = $resource->labels();
 $path = $resource->path();
 $isEdit = $record !== null;
 $action = $isEdit ? $path . '/' . (int) $record['id'] : $path;
+$formTitle = $resource->formTitle($isEdit);
 ?>
 <div class="page-header">
     <div>
-        <h1><i class="icon-base ti tabler-<?= e($resource->icon()) ?>"></i><?= e($title) ?></h1>
-        <span class="page-subtitle"><?= $isEdit ? 'Atualize os dados' : 'Preencha os dados' ?> do(a) <?= e(strtolower($labels['singular'])) ?></span>
+        <h1><i class="icon-base ti tabler-<?= e($resource->icon()) ?>"></i><?= e($formTitle) ?></h1>
+        <span class="page-subtitle"><?= $isEdit ? 'Atualize os dados do cadastro' : 'Preencha os dados do cadastro' ?></span>
     </div>
     <div class="page-header-actions">
         <a href="<?= e($path) ?>" class="btn btn-outline-secondary"><i class="icon-base ti tabler-arrow-left"></i> Voltar</a>
@@ -28,7 +28,7 @@ $action = $isEdit ? $path . '/' . (int) $record['id'] : $path;
                     <div class="panel-header">
                         <i class="icon-base ti tabler-<?= e($resource->icon()) ?>"></i>
                         <div>
-                            <h3 class="panel-title"><?= e($isEdit ? 'Editar ' . $labels['singular'] : 'Novo(a) ' . $labels['singular']) ?></h3>
+                            <h3 class="panel-title"><?= e($formTitle) ?></h3>
                             <p class="panel-subtitle">Os campos com * são obrigatórios</p>
                         </div>
                     </div>
