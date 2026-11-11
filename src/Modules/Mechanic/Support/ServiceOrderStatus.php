@@ -37,7 +37,7 @@ class ServiceOrderStatus
         return self::PRIORITIES[$priority] ?? $priority;
     }
 
-    /** Classes do badge Vuexy para cada status. */
+    /** Classes do badge do tema para cada status. */
     public static function badgeClass(string $status): string
     {
         $map = [

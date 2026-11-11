@@ -1,5 +1,5 @@
 // =============================================
-// SELECT2 — inicialização no padrão Vuexy
+// SELECT2 — inicialização no padrão do sistema
 // (forms-selects: Bootstrap Select / Live Search).
 //
 // Marque qualquer <select> com class="select2" e ele

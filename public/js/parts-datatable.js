@@ -1,6 +1,6 @@
 // =============================================
 // CATÁLOGO DE PEÇAS — DataTable no padrão
-// e-commerce do Vuexy (produto, categoria,
+// e-commerce do sistema (produto, categoria,
 // estoque, SKU, preço, status e ações).
 // =============================================
 (function () {

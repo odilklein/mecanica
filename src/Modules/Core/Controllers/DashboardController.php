@@ -15,7 +15,7 @@ use PDO;
 use Psr\Http\Message\ServerRequestInterface;
 
 /**
- * Painel principal — visão gerencial no padrão do dashboard CRM do Vuexy.
+ * Painel principal — visão gerencial no padrão do dashboard CRM do sistema.
  * Todos os números e séries dos gráficos vêm do banco (MySQL).
  */
 class DashboardController extends Controller

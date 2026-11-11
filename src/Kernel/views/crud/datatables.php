@@ -21,7 +21,7 @@ $configJson = json_encode(
     </div>
 </div>
 
-<!-- Fixed Header (Vuexy — tables-datatables-extensions) -->
+<!-- Fixed Header (tables-datatables-extensions) -->
 <div class="card">
     <h5 class="card-header text-md-start text-center border-bottom"><?= e($datatable['cardTitle'] ?? '') ?></h5>
     <?php if ($filters): ?>

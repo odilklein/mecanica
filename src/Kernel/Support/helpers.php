@@ -241,7 +241,7 @@ if (!function_exists('pagination_pages')) {
 }
 
 if (!function_exists('pagination_links')) {
-    /** Paginação no padrão Vuexy (chevrons + janela de páginas). */
+    /** Paginação no padrão do sistema (chevrons + janela de páginas). */
     function pagination_links(int $page, int $lastPage, string $path, array $params = []): string
     {
         if ($lastPage <= 1) {

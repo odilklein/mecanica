@@ -4,8 +4,27 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
     <meta name="theme-color" content="<?= e(setting('theme_color', '#b8270f')) ?>">
+    <script>
+        (function () {
+            try {
+                var pref = localStorage.getItem('mecanica-theme') || 'system';
+                var resolved = pref === 'system'
+                    ? (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light')
+                    : pref;
+                document.documentElement.setAttribute('data-bs-theme', resolved);
+                document.documentElement.setAttribute('data-theme-pref', pref);
+                var meta = document.querySelector('meta[name="theme-color"]');
+                if (meta) {
+                    meta.dataset.lightColor = meta.dataset.lightColor || meta.getAttribute('content') || '#b8270f';
+                    meta.setAttribute('content', resolved === 'dark' ? '#1f1f1f' : meta.dataset.lightColor);
+                }
+            } catch (e) {}
+        })();
+    </script>
     <title>Login | <?= e(setting('seo_title', 'Mecânica')) ?></title>
-    <link rel="icon" href="/assets/img/favicon/favicon.ico">
+    <link rel="icon" type="image/svg+xml" href="/assets/img/favicon/favicon.svg">
+    <link rel="icon" type="image/png" sizes="32x32" href="/assets/img/favicon/favicon-32x32.png">
+    <link rel="shortcut icon" href="/assets/img/favicon/favicon.ico">
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>

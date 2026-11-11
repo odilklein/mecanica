@@ -1,7 +1,7 @@
 <?php
 // =============================================
 // PEÇAS — CRM completo do catálogo
-// Listagem no padrão e-commerce do Vuexy,
+// Listagem no padrão e-commerce do sistema,
 // cadastro/edição com estoque, preço, imagem,
 // aplicação veicular, categorias e fornecedores.
 // =============================================

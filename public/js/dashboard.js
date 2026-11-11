@@ -1,5 +1,5 @@
 /**
- * Painel principal — gráficos (ApexCharts) no padrão do dashboard CRM do Vuexy.
+ * Painel principal — gráficos (ApexCharts) no padrão do dashboard CRM do sistema.
  * Os dados chegam do servidor em window.dashboardData.
  */
 'use strict';

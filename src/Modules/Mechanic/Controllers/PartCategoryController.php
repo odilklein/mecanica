@@ -1,7 +1,7 @@
 <?php
 // =============================================
 // CATEGORIAS DE PEÇAS — listagem e offcanvas
-// no padrão e-commerce do Vuexy.
+// no padrão e-commerce do sistema.
 // =============================================
 
 declare(strict_types=1);

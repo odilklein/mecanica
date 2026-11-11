@@ -4,10 +4,10 @@
    Este arquivo é carregado DEPOIS do core.css e
    contém apenas os componentes específicos do sistema
    (badges de status, wizard, filtros, CRUD etc.),
-   re-expressos em tokens do Vuexy/Bootstrap 5.
+   re-expressos em tokens do tema/Bootstrap 5.
    ============================================= */
 
-/* ---------- Tema / tokens (override do Vuexy) ---------- */
+/* ---------- Tema / tokens (override do tema) ---------- */
 :root {
     --bs-primary: #b8270f;
     --bs-primary-rgb: 184, 39, 15;
@@ -74,8 +74,8 @@
    TEMA ESCURO — clean, monocromático + vermelho
    - Apenas variações de PRETO, CINZA, BRANCO e o
      vermelho da marca (#b8270f).
-   - Sobrescreve integralmente as variáveis do tema
-     Vuexy (que usam azul-acinzentado, ex. #2f3349).
+   - Sobrescreve integralmente as variáveis do tema base
+     (que usam azul-acinzentado, ex. #2f3349).
    - Cores "info" viram cinza neutro (sem azul).
    ============================================= */
 [data-bs-theme="dark"] {
@@ -131,7 +131,7 @@
     --bs-primary-border-subtle: rgba(184, 39, 15, 0.45);
     --bs-primary-text-emphasis: #f0a595;
 
-    /* ---------- Neutros de contexto (tema Vuexy) ---------- */
+    /* ---------- Neutros de contexto (tema base) ---------- */
     --bs-secondary: #3f3f46;
     --bs-secondary-rgb: 63, 63, 70;
     --bs-secondary-bg-subtle: #27272a;
@@ -225,7 +225,7 @@
     --c-gray: #a1a1aa;
 }
 
-/* Componentes do Vuexy com variáveis escopadas em azul-acinzentado:
+/* Componentes do tema com variáveis escopadas em azul-acinzentado:
    reescritos para os neutros do tema. */
 [data-bs-theme="dark"] .pagination {
     --bs-pagination-color: var(--bs-body-color);
@@ -1010,7 +1010,7 @@ a:focus-visible, button:focus-visible, [tabindex]:focus-visible, .dropdown-item:
 
 
 /* =============================================
-   TABELAS — barra de busca/filtros e paginação (Vuexy)
+   TABELAS — barra de busca/filtros e paginação (tema base)
    ============================================= */
 /* Padding igual ao das células da tabela (1.25rem), para a barra e o rodapé
    ficarem alinhados à esquerda/direita com o conteúdo da tabela. */
@@ -1433,7 +1433,7 @@ a:focus-visible, button:focus-visible, [tabindex]:focus-visible, .dropdown-item:
 }
 
 /* =============================================
-   NOTIFICAÇÕES — dropdown do header (Vuexy)
+   NOTIFICAÇÕES — dropdown do header (tema base)
    ============================================= */
 .layout-navbar .navbar-dropdown.dropdown-notifications .dropdown-notifications-list {
     overflow-y: auto;
@@ -2128,7 +2128,7 @@ html.tickets-collapsed #layout-menu [data-menu-key="tickets"] > .menu-sub {
 }
 
 /* =========================================================
-   Sidebar — barra de rolagem estilo Vuexy (PerfectScrollbar)
+   Sidebar — barra de rolagem estilo do tema (PerfectScrollbar)
    ========================================================= */
 #layout-menu .menu-inner {
     overflow-x: hidden;
@@ -2150,7 +2150,7 @@ html.tickets-collapsed #layout-menu [data-menu-key="tickets"] > .menu-sub {
     white-space: nowrap;
 }
 
-/* Rail fino e discreto, no tom do menu do Vuexy. */
+/* Rail fino e discreto, no tom do menu. */
 #layout-menu .ps__rail-y {
     inline-size: 0.25rem;
     background-color: transparent;

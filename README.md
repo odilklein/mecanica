@@ -92,7 +92,7 @@ Solicitado → Validado → Pedido → A caminho → Recebido
 
 - PHP 8.2 (Apache + PDO MySQL)
 - MySQL 8.4
-- Bootstrap 5 + tema Vuexy + ícones Tabler
+- Bootstrap 5 + tema base + ícones Tabler
 - jQuery, Select2, DataTables, Chart.js e ApexCharts
 - Composer: `bramus/router`, `league/container`, `league/plates`, `nyholm/psr7`, `vlucas/phpdotenv`
 - Docker/Podman com `docker-compose.yml`

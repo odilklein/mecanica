@@ -1,6 +1,6 @@
 // =============================================
 // CATEGORIAS DE PEÇAS — DataTable + offcanvas
-// de criação/edição no padrão Vuexy.
+// de criação/edição no padrão do sistema.
 // =============================================
 (function () {
     'use strict';

@@ -86,7 +86,7 @@ abstract class Resource
     }
 
     // =========================================================
-    // DataTables (listagem "Fixed Header" do Vuexy)
+    // DataTables (listagem "Fixed Header")
     // =========================================================
 
     /** Subtítulo exibido abaixo do título da página. */

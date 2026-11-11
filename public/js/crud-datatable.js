@@ -1,5 +1,5 @@
 // =============================================
-// DATATABLES "FIXED HEADER" (Vuexy) — inicializador
+// DATATABLES "FIXED HEADER" — inicializador
 // genérico usado pelas listagens do CRUD.
 //
 // Cada Resource fornece window.CRUD_DATATABLE:

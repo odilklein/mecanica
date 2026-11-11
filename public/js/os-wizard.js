@@ -1,5 +1,5 @@
 // =============================================
-// WIZARD DE NOVA OS — Vertical Icons (Vuexy)
+// WIZARD DE NOVA OS — Vertical Icons
 // Cliente, veículo, serviço, equipe e revisão.
 // Usa Select2 (live search) para cliente/veículo/FIPE.
 // =============================================

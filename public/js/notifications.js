@@ -1,6 +1,6 @@
 // =============================================
 // NOTIFICAÇÕES — dropdown do header no padrão
-// Vuexy (navbar-dropdown / dropdown-notifications).
+// navbar-dropdown / dropdown-notifications.
 // =============================================
 (function () {
     'use strict';

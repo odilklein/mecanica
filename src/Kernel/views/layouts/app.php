@@ -19,10 +19,36 @@ $ticketsOpenPref = (string) ($_COOKIE['mecanica_tickets_open'] ?? '1');
             } catch (e) {}
         })();
     </script>
+    <script>
+        // Aplica o tema salvo antes do CSS para evitar flash claro/escuro.
+        (function () {
+            try {
+                var root = document.documentElement;
+                var template = root.getAttribute('data-template') || 'vertical-menu-template';
+                var pref = localStorage.getItem('mecanica-theme');
+                if (!pref) {
+                    pref = localStorage.getItem('templateCustomizer-' + template + '--Theme') || 'system';
+                    localStorage.setItem('mecanica-theme', pref);
+                }
+                var resolved = pref === 'system'
+                    ? (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light')
+                    : pref;
+                root.setAttribute('data-bs-theme', resolved);
+                root.setAttribute('data-theme-pref', pref);
+                var meta = document.querySelector('meta[name="theme-color"]');
+                if (meta) {
+                    meta.dataset.lightColor = meta.dataset.lightColor || meta.getAttribute('content') || '#b8270f';
+                    meta.setAttribute('content', resolved === 'dark' ? '#1f1f1f' : meta.dataset.lightColor);
+                }
+            } catch (e) {}
+        })();
+    </script>
     <title><?= e(setting('seo_title', 'Mecânica')) ?><?= !empty($title) ? ' | ' . e($title) : '' ?></title>
     <meta name="description" content="<?= e(setting('seo_description', '')) ?>">
     <meta name="keywords" content="<?= e(setting('seo_keywords', '')) ?>">
-    <link rel="icon" href="/assets/img/favicon/favicon.ico">
+    <link rel="icon" type="image/svg+xml" href="/assets/img/favicon/favicon.svg">
+    <link rel="icon" type="image/png" sizes="32x32" href="/assets/img/favicon/favicon-32x32.png">
+    <link rel="shortcut icon" href="/assets/img/favicon/favicon.ico">
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -226,7 +252,7 @@ $ticketsOpenPref = (string) ($_COOKIE['mecanica_tickets_open'] ?? '1');
                     </div>
 
                     <div class="navbar-nav-right d-flex align-items-center justify-content-end" id="navbar-collapse">
-                        <!-- Busca global (padrão Vuexy) -->
+                        <!-- Busca global (padrão do sistema) -->
                         <div class="navbar-nav align-items-center navbar-search">
                             <div class="nav-item navbar-search-wrapper px-md-0 px-2 mb-0">
                                 <div class="nav-item nav-link search-toggler d-flex align-items-center px-0">
@@ -427,15 +453,63 @@ $ticketsOpenPref = (string) ($_COOKIE['mecanica_tickets_open'] ?? '1');
     <?php endforeach; ?>
 
     <script>
-        document.querySelectorAll('[data-bs-theme-value]').forEach(function (btn) {
-            btn.addEventListener('click', function () {
-                var value = btn.getAttribute('data-bs-theme-value');
-                window.Helpers.setTheme(value);
-                if (window.Helpers.showActiveTheme) {
-                    window.Helpers.showActiveTheme(value, true);
+        (function () {
+            var KEY = 'mecanica-theme';
+            var template = document.documentElement.getAttribute('data-template') || 'vertical-menu-template';
+
+            function applyTheme(value, focus) {
+                var resolved = value;
+                if (value === 'system') {
+                    resolved = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches
+                        ? 'dark'
+                        : 'light';
+                }
+
+                document.documentElement.setAttribute('data-bs-theme', resolved);
+                document.documentElement.setAttribute('data-theme-pref', value);
+
+                var meta = document.querySelector('meta[name="theme-color"]');
+                if (meta) {
+                    meta.dataset.lightColor = meta.dataset.lightColor || meta.getAttribute('content') || '#b8270f';
+                    meta.setAttribute('content', resolved === 'dark' ? '#1f1f1f' : meta.dataset.lightColor);
+                }
+
+                try {
+                    localStorage.setItem(KEY, value);
+                    localStorage.setItem('templateCustomizer-' + template + '--Theme', value);
+                } catch (e) {}
+
+                if (window.Helpers) {
+                    window.Helpers.setTheme(value);
+                    if (window.Helpers.showActiveTheme) {
+                        window.Helpers.showActiveTheme(value, !!focus);
+                    }
+                }
+            }
+
+            document.querySelectorAll('[data-bs-theme-value]').forEach(function (btn) {
+                btn.addEventListener('click', function () {
+                    applyTheme(btn.getAttribute('data-bs-theme-value'), true);
+                });
+            });
+
+            document.addEventListener('DOMContentLoaded', function () {
+                var pref = document.documentElement.getAttribute('data-theme-pref') || 'system';
+                applyTheme(pref, false);
+
+                if (window.matchMedia) {
+                    window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', function () {
+                        var current = 'system';
+                        try {
+                            current = localStorage.getItem(KEY) || 'system';
+                        } catch (e) {}
+                        if (current === 'system') {
+                            applyTheme('system', false);
+                        }
+                    });
                 }
             });
-        });
+        })();
 
         document.querySelectorAll('.toast').forEach(function (t) {
             if (window.bootstrap && bootstrap.Toast) {

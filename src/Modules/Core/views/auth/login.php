@@ -3,7 +3,7 @@
         <span class="app-brand-logo demo">
             <span class="brand-icon"><i class="icon-base ti tabler-tool"></i></span>
         </span>
-        <span class="app-brand-text demo menu-text fw-bold">Mecânica</span>
+        <span class="app-brand-text demo menu-text fw-bold"><?= e(setting('company_name', 'Mecânica') ?: 'Mecânica') ?></span>
     </a>
 </div>
 

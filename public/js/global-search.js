@@ -1,5 +1,5 @@
 /**
- * Busca global do header — mesmo comportamento visual do Vuexy
+ * Busca global do header — mesmo comportamento visual do sistema
  * (botão de busca + overlay com sugestões), com resultados reais
  * vindos de /api/search.
  */
@@ -232,7 +232,7 @@
         }
     });
 
-    // Atalho Ctrl/Cmd + K, igual ao Vuexy.
+    // Atalho Ctrl/Cmd + K, igual ao padrão do sistema.
     document.addEventListener('keydown', function (event) {
         if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'k') {
             event.preventDefault();
