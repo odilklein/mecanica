@@ -946,10 +946,7 @@ textarea.form-control { min-height: 100px; }
     .table-responsive:has(table.responsive-card) { overflow: visible; }
     .table-dropdown-menu { max-width: calc(100vw - 32px); }
 
-    .clientes-toolbar .search-wrapper, .clientes-toolbar .form-select { flex: 1 1 100%; max-width: none; }
-    .clientes-info-row { flex-direction: column; align-items: stretch; }
     .bulk-actions { justify-content: center; }
-    .clientes-toast { left: 12px; right: 12px; max-width: none; }
     .responsive-card tbody td.check-cell { justify-content: flex-start; }
 }
 
@@ -1266,7 +1263,7 @@ a:focus-visible, button:focus-visible, [tabindex]:focus-visible, .dropdown-item:
 
 /* =============================================
    CRUD — componentes padronizados
-   Usados por includes/crud.php e js/crud.js.
+   Usados pelo kernel (src/Kernel/Crud) e por public/js/crud-datatable.js.
    ============================================= */
 
 /* --- Cartões KPI no topo da listagem --- */
@@ -1331,19 +1328,6 @@ a:focus-visible, button:focus-visible, [tabindex]:focus-visible, .dropdown-item:
 }
 .crud-search .form-control {
     padding-left: 42px;
-}
-
-/* --- Lista de veículos do cliente (evita esticar a tabela) --- */
-.cliente-veiculos-cell {
-    max-width: 260px;
-}
-.cliente-veiculos-texto {
-    display: block;
-    max-width: 260px;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    line-height: 1.35;
 }
 
 /* --- Toast de feedback --- */

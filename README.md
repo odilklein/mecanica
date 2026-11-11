@@ -2,7 +2,7 @@
 
 # Auto Mecânica
 
-**Sistema web de gestão para oficinas mecânicas — da recepção do veículo à entrega.**
+**Sistema modular de gestão para oficinas mecânicas — da recepção do veículo à entrega.**
 
 [![PHP](https://img.shields.io/badge/PHP-8.2-777BB4?logo=php&logoColor=white)](https://www.php.net/)
 [![MySQL](https://img.shields.io/badge/MySQL-8.4-4479A1?logo=mysql&logoColor=white)](https://www.mysql.com/)
@@ -10,7 +10,7 @@
 [![Docker](https://img.shields.io/badge/Docker-ready-2496ED?logo=docker&logoColor=white)](https://www.docker.com/)
 [![License: MIT](https://img.shields.io/badge/license-MIT-2ea44f)](LICENSE)
 
-[Visão geral](#visão-geral) · [Funcionalidades](#funcionalidades) · [Como rodar](#como-rodar) · [Segurança](#segurança) · [Documentação](#documentação)
+[Visão geral](#visão-geral) · [Funcionalidades](#funcionalidades) · [Como rodar](#como-rodar) · [Estrutura](#estrutura) · [Segurança](#segurança) · [Documentação](#documentação)
 
 </div>
 
@@ -18,365 +18,182 @@
 
 ## Visão geral
 
-O **Auto Mecânica** é um sistema interno para operação de uma oficina mecânica. Foi
-desenvolvido como **Projeto Integrador (PI)** e cobre o atendimento completo: cadastro
-de clientes e veículos, abertura e acompanhamento de ordens de serviço, solicitação e
-recebimento de peças, orçamentos, entrega do veículo, notificações e auditoria.
+O **Auto Mecânica** é um sistema interno para operação de uma oficina mecânica, desenvolvido como **Projeto Integrador (TCC)**. A aplicação cobre o atendimento completo: clientes e veículos, ordens de serviço, orçamentos, peças, fornecedores, pedidos de peças, tickets, notificações, relatórios, configurações e auditoria.
 
-A **Ordem de Serviço (OS)** é o centro do domínio. Clientes, veículos, tarefas,
-responsáveis, peças, orçamentos, notificações e histórico se conectam à OS sempre que
-fizerem parte de um atendimento.
+A arquitetura é modular:
 
-> **Ambiente de demonstração:** o banco em `sql/mecanica.sql` já vem com dados fictícios
-> e cinco logins de teste (senha `admin123`). Troque as senhas e remova os dados de
-> exemplo antes de expor o sistema publicamente.
+- `public/` é o **front controller** e o document root do Apache;
+- `src/Kernel/` concentra autenticação, sessão, roteamento, CRUD, banco, menu e views;
+- `src/Modules/Core/` reúne login, dashboard, clientes, funcionários, configurações, auditoria e perfil;
+- `src/Modules/Mechanic/` reúne veículos, OS, orçamentos, peças, fornecedores, pedidos, tickets e relatórios;
+- `bin/` contém comandos de migrations, seeds, sincronização FIPE e importação de catálogo.
 
-## Preview
-
-| Login | Dashboard |
-| --- | --- |
-| ![Login](screenshots/01-login.png) | ![Dashboard](screenshots/02-dashboard.png) |
-
-| Ordens de serviço | Detalhe da OS (tema escuro) |
-| --- | --- |
-| ![Ordens de serviço](screenshots/03-ordens-servico.png) | ![Detalhe da OS](screenshots/04-os-detalhe-escuro.png) |
-
-| Orçamentos | Clientes |
-| --- | --- |
-| ![Orçamentos](screenshots/05-orcamentos.png) | ![Clientes](screenshots/06-clientes.png) |
-
----
+> O app antigo (PHP procedural na raiz) foi removido. O material do TCC sobre a trigger/view do banco legado está preservado em [`docs/apresentacao/`](docs/apresentacao/) e não é usado pela aplicação em execução.
 
 ## Funcionalidades
 
-### Atendimento e operação
+### Operação
+- **Dashboard por perfil** com KPIs, faturamento, ticket médio, status semanal e fila de OS.
+- **Clientes e veículos** com CPF, endereço/CEP (ViaCEP), FIPE, KM, chassi, observações e histórico de atendimentos.
+- **Ordens de serviço** com wizard de abertura, diagnóstico, tarefas, equipe, prioridade, histórico e entrega/retirada.
+- **Orçamentos** com itens de peça/mão de obra, busca no catálogo, desconto, impressão e histórico.
+- **Peças e fornecedores** com catálogo, categorias, preço/custo, estoque, filtros e paginação.
+- **Pedidos de peças** vinculados à OS, com quick view, quantidade, paginação e fluxo de status.
+- **Tickets** internos por OS, com conversa, anexos por áudio (Groq opcional) e notificações.
+- **Relatórios** por período, com tabela de orçamentos, ticket médio e exportação CSV.
+- **Configurações** de oficina, tema, SEO, validade e termos de orçamento.
+- **Auditoria** com filtros, detalhes legíveis e links para os registros.
+- **Funcionários** com perfis, salário, admissão e controle de acesso.
+- **Perfil** do usuário com dados de contato e troca de senha.
 
-- **Dashboard por perfil** com KPIs e fila de OS, filtrado conforme o papel do usuário.
-- **Clientes e veículos** com histórico de atendimentos, validação de CPF/placa/ano,
-  importação de endereço via **ViaCEP** e catálogo **FIPE** (marca, modelo e valor de
-  referência).
-- **Ordens de serviço** com wizard de abertura, diagnóstico, tarefas, múltiplos
-  responsáveis, prioridade, histórico de status e entrega/retirada do veículo.
-- **Pedidos de peças** vinculados à OS, com validação, compra, acompanhamento e
-  **recebimento parcial por item**.
-- **Orçamentos** com itens de peça e mão de obra digitados manualmente, impressão e
-  relatório.
-- **Notificações** internas com sino, contador, atualização periódica (30 s) e tela
-  dedicada com busca, filtros e paginação.
-- **Auditoria** de ações sensíveis, restrita ao administrador.
-- **Perfil do usuário** para editar nome, e-mail e senha.
+### Fluxos principais
 
-### Interface
-
-- Layout responsivo com **Bootstrap 5 + tema Vuexy** e ícones Tabler.
-- **Tema claro e escuro**, com preferência persistida no navegador.
-- Listagens em **CRUD AJAX** com busca, filtros, paginação server-side, ações em massa,
-  modais e toasts.
-- Componentes acessíveis: skip link, foco visível, `aria-*` e navegação por teclado.
-
-### Fluxo da OS
+**Ordem de serviço**
 
 ```text
-recebida → em_analise → aguardando_aprovacao → aguardando_peca
-         → em_execucao → pronta_para_entrega → entregue
+Recebida → Em análise → Aguardando aprovação / Aguardando peça
+        → Em execução → Pronta para entrega → Entregue
 ```
 
-`cancelada` encerra o ciclo a partir dos estados permitidos. As transições válidas ficam
-em [`config/status_os.php`](config/status_os.php), fonte única consumida pelo PHP e
-exposta ao JavaScript em `window.OS_STATUS`. Saltos arbitrários são bloqueados.
+- `Entregue` só é concluído pelo registro de **entrega/retirada**.
+- A entrega exige a OS em **Pronta para entrega**, não permite duplicidade e atualiza o KM do veículo.
+- A edição não permite pular etapas; status finais ficam somente leitura.
+- O mecânico só acessa as OS em que participa.
 
-A OS **não pode ser marcada como `entregue` manualmente**: a entrega/retirada precisa ser
-confirmada em `os_entregas`. O histórico de status é gravado automaticamente pelo trigger
-`trg_os_status_historico`.
-
-### Fluxo de peças
+**Orçamento**
 
 ```text
-solicitado → validado → pedido → a_caminho → recebido
+Aberto → Aprovado / Reprovado / Cancelado
+Aprovado / Reprovado / Cancelado → Aberto (reabrir para editar)
 ```
 
-O status `solicitado` significa que a compra **ainda não foi validada**. O recebimento
-pode ser parcial por item; o pedido só vai para `recebido` quando todos os itens forem
-conferidos.
+- A edição é permitida apenas com status **Aberto**.
+- O desconto é limitado ao subtotal de peças + mão de obra.
 
----
+**Pedido de peças**
+
+```text
+Solicitado → Validado → Pedido → A caminho → Recebido
+```
+
+- O mecânico apenas **solicita** a peça (OS + itens); fornecedor, previsão e andamento são da secretaria.
+- A página de detalhe mostra itens, resumo, recebimento e histórico.
 
 ## Perfis e permissões
 
-O campo `usuarios.tipo` aceita quatro valores: `admin`, `secretaria`, `mecanico_chefe`
-e `mecanico`.
-
-| Área / ação | Admin | Secretaria | Mecânico-chefe | Mecânico |
-|---|:---:|:---:|:---:|:---:|
-| Dashboard | Sim | Sim | Sim | Sim (só OS atribuídas) |
-| Clientes, veículos e funcionários | Sim | Sim | Sim | Não |
-| Criar OS / ver todas as OS | Sim | Sim | Sim | Não |
-| Ver OS atribuída | Sim | Sim | Sim | Sim |
-| Designar responsáveis | Sim | Não | Sim | Não |
-| Tarefas e diagnóstico | Sim | Não | Sim | Sim (só atribuídas) |
-| Solicitar peças | Sim | Sim | Sim | Sim (só atribuídas) |
-| Validar solicitação | Sim | Sim | Sim | Não |
-| Confirmar pedido e receber peças | Sim | Sim | Não | Não |
-| Orçamentos | Sim | Sim | Sim | Não |
-| Entrega / retirada | Sim | Sim | Sim | Não |
-| Auditoria | Sim | Não | Não | Não |
-
-> A autorização é aplicada **no backend** (`exigir_papel()` + CSRF). Ocultar um item da
-> sidebar não é controle de acesso.
-
----
+| Papel | Acesso |
+| --- | --- |
+| **Administrador** | Todo o sistema, incluindo configurações, funcionários e auditoria. |
+| **Secretaria** | Dashboard, tickets, clientes, veículos, OS, orçamentos, peças, fornecedores, pedidos e relatórios. |
+| **Mecânico-chefe** | Mesmo escopo operacional da secretaria; sem configurações, funcionários e auditoria. |
+| **Mecânico** | Dashboard, tickets, OS em que participa e solicitação de peças. |
 
 ## Stack
 
-| Camada | Tecnologia |
-| --- | --- |
-| Backend | PHP 8.2 procedural + PDO |
-| Banco | MySQL 8.4 (view e trigger) |
-| Frontend | HTML, CSS, JavaScript vanilla, Bootstrap 5 + Vuexy |
-| Ícones | Tabler Icons |
-| Autenticação | Sessão PHP, bcrypt, CSRF, papéis e Cloudflare Turnstile |
-| Integrações | FIPE (Parallelum), ViaCEP e Cloudflare Turnstile |
-| Infra local | Docker / Podman, Apache + PHP |
-| Documentação | Markdown |
+- PHP 8.2 (Apache + PDO MySQL)
+- MySQL 8.4
+- Bootstrap 5 + tema Vuexy + ícones Tabler
+- jQuery, Select2, DataTables, Chart.js e ApexCharts
+- Composer: `bramus/router`, `league/container`, `league/plates`, `nyholm/psr7`, `vlucas/phpdotenv`
+- Docker/Podman com `docker-compose.yml`
 
-Não há framework PHP, Composer, ORM nem camada de serviços separada. As credenciais
-ficam fora do Git (`.env` ou `config.local.php`).
-
-## Estrutura do projeto
+## Estrutura
 
 ```text
-.
-├── api/                  Endpoints JSON do CRUD AJAX
-├── assets/vendor/        Tema Vuexy (CSS, fontes e bibliotecas)
-├── config/               Conexão, env, status da OS, Turnstile e dados da empresa
-├── css/                  Camada visual do sistema sobre o Vuexy
-├── includes/             Sessão, layout, sidebar, CRUD, paginação e helpers
-├── js/                   Módulos de interface (wizard, grids, FIPE, ViaCEP...)
-├── pages/                Telas por área (auth, clientes, veículos, OS...)
-├── scripts/              Seed de demonstração e sincronização FIPE
-├── screenshots/          Imagens usadas neste README
-├── sql/mecanica.sql      Schema + dados de demonstração (arquivo único)
-├── Dockerfile
-├── docker-compose.yml
-└── index.php             Dashboard inicial por perfil
+public/                 Front controller, assets, CSS e JS servidos pelo Apache
+src/Kernel/             Kernel, Auth, Session, Router, CRUD, Database, View, Menu
+src/Modules/Core/       Login, dashboard, clientes, funcionários, configurações, auditoria, perfil
+src/Modules/Mechanic/   Veículos, OS, orçamentos, peças, fornecedores, pedidos, tickets, relatórios
+bin/                    migrate.php, fipe.php, seed_demo.php, seed_operacao.php, import_parts.php
+docs/                   Relatórios e material de apresentação do TCC
+storage/                Cache e logs em runtime (ignorado no Git)
+vendor/                 Dependências Composer (ignorado no Git)
 ```
-
----
 
 ## Como rodar
 
 ### Docker / Podman (recomendado)
 
-Requisitos: **Docker + Compose v2** ou **Podman + podman-compose**.
-
 ```bash
+cp .env.example .env
+# ajuste DB_HOST, DB_PORT, DB_USER, DB_PASS e DB_NAME se necessário
+
 docker compose up -d --build
 
-# Fedora / Podman:
-podman-compose up -d --build
+# cria/atualiza o schema (27 migrations)
+docker compose exec app php bin/migrate.php migrate
+
+# opcional: dados de demonstração
+docker compose exec app php bin/seed_demo.php
+docker compose exec app php bin/seed_operacao.php
+
+# opcional: sincroniza marcas/modelos/anos/preços da FIPE
+docker compose exec app php bin/fipe.php sync
 ```
 
-| Serviço | URL | Credenciais |
+Acesse **http://localhost:8080**. O phpMyAdmin fica em **http://localhost:8081**.
+
+> Em uma base nova, as migrations criam o schema e os três usuários padrão. O `docker-compose.yml` não importa mais um dump SQL automaticamente; o schema é responsabilidade de `bin/migrate.php`.
+
+### Instalação local (Apache/XAMPP)
+
+- Aponte o document root para `public/`.
+- Ative `mod_rewrite` e permita `AllowOverride All` (o `public/.htaccess` faz o roteamento).
+- Instale as dependências com `composer install`.
+- Configure o `.env` e rode `php bin/migrate.php migrate`.
+
+## Logins padrão
+
+Criados pela migration `Core/0002_seed_default_users` (senha `admin123`):
+
+| Nome | E-mail | Perfil |
 | --- | --- | --- |
-| Aplicação | http://localhost:8080 | logins de teste abaixo |
-| phpMyAdmin | http://localhost:8081 | `root` / `root123` ou `mecanica` / `root123` |
-| MySQL | `localhost:3306` | `mecanica` / `root123` |
+| Administrador | `admin@mecanica.com` | Administrador |
+| Secretária | `secretaria@mecanica.com` | Secretaria |
+| Mecânico | `mecanico@mecanica.com` | Mecânico |
 
-O banco `mecanica` é criado e populado automaticamente a partir de
-`sql/mecanica.sql` no primeiro start do container. **Não é necessário criar `.env` para
-o Docker**: o Compose injeta `DB_HOST=db` e as credenciais padrão.
+Os scripts de seed adicionam funcionários, clientes, veículos, OS e orçamentos de demonstração. **Troque as senhas e remova os dados de exemplo antes de expor o sistema publicamente.**
 
-> Se quiser customizar via `.env`, mantenha `DB_USER=mecanica`. O usuário `root` é
-> reservado pelo MySQL e `DB_USER=root` impede a inicialização do container.
+## Comandos
 
-Para parar sem apagar os dados:
-
-```bash
-docker compose down
-```
-
-Para recriar o banco do zero (apaga o volume):
-
-```bash
-docker compose down -v
-docker compose up -d --build
-```
-
-### Instalação local (XAMPP / Apache)
-
-Requisitos:
-
-- PHP **8.1+** (recomendado 8.2) com `pdo_mysql`, `mbstring` e, de preferência, `curl`.
-- MySQL **8.0+** ou MariaDB **10.4+**.
-- Apache com `mod_rewrite` e `AllowOverride All` habilitados.
-
-1. Copie o projeto para `htdocs/mecanica`.
-2. Copie `.env.example` para `.env` e ajuste as credenciais do banco:
-
-   ```env
-   DB_HOST=localhost
-   DB_PORT=3306
-   DB_USER=root
-   DB_PASS=
-   DB_NAME=mecanica
-   ```
-
-3. Importe `sql/mecanica.sql` no phpMyAdmin. O script cria o banco `mecanica` e
-   **recria as tabelas** — use um banco vazio.
-4. Acesse `http://localhost/mecanica/`.
-
-> Em hospedagem compartilhada sem suporte a `.env`, copie
-> `config/config.local.example.php` para `config/config.local.php` e preencha o array.
-> Os dois arquivos são ignorados pelo Git.
-
-### Ordem de precedência da configuração
-
-1. Variáveis de ambiente do processo (Docker, por exemplo).
-2. `config/config.local.php` ou `config.local.php` na raiz.
-3. Arquivo `.env` na raiz.
-4. Padrões definidos no código.
-
-Nunca versione `.env`, `config.local.php` ou credenciais reais.
-
----
-
-## Logins de demonstração
-
-Todos os usuários do seed usam a senha **`admin123`**.
-
-| Perfil | E-mail |
+| Comando | Descrição |
 | --- | --- |
-| Administrador | `admin@mecanica.com` |
-| Secretaria | `secretaria@mecanica.com` |
-| Mecânico-chefe | `chefe@mecanica.com` |
-| Mecânico | `mecanico1@mecanica.com` |
-| Mecânico | `mecanico2@mecanica.com` |
-
----
-
-## Scripts
-
-Execute dentro do container (`docker compose exec app php ...`) ou com PHP CLI local.
-
-| Script | Descrição | Exemplo |
-| --- | --- | --- |
-| `bin/seed_operacao.php` | **App novo (`src/`)**: simula 6 meses de operação realista (clientes, veículos, OS com ciclo de vida, orçamentos, pedidos de peças, tickets e auditoria). Idempotente. | `docker compose exec app php bin/seed_operacao.php --fresh` |
-| `scripts/seed_mocks.php` | Gera volume realista de clientes, veículos, OS, orçamentos, pedidos, notificações e auditoria. **Apaga os dados transacionais** (mantém `usuarios`). | `docker compose exec app php scripts/seed_mocks.php --yes` |
-| `scripts/sync_fipe.php` | Espelha marcas, modelos, anos e preços da API Parallelum no catálogo local. Idempotente. | `docker compose exec app php scripts/sync_fipe.php` |
-| `scripts/backfill_fipe.php` | Associa veículos antigos (texto livre) ao catálogo FIPE. | `docker compose exec app php scripts/backfill_fipe.php --com-valor` |
-
-Opções úteis do seed novo: `--months=8`, `--os=220`, `--clean` (só remove) e
-`--fresh` (remove também o seed-demo antigo).
-Opções úteis do seed legado: `--clientes=500`, `--os=3000`, `--seed=123`.
-Opções do sync: `--limpar` recria o catálogo; `--com-valor` no backfill também busca o
-valor de referência.
-
----
+| `php bin/migrate.php migrate` | Aplica as migrations pendentes. |
+| `php bin/migrate.php status` | Mostra o status das migrations. |
+| `php bin/fipe.php sync` | Sincroniza marcas/modelos/anos/preços da FIPE. |
+| `php bin/seed_demo.php` | Cria dados básicos de demonstração. |
+| `php bin/seed_operacao.php` | Simula meses de operação da oficina. |
+| `php bin/import_parts.php all` | Importa veículos/produtos do catálogo Canal da Peça. |
 
 ## Segurança
 
-- Senhas com `password_hash()` (bcrypt) e mínimo de 8 caracteres.
-- **Prepared statements** (PDO) em todas as consultas.
-- Token **CSRF** em formulários e endpoints de escrita.
-- Autorização por papel no backend (`exigir_papel()`), inclusive em APIs.
-- Escape de saída com `esc()` e validação de entrada com `limpar()`.
-- `.htaccess` bloqueando `.env`, `.sql`, logs e acesso direto a `config/`, `sql/` e
-  `scripts/`.
-- Trilha de auditoria para ações sensíveis.
-- **Cloudflare Turnstile** opcional no login.
-- **Rate limit de login** por email + IP (bloqueio após 5 falhas em 15 min,
-  configurável via `LOGIN_MAX_TENTATIVAS` e `LOGIN_JANELA_MINUTOS`).
-- Nenhum segredo real versionado; use `.env` ou `config.local.php`.
-
-### Cloudflare Turnstile
-
-O widget é renderizado apenas quando `TURNSTILE_SITE_KEY` está definida; a verificação
-server-side só é aplicada quando **site key e secret** estão configurados. Sem as duas,
-o login continua funcionando normalmente.
-
-```env
-TURNSTILE_SITE_KEY=<sua-site-key>
-TURNSTILE_SECRET=<sua-secret-key>
-TURNSTILE_HOSTNAMES=localhost,127.0.0.1
-```
-
-Em produção, informe em `TURNSTILE_HOSTNAMES` apenas o domínio real.
-
-### Transcrição de áudio dos tickets (opcional)
-
-O botão de microfone nos tickets só aparece quando `GROQ_API_KEY` está configurada.
-Sem a chave, o fluxo padrão continua sendo digitação manual. A gravação é enviada
-para `POST /api/transcribe`, transcrita pela Groq (Whisper) e preenchida no campo
-de mensagem para revisão antes do envio.
-
-```env
-GROQ_API_KEY=<sua-chave>
-GROQ_TRANSCRIPTION_MODEL=whisper-large-v3-turbo
-```
-
-A chave é lida apenas no backend; nunca é exposta no HTML ou no JavaScript.
-
-### Configurações do sistema (admin)
-
-O menu **Configurações** (visível apenas para o perfil `admin`) permite editar, sem
-tocar no código:
-
-- **Aparência** — cor primária da marca (tema claro e escuro).
-- **SEO** — título do site, meta description e palavras-chave (aplicados no `<head>`).
-- **Módulos** — liga/desliga recursos como Notificações e Tabela FIPE.
-
-Os valores ficam na tabela `configuracoes` (chave/valor) e são lidos com
-`config_valor()`/`config_flag()` em `includes/configuracoes.php`.
-
----
+- CSRF em formulários e ações POST.
+- Senhas com `password_hash`/`password_verify`; mínimo de 8 caracteres em novos usuários.
+- Rate-limit de login por e-mail + IP (`login_tentativas`).
+- Cloudflare Turnstile opcional (ativado apenas com site key e secret).
+- Sessão com `HttpOnly`, `SameSite=Lax` e `use_strict_mode`.
+- Controle de acesso por papel e escopo de OS para mecânicos.
+- Auditoria de ações sensíveis em `audit_logs`, sem credenciais/tokens.
+- Cabeçalhos de segurança em `public/.htaccess`.
+- `.env` e credenciais fora do versionamento.
 
 ## Checklist de produção
 
-1. Crie o `.env` (ou `config.local.php`) no servidor com as credenciais do host.
-2. Importe `sql/mecanica.sql` em um banco vazio e **troque todas as senhas de teste**.
-3. Ative HTTPS e ajuste `TURNSTILE_HOSTNAMES` para o domínio de produção.
-4. Confirme que `https://SEU-DOMINIO/.env` retorna **403/404**.
-5. Remova ou desative usuários de demonstração que não serão usados.
-6. Não execute `scripts/seed_mocks.php` em produção.
-7. Configure backup e rotação de logs no servidor.
-
-## Limitações conhecidas
-
-- Não há suíte de testes automatizados.
-- Não há controle de estoque: as peças são descritas livremente nos pedidos.
-- Não há portal do cliente, integração com WhatsApp, e-mail transacional ou pagamento.
-- O seed de demonstração usa senha única (`admin123`) e deve ser substituído.
-- Política formal de senha (histórico, expiração, complexidade) ainda não implementada.
-
----
+1. `APP_DEBUG=false` no `.env`.
+2. Trocar as senhas padrão e remover seeds/dados de demonstração.
+3. Configurar HTTPS e, se possível, HSTS.
+4. Configurar `TURNSTILE_SITE_KEY`, `TURNSTILE_SECRET` e `TURNSTILE_HOSTNAMES`.
+5. Configurar backup automático do MySQL e monitoramento de logs.
+6. Restringir o phpMyAdmin ou não expô-lo publicamente.
+7. Rodar `php bin/migrate.php migrate` no deploy e manter o `vendor/` instalado.
 
 ## Documentação
 
-- [`DOCUMENTACAO_SISTEMA.md`](DOCUMENTACAO_SISTEMA.md) — arquitetura, regras de negócio,
-  banco de dados, permissões e convenções.
-- [`ROTEIRO_APRESENTACAO.md`](ROTEIRO_APRESENTACAO.md) — roteiro de demonstração do
-  sistema.
-- [`sql/mecanica.sql`](sql/mecanica.sql) — schema completo, view, trigger e seed.
-- [`config/status_os.php`](config/status_os.php) — fonte única dos status da OS.
-
-## Contribuindo
-
-- Mantenha a **OS como centro do domínio**; não crie fluxos paralelos para algo que já
-  pertence a ela.
-- Proteja toda página com `exigir_papel()` e todo POST com `validar_csrf()`.
-- Use prepared statements e escape a saída.
-- Ao alterar o banco, atualize `sql/mecanica.sql` e a documentação.
-- Siga o padrão **Conventional Commits** com escopo:
-  `feat(os): ...`, `fix(auth): ...`, `docs: ...`, `refactor(crud): ...`.
-- Nunca commite `.env`, `config.local.php` ou senhas reais.
+- [`docs/RELATORIO_AUDITORIA_SISTEMA.md`](docs/RELATORIO_AUDITORIA_SISTEMA.md) — auditoria, correções, regras e validações.
+- [`docs/RELATORIO_CANAL_DA_PECA.md`](docs/RELATORIO_CANAL_DA_PECA.md) — integração com o catálogo Canal da Peça.
+- [`docs/apresentacao/ROTEIRO_APRESENTACAO.md`](docs/apresentacao/ROTEIRO_APRESENTACAO.md) — roteiro da trigger/view do TCC.
+- [`docs/apresentacao/banco_legado_tcc.sql`](docs/apresentacao/banco_legado_tcc.sql) — schema legado de referência do TCC.
 
 ## Licença
 
-Distribuído sob a licença **MIT**. Veja [`LICENSE`](LICENSE).
-
-Copyright © 2026 Odil Klein.
-
-## Agradecimentos
-
-Bootstrap, Vuexy, Tabler Icons, Chart.js, SweetAlert2, Flatpickr, bs-stepper,
-[FIPE Parallelum](https://fipe.parallelum.com.br/), ViaCEP e Cloudflare Turnstile.
+MIT — consulte [`LICENSE`](LICENSE).

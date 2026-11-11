@@ -1,12 +1,12 @@
 .env
-config.local.php
-config/config.local.php
 *.log
 
-# Só o vendor da raiz (composer) é ignorado.
-# assets/vendor/ faz parte do tema e precisa ser versionado.
+# Dependências Composer (instaladas localmente; não versionadas).
 /vendor/
 
-# Estrutura nova (kernel modular)
+# Runtime
 /storage/
 /.phpunit.result.cache
+
+# Artefatos do Playwright MCP (snapshots, screenshots, traces)
+/.playwright-mcp/

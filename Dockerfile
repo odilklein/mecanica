@@ -28,4 +28,8 @@ RUN { \
 
 COPY --chown=www-data:www-data . /var/www/html/
 
+# Diretórios de runtime (cache/logs) não vão no build; cria com dono correto.
+RUN mkdir -p /var/www/html/storage/cache/canaldapeca /var/www/html/storage/logs \
+    && chown -R www-data:www-data /var/www/html/storage
+
 EXPOSE 80

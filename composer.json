@@ -1,6 +1,6 @@
 {
     "name": "mecanica/mecanica",
-    "description": "Base modular PHP reutilizável (TCC) com a vertical Auto Mecânica como módulo",
+    "description": "Sistema modular de gestão para oficinas mecânicas (TCC)",
     "type": "project",
     "license": "proprietary",
     "require": {
@@ -18,8 +18,7 @@
     "autoload": {
         "psr-4": {
             "Kernel\\": "src/Kernel/",
-            "Modules\\": "src/Modules/",
-            "App\\": "src/App/"
+            "Modules\\": "src/Modules/"
         },
         "files": [
             "src/Kernel/Support/helpers.php"
