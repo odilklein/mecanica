@@ -227,13 +227,13 @@ $margin = ((float) ($old['price'] ?? 0)) > 0
                 <div class="card-body">
                     <div class="mb-4">
                         <label class="form-label" for="partPrice">Preço de venda (R$)</label>
-                        <input type="number" class="form-control<?= $invalid('price') ?>" id="partPrice" name="price" step="0.01" min="0"
+                        <input type="text" inputmode="decimal" autocomplete="off" class="form-control<?= $invalid('price') ?>" id="partPrice" name="price"
                                value="<?= e($val('price')) ?>" placeholder="0,00" data-price-input>
                         <?php if ($err('price')): ?><div class="invalid-feedback d-block"><?= e($err('price')) ?></div><?php endif; ?>
                     </div>
                     <div class="mb-4">
                         <label class="form-label" for="partCostSide">Custo (R$)</label>
-                        <input type="number" class="form-control<?= $invalid('cost_price') ?>" id="partCostSide" name="cost_price" step="0.01" min="0"
+                        <input type="text" inputmode="decimal" autocomplete="off" class="form-control<?= $invalid('cost_price') ?>" id="partCostSide" name="cost_price"
                                value="<?= e($val('cost_price')) ?>" placeholder="0,00" data-cost-side>
                         <?php if ($err('cost_price')): ?><div class="invalid-feedback d-block"><?= e($err('cost_price')) ?></div><?php endif; ?>
                     </div>
@@ -260,7 +260,7 @@ $margin = ((float) ($old['price'] ?? 0)) > 0
                         </select>
                         <div class="d-flex justify-content-between mt-2">
                             <small class="text-body-secondary">Organize o catálogo por tipo de peça.</small>
-                            <a href="/parts/categories" class="small">Gerenciar</a>
+                            <a href="/parts/categories" class="small" target="_blank" rel="noopener">Gerenciar</a>
                         </div>
                     </div>
                     <div class="mb-4">

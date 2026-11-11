@@ -72,23 +72,86 @@ class PartController extends CrudController
             return json_response(['error' => 'forbidden'], 403);
         }
 
-        $rows = $this->pdo->query(
-            "SELECT p.id, p.name, p.brand, p.part_code, p.sku, p.cdp_sku, p.category,
-                    p.stock, p.min_stock, p.price, p.cost_price, p.image, p.product_url, p.status,
-                    c.name AS category_name, c.icon AS category_icon, c.color AS category_color
-               FROM parts p
-               LEFT JOIN part_categories c ON c.id = p.category_id
-              ORDER BY p.name ASC"
-        )->fetchAll();
+        $query = $request->getQueryParams();
+        $draw = (int) ($query['draw'] ?? 0);
+        $start = max(0, (int) ($query['start'] ?? 0));
+        $length = (int) ($query['length'] ?? 10);
+        $length = $length > 0 ? min(100, $length) : 100;
+        $search = trim((string) ($query['search']['value'] ?? ''));
+        $status = (string) ($query['status'] ?? '');
+        $categoryId = (int) ($query['category_id'] ?? 0);
+        $stockState = (string) ($query['stock_state'] ?? '');
 
-        $data = [];
-        foreach ($rows as $row) {
-            $row = $this->decorateRow($row);
-            unset($row['raw_json']);
-            $data[] = $row;
+        $orderMap = [
+            2 => 'p.name',
+            3 => 'COALESCE(c.name, p.category)',
+            4 => 'p.stock',
+            5 => "COALESCE(NULLIF(p.sku, ''), p.cdp_sku, p.part_code)",
+            6 => 'p.price',
+            7 => 'p.stock',
+            8 => 'p.status',
+            10 => 'p.brand',
+            11 => 'p.part_code',
+        ];
+        $orderColumn = (int) ($query['order'][0]['column'] ?? 2);
+        $orderBy = $orderMap[$orderColumn] ?? 'p.name';
+        $orderDir = strtolower((string) ($query['order'][0]['dir'] ?? 'asc')) === 'desc' ? 'DESC' : 'ASC';
+
+        $from = 'FROM parts p LEFT JOIN part_categories c ON c.id = p.category_id';
+        $where = [];
+        $params = [];
+
+        if (in_array($status, ['published', 'draft', 'inactive'], true)) {
+            $where[] = 'p.status = :status';
+            $params[':status'] = $status;
+        }
+        if ($categoryId > 0) {
+            $where[] = 'p.category_id = :category_id';
+            $params[':category_id'] = $categoryId;
+        }
+        if ($stockState === 'in') {
+            $where[] = 'p.stock > 0';
+        } elseif ($stockState === 'low') {
+            $where[] = 'p.stock > 0 AND p.stock <= p.min_stock';
+        } elseif ($stockState === 'out') {
+            $where[] = 'p.stock <= 0';
+        }
+        if ($search !== '') {
+            $like = '%' . str_replace(['\\', '%', '_'], ['\\\\', '\\%', '\\_'], $search) . '%';
+            $where[] = "CONCAT_WS(' ', p.name, p.brand, p.part_code, p.sku, p.cdp_sku, p.barcode,
+                        c.name, p.category, p.description) LIKE :search";
+            $params[':search'] = $like;
         }
 
-        return json_response(['data' => $data]);
+        $whereSql = $where ? ' WHERE ' . implode(' AND ', $where) : '';
+
+        $total = (int) $this->pdo->query('SELECT COUNT(*) ' . $from)->fetchColumn();
+
+        $countStmt = $this->pdo->prepare('SELECT COUNT(*) ' . $from . $whereSql);
+        $countStmt->execute($params);
+        $filtered = (int) $countStmt->fetchColumn();
+
+        $sql = 'SELECT p.id, p.name, p.brand, p.part_code, p.sku, p.cdp_sku, p.category,
+                       p.stock, p.min_stock, p.price, p.cost_price, p.image, p.product_url, p.status,
+                       c.name AS category_name, c.icon AS category_icon, c.color AS category_color
+                ' . $from . $whereSql . '
+                ORDER BY ' . $orderBy . ' ' . $orderDir . '
+                LIMIT ' . $length . ' OFFSET ' . $start;
+
+        $stmt = $this->pdo->prepare($sql);
+        $stmt->execute($params);
+
+        $data = [];
+        foreach ($stmt->fetchAll() as $row) {
+            $data[] = $this->decorateRow($row);
+        }
+
+        return json_response([
+            'draw' => $draw,
+            'recordsTotal' => $total,
+            'recordsFiltered' => $filtered,
+            'data' => $data,
+        ]);
     }
 
     public function export(ServerRequestInterface $request)
@@ -217,10 +280,13 @@ class PartController extends CrudController
             return redirect('/parts');
         }
 
+        $decorated = $this->decorateRow($part);
+        $decorated['oem_codes_list'] = $this->oemCodes($part['oem_codes'] ?? null);
+
         return $this->render('mechanic::parts/show', [
             'title' => $part['name'],
             'resource' => $resource,
-            'part' => $this->decorateRow($part),
+            'part' => $decorated,
             'offers' => $this->offers((int) $part['cdp_sku']),
             'movements' => $this->movements((int) $id),
             'pageStyles' => [],
@@ -381,8 +447,10 @@ class PartController extends CrudController
             "SELECT COUNT(*) AS total,
                     SUM(status = 'published') AS published,
                     SUM(stock > 0 AND stock <= min_stock) AS low_stock,
+                    SUM(stock <= 0) AS out_of_stock,
                     SUM(source = 'canaldapeca') AS imported,
-                    COALESCE(SUM(stock * price), 0) AS stock_value
+                    COALESCE(SUM(stock * price), 0) AS stock_value,
+                    COALESCE(SUM(price), 0) AS reference_value
                FROM parts"
         )->fetch() ?: [];
 
@@ -390,8 +458,10 @@ class PartController extends CrudController
             'total' => (int) ($row['total'] ?? 0),
             'published' => (int) ($row['published'] ?? 0),
             'low_stock' => (int) ($row['low_stock'] ?? 0),
+            'out_of_stock' => (int) ($row['out_of_stock'] ?? 0),
             'imported' => (int) ($row['imported'] ?? 0),
             'stock_value' => (float) ($row['stock_value'] ?? 0),
+            'reference_value' => (float) ($row['reference_value'] ?? 0),
         ];
     }
 
@@ -588,6 +658,37 @@ class PartController extends CrudController
         }
     }
 
+    /**
+     * Normaliza códigos OEM (lista simples, JSON agrupado por marca ou texto).
+     *
+     * @return string[]
+     */
+    private function oemCodes(mixed $value): array
+    {
+        if (is_string($value)) {
+            $decoded = json_decode($value, true);
+            if (is_array($decoded)) {
+                $value = $decoded;
+            } else {
+                $value = preg_split('/[\r\n,;]+/', $value) ?: [];
+            }
+        }
+
+        $codes = [];
+        if (is_array($value)) {
+            array_walk_recursive($value, static function ($code) use (&$codes): void {
+                if (is_scalar($code)) {
+                    $code = trim((string) $code);
+                    if ($code !== '') {
+                        $codes[] = $code;
+                    }
+                }
+            });
+        }
+
+        return array_values(array_unique($codes));
+    }
+
     private function money(mixed $value): ?float
     {
         if ($value === null || $value === '') {
@@ -595,7 +696,10 @@ class PartController extends CrudController
         }
 
         $normalized = str_replace([' ', 'R$'], '', (string) $value);
-        $normalized = str_replace(',', '.', $normalized);
+        if (strpos($normalized, ',') !== false) {
+            $normalized = str_replace('.', '', $normalized);
+            $normalized = str_replace(',', '.', $normalized);
+        }
 
         return is_numeric($normalized) ? (float) $normalized : null;
     }
@@ -620,9 +724,8 @@ class PartController extends CrudController
         $offers = $partId > 0 ? $this->offers((int) ($record['cdp_sku'] ?? 0)) : [];
         $movements = $partId > 0 ? $this->movements($partId) : [];
 
-        if (!empty($part['oem_codes']) && is_string($part['oem_codes'])) {
-            $decoded = json_decode($part['oem_codes'], true);
-            $part['oem_codes_text'] = is_array($decoded) ? implode(PHP_EOL, $decoded) : (string) $part['oem_codes'];
+        if (!empty($part['oem_codes'])) {
+            $part['oem_codes_text'] = implode(PHP_EOL, $this->oemCodes($part['oem_codes']));
         }
 
         $html = $this->render('mechanic::parts/form', [

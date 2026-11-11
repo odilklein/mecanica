@@ -50,6 +50,7 @@
 
     function initials(name) {
         return (String(name || '').match(/\b\w/g) || [])
+            .slice(0, 2)
             .map(function (i) { return i.toUpperCase(); })
             .join('');
     }
@@ -89,17 +90,18 @@
 
                 var href = col.href ? resolve(col.href, full) : '';
                 var label = href
-                    ? '<a href="' + esc(href) + '" class="fw-medium">' + esc(name) + '</a>'
-                    : '<span class="emp_name text-truncate">' + esc(name) + '</span>';
-                var state = AVATAR_STATES[Math.floor(Math.random() * AVATAR_STATES.length)];
+                    ? '<a href="' + esc(href) + '" class="fw-medium text-truncate d-block">' + esc(name) + '</a>'
+                    : '<span class="emp_name text-truncate d-block">' + esc(name) + '</span>';
+                var seed = full && full.id ? parseInt(full.id, 10) : name.length;
+                var state = AVATAR_STATES[Math.abs(seed) % AVATAR_STATES.length];
                 var avatar = '<span class="avatar-initial rounded-circle bg-label-' + state + '">'
                     + esc(initials(name)) + '</span>';
 
                 return '<div class="d-flex justify-content-start align-items-center">'
-                    + '<div class="avatar-wrapper"><div class="avatar me-2">' + avatar + '</div></div>'
-                    + '<div class="d-flex flex-column">' + label
+                    + '<div class="avatar-wrapper flex-shrink-0"><div class="avatar me-2">' + avatar + '</div></div>'
+                    + '<div class="d-flex flex-column dt-name-text">' + label
                     + (secondary
-                        ? '<small class="emp_post text-truncate text-body-secondary">' + esc(secondary) + '</small>'
+                        ? '<small class="emp_post text-truncate d-block text-body-secondary">' + esc(secondary) + '</small>'
                         : '')
                     + '</div></div>';
             };
@@ -255,7 +257,7 @@
                     responsivePriority: 9
                 }
             ],
-            select: {
+            select: cfg.selectable === false ? false : {
                 style: 'multi',
                 selector: 'td:nth-child(2)'
             },
@@ -381,6 +383,20 @@
                 filters.forEach(function (filter) {
                     var select = document.querySelector('[data-dt-filter="' + filter.field + '"]');
                     if (!select) {
+                        return;
+                    }
+
+                    if (filter.options) {
+                        select.innerHTML = '<option value=""></option>';
+                        Object.keys(filter.options).forEach(function (value) {
+                            var opt = document.createElement('option');
+                            opt.value = value;
+                            opt.textContent = filter.options[value];
+                            select.appendChild(opt);
+                        });
+                        if ($ && $(select).data('select2')) {
+                            $(select).trigger('change.select2');
+                        }
                         return;
                     }
 

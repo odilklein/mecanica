@@ -50,6 +50,12 @@ abstract class Resource
         return $this->roles();
     }
 
+    /** Habilita a seleção múltipla (checkbox) na listagem. */
+    public function selectable(): bool
+    {
+        return true;
+    }
+
     /** Ícone Tabler do recurso (para cabeçalhos). */
     public function icon(): string
     {

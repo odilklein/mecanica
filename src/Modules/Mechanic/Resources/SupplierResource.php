@@ -42,6 +42,18 @@ class SupplierResource extends Resource
         return 'Novo fornecedor';
     }
 
+    public function selectable(): bool
+    {
+        return false;
+    }
+
+    public function datatableFilters(): array
+    {
+        return [
+            ['field' => 'status', 'label' => 'Situação', 'options' => ['1' => 'Ativo', '0' => 'Inativo']],
+        ];
+    }
+
     public function columns(): array
     {
         return [
@@ -56,7 +68,6 @@ class SupplierResource extends Resource
     {
         return [
             $this->dtControlColumn(),
-            $this->dtSelectColumn(),
             $this->dtIdColumn(),
             [
                 'title' => 'Fornecedor',

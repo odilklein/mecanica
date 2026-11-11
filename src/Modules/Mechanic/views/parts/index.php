@@ -5,6 +5,16 @@ $datatable = $datatable ?? [];
 $configJson = json_encode($datatable, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT);
 
 $money = static fn (float $value): string => 'R$ ' . number_format($value, 2, ',', '.');
+$shortMoney = static function (float $value): string {
+    $abs = abs($value);
+    if ($abs >= 1000000) {
+        return 'R$ ' . number_format($value / 1000000, 1, ',', '.') . ' mi';
+    }
+    if ($abs >= 1000) {
+        return 'R$ ' . number_format($value / 1000, 1, ',', '.') . ' mil';
+    }
+    return 'R$ ' . number_format($value, 0, ',', '.');
+};
 $fmt = static fn (int $value): string => number_format($value, 0, ',', '.');
 ?>
 <div class="page-header parts-page-header">
@@ -64,7 +74,10 @@ $fmt = static fn (int $value): string => number_format($value, 0, ',', '.');
                         <div>
                             <p class="mb-1">Estoque baixo</p>
                             <h4 class="mb-1"><?= $fmt((int) ($stats['low_stock'] ?? 0)) ?></h4>
-                            <p class="mb-0"><span class="badge bg-label-warning">repor</span></p>
+                            <p class="mb-0">
+                                <span class="badge bg-label-warning">repor</span>
+                                <span class="badge bg-label-danger"><?= $fmt((int) ($stats['out_of_stock'] ?? 0)) ?> esgotadas</span>
+                            </p>
                         </div>
                         <span class="avatar p-2 me-sm-6">
                             <span class="avatar-initial rounded"><i class="icon-base ti tabler-alert-triangle icon-28px text-heading"></i></span>
@@ -76,7 +89,7 @@ $fmt = static fn (int $value): string => number_format($value, 0, ',', '.');
                         <div>
                             <p class="mb-1">Valor em estoque</p>
                             <h4 class="mb-1"><?= $money((float) ($stats['stock_value'] ?? 0)) ?></h4>
-                            <p class="mb-0">preço de venda</p>
+                            <p class="mb-0">em estoque · ref. <?= $shortMoney((float) ($stats['reference_value'] ?? 0)) ?></p>
                         </div>
                         <span class="avatar p-2">
                             <span class="avatar-initial rounded"><i class="icon-base ti tabler-wallet icon-28px text-heading"></i></span>
@@ -146,6 +159,8 @@ $fmt = static fn (int $value): string => number_format($value, 0, ',', '.');
                     <th>Qtd.</th>
                     <th>Status</th>
                     <th>Ações</th>
+                    <th class="d-none"></th>
+                    <th class="d-none"></th>
                 </tr>
             </thead>
         </table>

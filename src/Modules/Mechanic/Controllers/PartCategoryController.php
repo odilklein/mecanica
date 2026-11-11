@@ -56,6 +56,7 @@ class PartCategoryController extends Controller
             "SELECT c.*,
                     COUNT(p.id) AS total_products,
                     COALESCE(SUM(p.stock * p.price), 0) AS total_value,
+                    COALESCE(SUM(p.price), 0) AS reference_value,
                     COALESCE(SUM(p.stock > 0 AND p.stock <= p.min_stock), 0) AS low_stock
                FROM part_categories c
                LEFT JOIN parts p ON p.category_id = c.id

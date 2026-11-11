@@ -21,7 +21,7 @@ $money = static fn (float $value): string => 'R$ ' . number_format($value, 2, ',
 <div class="page-header">
     <div>
         <h1><i class="icon-base ti tabler-category"></i>Categorias de peças</h1>
-        <span class="page-subtitle">Organize o catálogo e acompanhe o valor em estoque por categoria</span>
+        <span class="page-subtitle">Organize o catálogo e acompanhe o valor de referência e o estoque por categoria</span>
     </div>
     <div class="page-header-actions">
         <a href="/parts" class="btn btn-label-secondary"><i class="icon-base ti tabler-arrow-left"></i> Voltar ao catálogo</a>
@@ -83,14 +83,21 @@ $money = static fn (float $value): string => 'R$ ' . number_format($value, 2, ',
 </div>
 
 <div class="card">
-    <div class="card-header border-bottom d-flex flex-wrap justify-content-between align-items-center gap-2">
-        <div>
-            <h5 class="card-title mb-0">Todas as categorias</h5>
-            <small class="text-body-secondary">Clique em editar para alterar nome, ícone e cor</small>
+    <div class="card-header border-bottom">
+        <h5 class="card-title mb-0">Todas as categorias</h5>
+        <small class="text-body-secondary">Clique em editar para alterar nome, ícone e cor</small>
+    </div>
+    <div class="card-body border-bottom py-3">
+        <div class="row g-2 align-items-end">
+            <div class="col-md-3">
+                <label class="form-label" for="categoryFilterStatus">Status</label>
+                <select class="form-select" id="categoryFilterStatus">
+                    <option value="">Todas</option>
+                    <option value="1">Ativas</option>
+                    <option value="0">Inativas</option>
+                </select>
+            </div>
         </div>
-        <button class="btn btn-label-primary" type="button" data-bs-toggle="offcanvas" data-bs-target="#offcanvasCategory">
-            <i class="icon-base ti tabler-plus"></i> Adicionar categoria
-        </button>
     </div>
     <div class="card-datatable table-responsive">
         <table class="datatables-category-list table">
@@ -99,7 +106,7 @@ $money = static fn (float $value): string => 'R$ ' . number_format($value, 2, ',
                     <th></th>
                     <th>Categoria</th>
                     <th class="text-end">Produtos</th>
-                    <th class="text-end">Valor em estoque</th>
+                    <th class="text-end">Valores</th>
                     <th class="text-end">Ações</th>
                 </tr>
             </thead>
@@ -116,7 +123,7 @@ $money = static fn (float $value): string => 'R$ ' . number_format($value, 2, ',
                         'is_active' => (int) $category['is_active'],
                     ];
                 ?>
-                <tr>
+                <tr data-active="<?= (int) $category['is_active'] ?>">
                     <td></td>
                     <td>
                         <div class="d-flex align-items-center">
@@ -142,7 +149,8 @@ $money = static fn (float $value): string => 'R$ ' . number_format($value, 2, ',
                         <small class="text-body-secondary d-block">peças</small>
                     </td>
                     <td class="text-end">
-                        <span class="fw-medium"><?= $money((float) $category['total_value']) ?></span>
+                        <span class="fw-medium"><?= $money((float) $category['reference_value']) ?></span>
+                        <small class="text-body-secondary d-block">estoque: <?= $money((float) $category['total_value']) ?></small>
                     </td>
                     <td class="text-end">
                         <div class="d-inline-flex align-items-center gap-1">

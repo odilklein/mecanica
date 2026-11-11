@@ -16,8 +16,9 @@
 
     document.addEventListener('DOMContentLoaded', function () {
         var table = document.querySelector('.datatables-category-list');
+        var dt = null;
         if (table && typeof DataTable !== 'undefined' && !table.classList.contains('dataTable')) {
-            new DataTable(table, {
+            dt = new DataTable(table, {
                 order: [[1, 'asc']],
                 displayLength: 10,
                 columnDefs: [
@@ -93,6 +94,24 @@
                         }
                     }
                 }
+            });
+        }
+
+        var statusFilter = document.getElementById('categoryFilterStatus');
+        if (dt && statusFilter) {
+            DataTable.ext.search.push(function (settings, data, index) {
+                if (settings.nTable !== table) {
+                    return true;
+                }
+                var value = statusFilter.value;
+                if (!value) {
+                    return true;
+                }
+                var row = dt.row(index).node();
+                return row && row.getAttribute('data-active') === value;
+            });
+            statusFilter.addEventListener('change', function () {
+                dt.draw();
             });
         }
 

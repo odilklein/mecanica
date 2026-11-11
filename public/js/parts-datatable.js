@@ -46,10 +46,24 @@
         var csrf = cfg.csrf || '';
 
         var dt = new DataTable(table, {
-            ajax: { url: cfg.url || '/parts/datatable', dataSrc: 'data' },
+            ajax: {
+                url: cfg.url || '/parts/datatable',
+                dataSrc: 'data',
+                data: function (d) {
+                    var status = document.getElementById('partsFilterStatus');
+                    var category = document.getElementById('partsFilterCategory');
+                    var stock = document.getElementById('partsFilterStock');
+                    d.status = status ? status.value : '';
+                    d.category_id = category ? category.value : '';
+                    d.stock_state = stock ? stock.value : '';
+                }
+            },
+            serverSide: true,
+            processing: true,
+            searchDelay: 300,
             columns: [
                 { data: 'id', responsivePriority: 9 },
-                { data: 'id', orderable: false, responsivePriority: 9, render: DataTable.render.select() },
+                { data: 'id', orderable: false, responsivePriority: 1, render: DataTable.render.select() },
                 { data: 'name', responsivePriority: 1 },
                 { data: 'category_name', responsivePriority: 5 },
                 { data: 'stock', responsivePriority: 3 },
@@ -57,7 +71,9 @@
                 { data: 'price', responsivePriority: 6 },
                 { data: 'stock', responsivePriority: 4 },
                 { data: 'status', responsivePriority: 6 },
-                { data: 'id', responsivePriority: 2 }
+                { data: 'id', responsivePriority: 2 },
+                { data: 'brand', visible: false },
+                { data: 'part_code', visible: false }
             ],
             columnDefs: [
                 {
@@ -72,7 +88,7 @@
                     targets: 1,
                     orderable: false,
                     searchable: false,
-                    responsivePriority: 9,
+                    responsivePriority: 1,
                     checkboxes: { selectAllRender: '<input type="checkbox" class="form-check-input">' },
                     render: function () {
                         return '<input type="checkbox" class="dt-checkboxes form-check-input">';
@@ -94,7 +110,7 @@
                         var output;
 
                         if (image && image.indexOf('indisponivel') === -1) {
-                            output = '<img src="' + esc(image) + '" alt="' + esc(name) + '" class="part-thumb" loading="lazy"'
+                            output = '<img src="' + esc(image) + '" alt="' + esc(name) + '" class="part-thumb" loading="lazy" referrerpolicy="no-referrer"'
                                 + ' onerror="this.hidden=true;this.nextElementSibling.hidden=false">'
                                 + '<span class="avatar-initial rounded-2 bg-label-primary" hidden>' + esc(initials(full.brand || name)) + '</span>';
                         } else {
@@ -308,42 +324,10 @@
         bindBulkDelete(dt);
         bindSingleDelete();
 
-        function activeFilters() {
-            var values = {};
-            document.querySelectorAll('[data-parts-filter]').forEach(function (select) {
-                values[select.getAttribute('data-parts-filter')] = select.value;
-            });
-            return values;
-        }
-
         function bindFilters(tableApi) {
-            var filters = activeFilters();
-
-            DataTable.ext.search.push(function (settings, searchData, dataIndex) {
-                if (settings.nTable !== table) {
-                    return true;
-                }
-
-                var row = tableApi.row(dataIndex).data() || {};
-                var current = activeFilters();
-
-                if (current.status && String(row.status || '') !== current.status) {
-                    return false;
-                }
-                if (current.category_id && String(row.category_id || '') !== current.category_id) {
-                    return false;
-                }
-                if (current.stock_state && String(row.stock_state || '') !== current.stock_state) {
-                    return false;
-                }
-
-                return true;
-            });
-
             document.querySelectorAll('[data-parts-filter]').forEach(function (select) {
                 select.addEventListener('change', function () {
-                    filters = activeFilters();
-                    tableApi.draw();
+                    tableApi.ajax.reload();
                 });
             });
         }

@@ -5,6 +5,22 @@
 (function () {
     'use strict';
 
+    function parseMoney(value) {
+        var normalized = String(value || '').replace(/[^\d,.-]/g, '');
+        if (normalized.indexOf(',') !== -1) {
+            normalized = normalized.replace(/\./g, '').replace(',', '.');
+        }
+        var number = parseFloat(normalized);
+        return isNaN(number) ? 0 : number;
+    }
+
+    function formatMoney(value) {
+        return Number(value || 0).toLocaleString('pt-BR', {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2
+        });
+    }
+
     document.addEventListener('DOMContentLoaded', function () {
         var imageInput = document.querySelector('[data-image-input]');
         var imagePreview = document.querySelector('[data-image-preview]');
@@ -50,8 +66,8 @@
                 return;
             }
 
-            var price = parseFloat(priceInput.value || '0');
-            var cost = parseFloat(costInput.value || '0');
+            var price = parseMoney(priceInput.value);
+            var cost = parseMoney(costInput.value);
             var margin = price > 0 ? ((price - cost) / price) * 100 : 0;
 
             marginEl.textContent = margin.toLocaleString('pt-BR', {
@@ -69,8 +85,32 @@
             }
         }
 
-        if (priceInput) priceInput.addEventListener('input', updateMargin);
-        if (costInput) costInput.addEventListener('input', updateMargin);
+        function formatInput(input) {
+            if (!input) {
+                return;
+            }
+            var raw = input.value.trim();
+            if (raw === '') {
+                return;
+            }
+            input.value = formatMoney(parseMoney(raw));
+            updateMargin();
+        }
+
+        if (priceInput) {
+            if (priceInput.value.trim() !== '') {
+                priceInput.value = formatMoney(parseMoney(priceInput.value));
+            }
+            priceInput.addEventListener('input', updateMargin);
+            priceInput.addEventListener('blur', function () { formatInput(priceInput); });
+        }
+        if (costInput) {
+            if (costInput.value.trim() !== '') {
+                costInput.value = formatMoney(parseMoney(costInput.value));
+            }
+            costInput.addEventListener('input', updateMargin);
+            costInput.addEventListener('blur', function () { formatInput(costInput); });
+        }
         updateMargin();
     });
 })();

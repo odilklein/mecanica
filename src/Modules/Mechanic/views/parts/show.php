@@ -5,11 +5,7 @@ $movements = $movements ?? [];
 $money = static fn (mixed $value): string => $value !== null && $value !== ''
     ? 'R$ ' . number_format((float) $value, 2, ',', '.')
     : '—';
-$oem = [];
-if (!empty($part['oem_codes'])) {
-    $decoded = is_string($part['oem_codes']) ? json_decode($part['oem_codes'], true) : $part['oem_codes'];
-    $oem = is_array($decoded) ? array_filter($decoded) : [];
-}
+$oem = $part['oem_codes_list'] ?? [];
 $tags = array_filter(array_map('trim', explode(',', (string) ($part['tags'] ?? ''))));
 $description = (string) ($part['description'] ?? '');
 $description = preg_replace('/<br\s*\/?>/i', "\n", $description) ?? $description;
@@ -40,7 +36,10 @@ $description = trim(strip_tags($description));
                         <small>Sem imagem</small>
                     </div>
                     <?php if (!empty($part['image'])): ?>
-                    <img src="<?= e($part['image']) ?>" alt="<?= e($part['name']) ?>" class="img-fluid rounded-3 part-image-main" onerror="this.hidden=true">
+                    <img src="<?= e($part['image']) ?>" alt="<?= e($part['name']) ?>" class="img-fluid rounded-3 part-image-main"
+                         loading="lazy" referrerpolicy="no-referrer"
+                         onload="this.previousElementSibling.classList.add('d-none')"
+                         onerror="this.remove()">
                     <?php endif; ?>
                 </div>
                 <div class="d-flex justify-content-between align-items-center mb-3">

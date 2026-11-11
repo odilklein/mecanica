@@ -2369,6 +2369,8 @@ html.tickets-collapsed #layout-menu [data-menu-key="tickets"] > .menu-sub {
 .ticket-system-content { font-size: 0.86rem; line-height: 1.55; color: var(--bs-body-color); }
 .chat-contact-assignee { font-size: 0.72rem; line-height: 1.2; }
 .chat-contact-assignee .icon-base { font-size: 0.8rem; vertical-align: -1px; }
+/* Nome nas tabelas genéricas: reserva espaço do avatar e trunca sem sobrepor. */
+.dt-name-text { min-width: 0; }
 .ticket-system-card [data-bs-toggle="collapse"] .tabler-chevron-down,
 .ticket-os-context [data-bs-toggle="collapse"] .tabler-chevron-down {
     transition: transform 0.2s ease;
