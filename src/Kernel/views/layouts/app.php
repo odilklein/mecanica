@@ -1,8 +1,11 @@
 <?php
 $ticketsOpenPref = (string) ($_COOKIE['mecanica_tickets_open'] ?? '1');
+// Páginas que ocupam a tela inteira (ex.: assistente) podem esconder a
+// navbar. O rodapé foi removido do sistema.
+$hideChrome = !empty($hideChrome);
 ?>
 <!DOCTYPE html>
-<html lang="pt-BR" class="layout-navbar-fixed layout-menu-fixed layout-compact" dir="ltr" data-skin="default" data-bs-theme="light" data-assets-path="/assets/" data-template="vertical-menu-template">
+<html lang="pt-BR" class="<?= $hideChrome ? 'layout-menu-fixed layout-compact layout-chrome-hidden' : 'layout-navbar-fixed layout-menu-fixed layout-compact' ?>" dir="ltr" data-skin="default" data-bs-theme="light" data-assets-path="/assets/" data-template="vertical-menu-template">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
@@ -244,6 +247,11 @@ $ticketsOpenPref = (string) ($_COOKIE['mecanica_tickets_open'] ?? '1');
 
             <!-- Layout page -->
             <div class="layout-page">
+                <?php if ($hideChrome): ?>
+                <button type="button" class="chrome-menu-toggle layout-menu-toggle d-xl-none" aria-label="Abrir menu">
+                    <i class="icon-base ti tabler-menu-2"></i>
+                </button>
+                <?php else: ?>
                 <nav class="layout-navbar container-xxl navbar-detached navbar navbar-expand-xl align-items-center bg-navbar-theme" id="layout-navbar">
                     <div class="layout-menu-toggle navbar-nav align-items-xl-center me-3 me-xl-0 d-xl-none">
                         <a class="nav-item nav-link px-0 me-xl-6" href="javascript:void(0)">
@@ -354,6 +362,7 @@ $ticketsOpenPref = (string) ($_COOKIE['mecanica_tickets_open'] ?? '1');
                         </ul>
                     </div>
                 </nav>
+                <?php endif; ?>
 
                 <!-- Content wrapper -->
                 <div class="content-wrapper">
@@ -371,15 +380,6 @@ $ticketsOpenPref = (string) ($_COOKIE['mecanica_tickets_open'] ?? '1');
                         <?php endif; ?>
                         <?= $content ?? '' ?>
                     </div>
-
-                    <footer class="content-footer footer bg-footer-theme">
-                        <div class="container-xxl">
-                            <div class="footer-container d-flex align-items-center justify-content-between py-4 flex-md-row flex-column">
-                                <div class="text-body">&copy; <?= date('Y') ?> <?= e(setting('company_name', 'Mecânica') ?: 'Mecânica') ?></div>
-                                <div class="text-body-secondary">Oficina em dia</div>
-                            </div>
-                        </div>
-                    </footer>
 
                     <div class="content-backdrop fade"></div>
                 </div>

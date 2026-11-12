@@ -40,6 +40,7 @@ A arquitetura é modular:
 - **Peças e fornecedores** com catálogo, categorias, preço/custo, estoque, filtros e paginação.
 - **Pedidos de peças** vinculados à OS, com quick view, quantidade, paginação e fluxo de status.
 - **Tickets** internos por OS, com conversa, anexos por áudio (Groq opcional) e notificações.
+- **Assistente de IA** em `/assistant`: chat com streaming, consultas por linguagem natural, widgets do sistema e propostas de alteração que só são aplicadas após aprovação humana (ver [`docs/ASSISTENTE.md`](docs/ASSISTENTE.md)).
 - **Relatórios** por período, com tabela de orçamentos, ticket médio e exportação CSV.
 - **Configurações** de oficina, tema, SEO, validade e termos de orçamento.
 - **Auditoria** com filtros, detalhes legíveis e links para os registros.
@@ -104,6 +105,7 @@ public/                 Front controller, assets, CSS e JS servidos pelo Apache
 src/Kernel/             Kernel, Auth, Session, Router, CRUD, Database, View, Menu
 src/Modules/Core/       Login, dashboard, clientes, funcionários, configurações, auditoria, perfil
 src/Modules/Mechanic/   Veículos, OS, orçamentos, peças, fornecedores, pedidos, tickets, relatórios
+src/Modules/Agent/      Assistente de IA: ferramentas, propostas, sessões e streaming
 bin/                    migrate.php, fipe.php, seed_demo.php, seed_operacao.php, import_parts.php
 docs/                   Relatórios e material de apresentação do TCC
 storage/                Cache e logs em runtime (ignorado no Git)
@@ -120,7 +122,7 @@ cp .env.example .env
 
 docker compose up -d --build
 
-# cria/atualiza o schema (27 migrations)
+# cria/atualiza o schema (32 migrations)
 docker compose exec app php bin/migrate.php migrate
 
 # opcional: dados de demonstração
@@ -189,6 +191,7 @@ Os scripts de seed adicionam funcionários, clientes, veículos, OS e orçamento
 
 ## Documentação
 
+- [`docs/ASSISTENTE.md`](docs/ASSISTENTE.md) — assistente de IA: arquitetura, segurança, ferramentas e widgets.
 - [`docs/RELATORIO_AUDITORIA_SISTEMA.md`](docs/RELATORIO_AUDITORIA_SISTEMA.md) — auditoria, correções, regras e validações.
 - [`docs/RELATORIO_CANAL_DA_PECA.md`](docs/RELATORIO_CANAL_DA_PECA.md) — integração com o catálogo Canal da Peça.
 - [`docs/apresentacao/ROTEIRO_APRESENTACAO.md`](docs/apresentacao/ROTEIRO_APRESENTACAO.md) — roteiro da trigger/view do TCC.
