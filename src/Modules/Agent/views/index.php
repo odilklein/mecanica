@@ -161,7 +161,7 @@ $jsonFlags = JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APO
                     <textarea id="assistantInput"
                               rows="1"
                               maxlength="4000"
-                              placeholder="Pergunte algo, anexe um PDF ou descreva uma ação…"
+                              placeholder="Pergunte, anexe ou descreva uma ação…"
                               autocomplete="off"
                               spellcheck="false"></textarea>
 
