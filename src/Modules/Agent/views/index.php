@@ -155,8 +155,16 @@ $jsonFlags = JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APO
             <div class="assistant-composer-wrap">
                 <div class="assistant-slash" id="assistantSlash" hidden></div>
 
-                <form class="assistant-composer" id="assistantForm">
+                <form class="assistant-composer" id="assistantForm"
+                      data-audio-url="/api/transcribe"
+                      data-audio-csrf="<?= e($csrf) ?>">
                     <div class="assistant-attachment-tray" id="assistantAttachments" hidden></div>
+
+                    <div class="assistant-recorder" id="assistantRecorder" hidden>
+                        <span class="assistant-rec-dot" aria-hidden="true"></span>
+                        <canvas id="assistantWave" class="assistant-wave" height="40"></canvas>
+                        <span class="assistant-rec-time" id="assistantRecTime">0:00</span>
+                    </div>
 
                     <textarea id="assistantInput"
                               rows="1"
@@ -169,16 +177,6 @@ $jsonFlags = JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APO
                         <div class="assistant-toolbar">
                             <button type="button" class="assistant-tool-btn" id="assistantAttach" title="Anexar arquivo (PDF, imagem, áudio, texto)">
                                 <i class="icon-base ti tabler-paperclip"></i>
-                            </button>
-
-                            <button type="button" class="assistant-tool-btn assistant-mic <?= $audioEnabled ? '' : 'd-none' ?>"
-                                    data-ticket-audio
-                                    data-target="#assistantInput"
-                                    data-endpoint="/api/transcribe"
-                                    data-csrf="<?= e($csrf) ?>"
-                                    title="Gravar áudio e transcrever"
-                                    aria-label="Gravar áudio e transcrever">
-                                <i class="icon-base ti tabler-microphone"></i>
                             </button>
 
                             <div class="assistant-model" id="assistantModel">
@@ -197,9 +195,22 @@ $jsonFlags = JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APO
                         </div>
 
                         <div class="assistant-actions">
+                            <button type="button" class="assistant-rec-btn is-cancel" id="assistantRecCancel" hidden title="Cancelar gravação" aria-label="Cancelar gravação">
+                                <i class="icon-base ti tabler-x"></i>
+                            </button>
+                            <button type="button" class="assistant-rec-btn is-stop" id="assistantRecStop" hidden title="Parar e revisar" aria-label="Parar e revisar">
+                                <i class="icon-base ti tabler-check"></i>
+                            </button>
+
                             <button type="button" class="assistant-stop" id="assistantStop" hidden>
                                 <i class="icon-base ti tabler-player-stop"></i> Parar
                             </button>
+
+                            <button type="button" class="assistant-mic-btn <?= $audioEnabled ? '' : 'd-none' ?>"
+                                    id="assistantAudio" title="Gravar áudio" aria-label="Gravar áudio">
+                                <i class="icon-base ti tabler-microphone"></i>
+                            </button>
+
                             <button type="submit" class="assistant-send" id="assistantSend" aria-label="Enviar">
                                 <span>Enviar</span>
                                 <i class="icon-base ti tabler-arrow-up"></i>
@@ -207,10 +218,6 @@ $jsonFlags = JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APO
                         </div>
                     </div>
                 </form>
-
-                <p class="assistant-disclaimer">
-                    O assistente pode errar. Confira os dados antes de aprovar uma proposta.
-                </p>
 
                 <div class="assistant-dropzone" id="assistantDrop" hidden>
                     <i class="icon-base ti tabler-cloud-upload"></i>

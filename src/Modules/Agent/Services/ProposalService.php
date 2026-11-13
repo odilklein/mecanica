@@ -29,6 +29,7 @@ class ProposalService
     /** Papel exigido para aprovar cada tipo de proposta. */
     private const APPROVER_ROLES = [
         'propor_abrir_os' => ['admin', 'secretary', 'lead_mechanic'],
+        'propor_cadastro_cliente' => ['admin', 'secretary', 'lead_mechanic'],
         'propor_pedido_pecas' => null,
         'propor_status_os' => ['admin', 'secretary', 'lead_mechanic'],
     ];
@@ -333,6 +334,7 @@ class ProposalService
         try {
             $result = match ((string) $proposal['tool_name']) {
                 'propor_abrir_os' => $this->applyServiceOrder($payload, $userId),
+                'propor_cadastro_cliente' => $this->applyCreateClient($payload, $userId),
                 'propor_pedido_pecas' => $this->applyPartOrder($payload, $userId),
                 'propor_status_os' => $this->applyStatusChange($payload, $userId),
                 default => throw new RuntimeException('Tipo de proposta desconhecido.'),
@@ -490,12 +492,64 @@ class ProposalService
 
         $label = 'OS #' . str_pad((string) $number, 4, '0', STR_PAD_LEFT);
 
+        record_audit($this->pdo, $userId, 'service_orders', $orderId, 'create', [
+            'origin' => 'agent',
+            'number' => $number,
+        ]);
+
         return [
             'message' => $label . ' criada com sucesso.',
             'url' => '/service-orders/' . $orderId,
             'order_id' => $orderId,
             'number' => $number,
             'parts_created' => count($parts),
+        ];
+    }
+
+    /**
+     * @param array<string, mixed> $payload
+     * @return array<string, mixed>
+     */
+    private function applyCreateClient(array $payload, int $userId): array
+    {
+        $name = trim((string) ($payload['name'] ?? ''));
+        if (mb_strlen($name) < 3) {
+            throw new RuntimeException('Informe o nome completo do cliente.');
+        }
+
+        $cpf = trim((string) ($payload['cpf'] ?? ''));
+        if ($cpf !== '') {
+            $dupe = $this->pdo->prepare('SELECT id, name FROM clients WHERE cpf = :cpf LIMIT 1');
+            $dupe->execute([':cpf' => $cpf]);
+            $existing = $dupe->fetch();
+            if ($existing) {
+                throw new RuntimeException('Já existe um cliente com este CPF: ' . $existing['name'] . '.');
+            }
+        }
+
+        $this->pdo->prepare(
+            'INSERT INTO clients (name, cpf, phone, email, city, state, notes, is_active)
+             VALUES (:n, :cpf, :p, :e, :c, :s, :o, 1)'
+        )->execute([
+            ':n' => mb_substr($name, 0, 120),
+            ':cpf' => $cpf !== '' ? mb_substr($cpf, 0, 14) : null,
+            ':p' => mb_substr(trim((string) ($payload['phone'] ?? '')), 0, 20) ?: null,
+            ':e' => mb_substr(strtolower(trim((string) ($payload['email'] ?? ''))), 0, 120) ?: null,
+            ':c' => mb_substr(trim((string) ($payload['city'] ?? '')), 0, 80) ?: null,
+            ':s' => mb_substr(strtoupper(trim((string) ($payload['state'] ?? ''))), 0, 2) ?: null,
+            ':o' => trim((string) ($payload['notes'] ?? '')) ?: null,
+        ]);
+
+        $clientId = (int) $this->pdo->lastInsertId();
+
+        record_audit($this->pdo, $userId, 'clients', $clientId, 'create', [
+            'origin' => 'agent',
+        ]);
+
+        return [
+            'message' => 'Cliente "' . $name . '" cadastrado.',
+            'url' => '/clients/' . $clientId,
+            'client_id' => $clientId,
         ];
     }
 
@@ -561,6 +615,12 @@ class ProposalService
 
         (new TicketService($this->pdo))->ensureForOrder($orderId);
 
+        record_audit($this->pdo, $userId, 'part_orders', $partOrderId, 'create', [
+            'origin' => 'agent',
+            'service_order_id' => $orderId,
+            'items' => count($items),
+        ]);
+
         return [
             'message' => 'Pedido de peças #' . $partOrderId . ' criado.',
             'url' => '/part-orders/' . $partOrderId,
@@ -611,6 +671,12 @@ class ProposalService
             ':t' => 'status',
             ':d' => 'Status alterado de ' . ServiceOrderStatus::label($from) . ' para ' . ServiceOrderStatus::label($to) . ' (assistente).',
             ':u' => $userId,
+        ]);
+
+        record_audit($this->pdo, $userId, 'service_orders', $orderId, 'status', [
+            'origin' => 'agent',
+            'from' => $from,
+            'to' => $to,
         ]);
 
         return [

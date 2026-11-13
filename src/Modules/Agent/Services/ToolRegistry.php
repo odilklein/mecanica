@@ -48,6 +48,7 @@ class ToolRegistry
         'ficha_veiculo' => null,
         'salvar_ficha_veiculo' => ['admin'],
         'propor_abrir_os' => ['admin', 'secretary', 'lead_mechanic'],
+        'propor_cadastro_cliente' => ['admin', 'secretary', 'lead_mechanic'],
         'propor_pedido_pecas' => null,
         'propor_status_os' => ['admin', 'secretary', 'lead_mechanic'],
     ];
@@ -173,6 +174,22 @@ class ToolRegistry
                         'observacoes' => ['type' => 'string'],
                     ],
                     'required' => ['marca', 'modelo', 'fonte'],
+                ],
+            ],
+            'propor_cadastro_cliente' => [
+                'description' => 'Cria uma PROPOSTA de cadastro de cliente. Use quando o usuário disser que vai criar/cadastrar um cliente; não busque antes. Monte com os dados que ele já passou e peça apenas o que faltar (nome é obrigatório; telefone ou e-mail é recomendado).',
+                'parameters' => [
+                    'type' => 'object',
+                    'properties' => [
+                        'nome' => ['type' => 'string', 'description' => 'Nome completo do cliente.'],
+                        'cpf' => ['type' => 'string'],
+                        'telefone' => ['type' => 'string'],
+                        'email' => ['type' => 'string'],
+                        'cidade' => ['type' => 'string'],
+                        'estado' => ['type' => 'string', 'description' => 'UF com 2 letras.'],
+                        'observacoes' => ['type' => 'string'],
+                    ],
+                    'required' => ['nome'],
                 ],
             ],
             'propor_abrir_os' => [
@@ -355,15 +372,8 @@ class ToolRegistry
         $rows = $stmt->fetchAll();
 
         if (!$rows) {
-            return [
-                'ok' => true,
-                'summary' => 'Nenhuma OS encontrada para esse critério.',
-                'renders' => [[
-                    'type' => 'empty',
-                    'title' => 'Nenhuma OS encontrada',
-                    'text' => 'Confira o número, a placa ou o nome do cliente.',
-                ]],
-            ];
+            // Sem resultados não há widget: o chat responde em texto.
+            return ['ok' => true, 'summary' => 'Nenhuma OS encontrada para esse critério.'];
         }
 
         $tableRows = [];
@@ -522,11 +532,7 @@ class ToolRegistry
         $rows = $stmt->fetchAll();
 
         if (!$rows) {
-            return ['ok' => true, 'summary' => 'Nenhum cliente encontrado.', 'renders' => [[
-                'type' => 'empty',
-                'title' => 'Nenhum cliente encontrado',
-                'text' => 'Tente outro nome, CPF ou telefone.',
-            ]]];
+            return ['ok' => true, 'summary' => 'Nenhum cliente encontrado.'];
         }
 
         return [
@@ -581,11 +587,7 @@ class ToolRegistry
         $rows = $stmt->fetchAll();
 
         if (!$rows) {
-            return ['ok' => true, 'summary' => 'Nenhum veículo encontrado.', 'renders' => [[
-                'type' => 'empty',
-                'title' => 'Nenhum veículo encontrado',
-                'text' => 'Confira a placa ou o modelo.',
-            ]]];
+            return ['ok' => true, 'summary' => 'Nenhum veículo encontrado.'];
         }
 
         return [
@@ -692,11 +694,7 @@ class ToolRegistry
         $rows = $stmt->fetchAll();
 
         if (!$rows) {
-            return ['ok' => true, 'summary' => 'Nenhuma peça encontrada no catálogo.', 'renders' => [[
-                'type' => 'empty',
-                'title' => 'Nenhuma peça encontrada',
-                'text' => 'O catálogo local pode não ter esse item.',
-            ]]];
+            return ['ok' => true, 'summary' => 'Nenhuma peça encontrada no catálogo local.'];
         }
 
         return [
@@ -943,6 +941,103 @@ class ToolRegistry
                 ),
                 'notes' => $info['notes'] ?? null,
             ]],
+        ];
+    }
+
+    /** @param array<string, mixed> $args */
+    private function runProporCadastroCliente(array $args): array
+    {
+        $name = trim((string) ($args['nome'] ?? $args['name'] ?? ''));
+        if (mb_strlen($name) < 3) {
+            return ['ok' => false, 'summary' => 'Informe o nome completo do cliente.'];
+        }
+
+        $cpf = trim((string) ($args['cpf'] ?? ''));
+        $phone = trim((string) ($args['telefone'] ?? $args['phone'] ?? ''));
+        $email = strtolower(trim((string) ($args['email'] ?? '')));
+        $city = trim((string) ($args['cidade'] ?? ''));
+        $state = strtoupper(trim((string) ($args['estado'] ?? '')));
+        $notes = trim((string) ($args['observacoes'] ?? $args['notes'] ?? ''));
+
+        $warnings = [];
+
+        if ($cpf !== '') {
+            $stmt = $this->pdo->prepare('SELECT id, name FROM clients WHERE cpf = :cpf LIMIT 1');
+            $stmt->execute([':cpf' => $cpf]);
+            if ($row = $stmt->fetch()) {
+                $warnings[] = 'Já existe um cliente com este CPF: ' . $row['name'] . ' (#' . (int) $row['id'] . ').';
+            }
+        }
+
+        if (!$warnings) {
+            $stmt = $this->pdo->prepare('SELECT id, name FROM clients WHERE LOWER(name) = LOWER(:n) LIMIT 1');
+            $stmt->execute([':n' => $name]);
+            if ($row = $stmt->fetch()) {
+                $warnings[] = 'Já existe um cliente com este nome: ' . $row['name'] . ' (#' . (int) $row['id']
+                    . '). Confirme se é outra pessoa.';
+            }
+        }
+
+        $payload = [
+            'name' => mb_substr($name, 0, 120),
+            'cpf' => $cpf !== '' ? mb_substr($cpf, 0, 14) : '',
+            'phone' => mb_substr($phone, 0, 20),
+            'email' => mb_substr($email, 0, 120),
+            'city' => mb_substr($city, 0, 80),
+            'state' => mb_substr($state, 0, 2),
+            'notes' => mb_substr($notes, 0, 2000),
+        ];
+
+        $fields = [
+            ['label' => 'Nome', 'value' => $payload['name']],
+            ['label' => 'CPF', 'value' => $payload['cpf'] !== '' ? $payload['cpf'] : '—'],
+            ['label' => 'Telefone', 'value' => $payload['phone'] !== '' ? $payload['phone'] : '—'],
+            ['label' => 'E-mail', 'value' => $payload['email'] !== '' ? $payload['email'] : '—'],
+            ['label' => 'Cidade', 'value' => $payload['city'] !== ''
+                ? $payload['city'] . ($payload['state'] !== '' ? '/' . $payload['state'] : '')
+                : '—'],
+        ];
+
+        $preview = [
+            'kind' => 'client_draft',
+            'title' => 'Cadastrar cliente',
+            'subtitle' => $payload['name'] . ($payload['phone'] !== '' ? ' — ' . $payload['phone'] : ''),
+            'risk' => 'low',
+            'approve_label' => 'Criar cliente',
+            'fields' => $fields,
+            'items' => [],
+            'warnings' => $warnings,
+            'tasks' => [],
+        ];
+
+        $intent = 'client:new:' . ($cpf !== ''
+            ? 'cpf:' . preg_replace('/\D/', '', $cpf)
+            : 'name:' . VehicleSpecService::normalize($name));
+
+        $proposal = $this->proposals->create(
+            (int) ($args['__session_id'] ?? 0),
+            (int) $this->auth->id(),
+            'propor_cadastro_cliente',
+            $payload,
+            $preview,
+            $intent,
+            false
+        );
+
+        $summary = 'Proposta de cadastro criada para ' . $payload['name'] . '. Nada foi gravado; '
+            . 'aguarda aprovação no cartão.';
+        if ($warnings) {
+            $summary .= ' Atenção: ' . implode(' ', $warnings);
+        }
+
+        return [
+            'ok' => true,
+            'summary' => $summary,
+            'renders' => [[
+                'type' => 'proposal',
+                'proposal' => $this->proposalCard($proposal),
+            ]],
+            'proposal_id' => (int) $proposal['id'],
         ];
     }
 

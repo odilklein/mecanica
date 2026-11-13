@@ -223,6 +223,7 @@ escrita continua dependendo de proposta + aprovação humana.
 | `propor_abrir_os` | admin, secretaria, chefe | proposta |
 | `propor_pedido_pecas` | todos | proposta |
 | `propor_status_os` | admin, secretaria, chefe | proposta |
+| `propor_cadastro_cliente` | admin, secretaria, chefe | proposta |
 | `buscar_pecas_veiculo` | todos | leitura + escolha |
 | `ficha_veiculo` | todos | leitura |
 | `salvar_ficha_veiculo` | admin | gravação (dado de referência, auditado) |
@@ -302,9 +303,35 @@ Renderização em `public/js/assistant.js` (`renderWidget`), sempre com
 - cartões de proposta com Aprovar/Rejeitar e status "substituída" para a anterior;
 - cartão de peças com ficha do veículo, ofertas, link de conferência e escolha;
 - comandos `/resumo`, `/os`, `/cliente`, `/peca`, `/abrir-os`, `/nova`, `/ajuda`;
-- atalhos: `Enter` envia, `Shift+Enter` quebra linha, `Esc` para,
-  `Ctrl/⌘+Shift+K` nova conversa, `Ctrl/⌘+Shift+A` anexar;
+- **áudio no compositor**: microfone ao lado do enviar, visualizador de
+  espectro em tempo real, cronômetro; `Parar` transcreve para o campo (revisão)
+  e `Enviar` durante a gravação transcreve e envia direto;
+- atalhos: `Enter` envia, `Shift+Enter` quebra linha, `Esc` para/descarta a
+  gravação, `Ctrl/⌘+Shift+K` nova conversa, `Ctrl/⌘+Shift+A` anexar;
 - histórico de conversas, pendências e uso diário (tokens + custo estimado).
+
+### Comportamento do agente
+
+- **Criar ≠ buscar**: se o usuário diz que vai cadastrar um cliente/OS, o
+  assistente monta a proposta de cadastro direto e pergunta só o que falta. Só
+  pesquisa quando o pedido é consultar algo existente.
+- **Sem widget vazio**: busca sem resultado responde em texto; nenhum cartão é
+  renderizado sem conteúdo.
+- **Respostas variadas**: o prompt evita abertura fixa, narração de ferramentas
+  e repetição dos dados que já estão no cartão.
+
+### Visualizador de áudio
+
+Implementado com **Web Audio API (`AnalyserNode`) + canvas**, sem biblioteca
+externa. As alternativas pesquisadas:
+
+| Opção | Situação |
+|---|---|
+| `wavesurfer.js` (Record plugin) | BSD-3, mas ~100 kB e desenha forma de onda, não espectro |
+| `audioMotion-analyzer` | 30 kB e ótimo visual, porém **AGPL-3.0** (incompatível com projeto proprietário) |
+| Web Audio nativo | zero dependência, controle total, ~80 linhas |
+
+A transcrição continua no `/api/transcribe` (Groq Whisper), o mesmo dos tickets.
 
 ---
 
@@ -323,7 +350,11 @@ Testes manuais em 12/11/2026, com a API real da Groq:
 - pedido de peças com SKU, preço, fornecedor e URL persistidos;
 - criação repetida de proposta com a mesma intenção não duplica: a anterior vira
   `superseded` (status) e o pedido de peças mescla itens;
-- layout sem navbar/rodapé em desktop e mobile, tema claro e escuro.
+- layout sem navbar/rodapé em desktop e mobile, tema claro e escuro;
+- áudio: gravação com visualizador, parada com transcrição no campo e envio
+  direto durante a gravação;
+- "vou cadastrar um cliente" gerou proposta sem busca prévia; busca sem
+  resultado respondeu em texto, sem widget vazio.
 
 ---
 

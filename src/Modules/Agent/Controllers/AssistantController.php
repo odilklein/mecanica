@@ -88,7 +88,7 @@ class AssistantController extends Controller
             'title' => 'Assistente',
             'hideChrome' => true,
             'pageStyles' => ['/css/assistant.css'],
-            'pageScripts' => ['/js/ticket-audio.js', '/js/assistant.js'],
+            'pageScripts' => ['/js/assistant-audio.js', '/js/assistant.js'],
             'session' => $session,
             'sessions' => $this->store->sessions($userId, 15),
             'messages' => $messages,
