@@ -260,6 +260,77 @@ class LlmClient
         ];
     }
 
+    /**
+     * Chamada não-streaming em JSON (usada pelo preenchimento de formulário).
+     *
+     * @param array<int, array<string, mixed>> $messages
+     * @param array{model?: string, max_tokens?: int, temperature?: float} $options
+     * @return array<string, mixed>
+     */
+    public function json(array $messages, array $options = []): array
+    {
+        if ($this->apiKey === '') {
+            throw new RuntimeException('Chave do provedor de IA não configurada.');
+        }
+
+        $model = ModelCatalog::resolve($options['model'] ?? null);
+        $payload = [
+            'model' => $model,
+            'messages' => $messages,
+            'stream' => false,
+            'max_completion_tokens' => max(256, (int) ($options['max_tokens'] ?? 800)),
+            'temperature' => (float) ($options['temperature'] ?? 0.1),
+            'response_format' => ['type' => 'json_object'],
+        ];
+
+        if (str_starts_with($model, 'openai/gpt-oss')) {
+            $payload['include_reasoning'] = false;
+        } else {
+            $payload['reasoning_format'] = 'hidden';
+        }
+
+        $ch = curl_init($this->baseUrl . '/chat/completions');
+        curl_setopt_array($ch, [
+            CURLOPT_POST => true,
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_CONNECTTIMEOUT => 10,
+            CURLOPT_TIMEOUT => 45,
+            CURLOPT_HTTPHEADER => [
+                'Authorization: Bearer ' . $this->apiKey,
+                'Content-Type: application/json',
+            ],
+            CURLOPT_POSTFIELDS => json_encode($payload, JSON_UNESCAPED_UNICODE),
+        ]);
+
+        $body = curl_exec($ch);
+        $status = (int) curl_getinfo($ch, CURLINFO_RESPONSE_CODE);
+        $error = curl_error($ch);
+        curl_close($ch);
+
+        if ($error !== '' || $body === false) {
+            throw new RuntimeException('Falha de conexão com o provedor de IA.');
+        }
+        if ($status >= 400) {
+            throw new RuntimeException($this->errorMessage($status, (string) $body));
+        }
+
+        $decoded = json_decode((string) $body, true);
+        $content = (string) ($decoded['choices'][0]['message']['content'] ?? '');
+        $content = trim($content);
+
+        // Alguns modelos embrulham o JSON em bloco de código.
+        if (str_starts_with($content, '```')) {
+            $content = (string) preg_replace('/^```[a-z]*\s*|\s*```$/i', '', $content);
+        }
+
+        $data = json_decode($content, true);
+        if (!is_array($data)) {
+            throw new RuntimeException('O modelo não devolveu um JSON válido.');
+        }
+
+        return $data;
+    }
+
     private function errorMessage(int $status, string $rawBody): string
     {
         $detail = trim($rawBody);

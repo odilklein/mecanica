@@ -32,6 +32,9 @@ $select = static function (string $name, string $label, string $icon, array $opt
         <span class="page-subtitle"><?= $isEdit ? 'Atualize os dados' : 'Preencha os dados' ?> do veículo</span>
     </div>
     <div class="page-header-actions">
+        <button type="button" class="btn btn-outline-primary" data-ai-prefill="vehicle">
+            <i class="icon-base ti tabler-sparkles"></i> Preencher com IA
+        </button>
         <a href="<?= e($path) ?>" class="btn btn-outline-secondary"><i class="icon-base ti tabler-arrow-left"></i> Voltar</a>
     </div>
 </div>

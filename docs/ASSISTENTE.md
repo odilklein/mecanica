@@ -4,9 +4,9 @@ Chat integrado ao sistema para consultar dados, ler anexos e **preparar**
 alterações, com aprovação humana obrigatória. Implementado em PHP, dentro do
 módulo `src/Modules/Agent/`, sem serviço externo.
 
-> **Estado:** chat com streaming, modelos Groq selecionáveis, reasoning,
-> anexos (PDF/imagem/áudio/texto), ferramentas de leitura, propostas com
-> aprovação, widgets e auditoria.
+> **Estado:** preenchimento de formulário com IA (texto/voz), chat com streaming,
+> modelos Groq selecionáveis, reasoning, anexos, ferramentas de leitura,
+> propostas com aprovação, widgets e auditoria.
 
 ---
 
@@ -75,6 +75,65 @@ docker compose exec -u root app sh -c \
 
 Sem isso, o serviço cai para `sys_get_temp_dir()/mecanica-agent` (funciona, mas
 os arquivos não sobrevivem a um restart do container).
+
+---
+
+## 1.1 Preenchimento dentro do formulário (principal)
+
+O caminho recomendado para o dia a dia: o usuário descreve (ou fala) e o
+**formulário real** é preenchido para revisão. Sem cartão de proposta, sem
+segunda tela de confirmação.
+
+```text
+[ Preencher com IA ]  →  modal (texto ou microfone)
+        ↓  POST /assistant/prefill
+  o modelo devolve só os campos permitidos
+        ↓
+  o JS aplica no formulário e dispara as cascatas
+        ↓
+  CEP  → ViaCEP preenche rua/bairro/cidade/UF
+  FIPE → marca → modelo → ano → valor
+        ↓
+  usuário revisa e salva
+```
+
+### O que a IA **não** preenche
+
+Campos derivados ficam fora do schema (`PrefillSchema`) e são preenchidos pelo
+sistema:
+
+| Derivado | Quem preenche |
+|---|---|
+| rua, bairro, cidade, UF | ViaCEP, a partir do CEP |
+| `fipe_brand_code`, `fipe_model_code`, `fipe_year_code`, `fipe_value` | cascata FIPE |
+| totais, tarefas e itens | regras do domínio |
+
+Se o texto falar “rua Av. Paulista, bairro Bela Vista”, a IA extrai **apenas o
+CEP**; o ViaCEP devolve o endereço oficial. Isso evita divergência entre o que
+o usuário ditou e o que o cadastro deve ter.
+
+### Formulários suportados
+
+| Formulário | Schema | Campos extraídos |
+|---|---|---|
+| Cliente | `client` | nome, CPF, telefone, e-mail, CEP, número, observações |
+| Veículo | `vehicle` | cliente, placa, marca, modelo, ano, cor, KM, chassi |
+| Nova OS | `service_order` | cliente, contato, CEP/número, placa, marca/modelo/ano, queixa, prioridade |
+
+Se a placa/cliente já existir, o servidor devolve o **id** e o formulário
+seleciona o registro em vez de criar duplicata. A busca por nome só aceita
+match parcial quando existe exatamente um cliente.
+
+### Adicionar outro formulário
+
+1. Em `PrefillSchema::all()`, declarar `label`, `description`, `fields` e
+   `derived`.
+2. No template, adicionar um botão com `data-ai-prefill="<chave>"`.
+3. Se houver cascata (CEP, FIPE), o aplicador em `ai-prefill.js` já cobre;
+   para uma nova cascata, adicionar um resolvedor em `apply()`.
+
+O endpoint é `POST /assistant/prefill` (auth + CSRF + 30 extrações/hora por
+sessão). Ele não grava nada: só devolve campos.
 
 ---
 
@@ -306,6 +365,8 @@ Renderização em `public/js/assistant.js` (`renderWidget`), sempre com
 - **áudio no compositor**: microfone ao lado do enviar, visualizador de
   espectro em tempo real, cronômetro; `Parar` transcreve para o campo (revisão)
   e `Enviar` durante a gravação transcreve e envia direto;
+- **preencher com IA** nos formulários de cliente, veículo e nova OS, com
+  texto ou voz e destaque nos campos preenchidos;
 - atalhos: `Enter` envia, `Shift+Enter` quebra linha, `Esc` para/descarta a
   gravação, `Ctrl/⌘+Shift+K` nova conversa, `Ctrl/⌘+Shift+A` anexar;
 - histórico de conversas, pendências e uso diário (tokens + custo estimado).

@@ -19,6 +19,7 @@ use Modules\Agent\Services\AttachmentService;
 use Modules\Agent\Services\LlmClient;
 use Modules\Agent\Services\ModelCatalog;
 use Modules\Agent\Services\OfferToken;
+use Modules\Agent\Services\PrefillService;
 use Modules\Agent\Services\ProposalService;
 use Modules\Mechanic\Support\OrderAccess;
 use Modules\Agent\Services\ToolRegistry;
@@ -344,6 +345,70 @@ class AssistantController extends Controller
         );
 
         return json_response(['ok' => true]);
+    }
+
+    // =========================================================
+    // PREENCHIMENTO DE FORMULÁRIO COM IA
+    // =========================================================
+
+    public function prefill(ServerRequestInterface $request)
+    {
+        if ($response = $this->guardAuthJson()) {
+            return $response;
+        }
+        if (!$this->csrfOk($request)) {
+            return json_response(['error' => 'Sessão expirada. Recarregue a página.'], 403);
+        }
+
+        if (!$this->llm->enabled()) {
+            return json_response(['error' => 'O preenchimento com IA não está configurado.'], 503);
+        }
+
+        if ($limit = $this->prefillLimit()) {
+            return json_response(['error' => $limit], 429);
+        }
+
+        $body = $request->getParsedBody();
+        $current = json_decode((string) ($body['current'] ?? '{}'), true);
+        if (!is_array($current)) {
+            $current = [];
+        }
+
+        try {
+            $service = new PrefillService($this->pdo, $this->llm);
+            $result = $service->extract(
+                (string) ($body['form'] ?? ''),
+                (string) ($body['text'] ?? ''),
+                $current
+            );
+
+            return json_response(['ok' => true, 'prefill' => $result]);
+        } catch (RuntimeException $e) {
+            return json_response(['ok' => false, 'error' => $e->getMessage()], 422);
+        } catch (Throwable $e) {
+            error_log('[assistant:prefill] ' . $e->getMessage());
+
+            return json_response(['ok' => false, 'error' => 'Não foi possível interpretar o texto agora.'], 500);
+        }
+    }
+
+    /**
+     * Limite simples por sessão: 30 extrações por hora.
+     */
+    private function prefillLimit(): ?string
+    {
+        $now = time();
+        $bucket = (array) ($this->session->get('agent_prefill') ?? []);
+        $bucket = array_values(array_filter($bucket, static fn ($time): bool => (int) $time > $now - 3600));
+
+        if (count($bucket) >= 30) {
+            return 'Muitas extrações em sequência. Aguarde alguns minutos.';
+        }
+
+        $bucket[] = $now;
+        $this->session->set('agent_prefill', $bucket);
+
+        return null;
     }
 
     // =========================================================

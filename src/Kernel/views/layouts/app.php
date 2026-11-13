@@ -63,6 +63,7 @@ $hideChrome = !empty($hideChrome);
     <link rel="stylesheet" href="/assets/css/demo.css">
     <link rel="stylesheet" href="<?= e(asset('/assets/vendor/libs/select2/select2.css')) ?>">
     <link rel="stylesheet" href="<?= e(asset('/css/mecanica.css')) ?>">
+    <link rel="stylesheet" href="<?= e(asset('/css/ai-prefill.css')) ?>">
 
     <?= theme_css_inline(setting('theme_color', '#b8270f')) ?>
 
@@ -447,6 +448,7 @@ $hideChrome = !empty($hideChrome);
     </script>
     <script src="/assets/vendor/libs/@algolia/autocomplete-js.js"></script>
     <script src="<?= e(asset('/js/global-search.js')) ?>"></script>
+    <script src="<?= e(asset('/js/ai-prefill.js')) ?>"></script>
 
     <?php foreach (($pageScripts ?? []) as $script): ?>
     <script src="<?= e(asset($script)) ?>"></script>

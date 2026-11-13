@@ -37,6 +37,9 @@ class AgentProvider implements ProviderInterface
         $router->get('/assistant/attachments/{id}', [AssistantController::class, 'downloadAttachment']);
         $router->post('/assistant/attachments/{id}/delete', [AssistantController::class, 'deleteAttachment']);
 
+        // Preenchimento de formulário a partir de texto/voz.
+        $router->post('/assistant/prefill', [AssistantController::class, 'prefill']);
+
         // Escolha de uma oferta de peça (token assinado pelo servidor).
         $router->post('/assistant/parts/select', [AssistantController::class, 'selectPart']);
 

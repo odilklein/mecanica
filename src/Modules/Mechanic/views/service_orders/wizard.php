@@ -10,7 +10,12 @@ $ticketUsers = $ticketUsers ?? $mechanics;
         <h1><i class="icon-base ti tabler-clipboard-plus"></i>Novo atendimento</h1>
         <span class="page-subtitle">Registre a chegada do cliente em poucos passos</span>
     </div>
-    <a href="<?= e($path) ?>" class="btn btn-outline-secondary"><i class="icon-base ti tabler-list"></i> Ver OS</a>
+    <div class="page-header-actions">
+        <button type="button" class="btn btn-outline-primary" data-ai-prefill="service_order">
+            <i class="icon-base ti tabler-sparkles"></i> Preencher com IA
+        </button>
+        <a href="<?= e($path) ?>" class="btn btn-outline-secondary"><i class="icon-base ti tabler-list"></i> Ver OS</a>
+    </div>
 </div>
 
 <form method="POST" action="<?= e($path) ?>" id="formOS">

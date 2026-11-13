@@ -12,6 +12,11 @@ class ClientResource extends Resource
         return 'clients';
     }
 
+    public function prefillKey(): ?string
+    {
+        return 'client';
+    }
+
     public function table(): string
     {
         return 'clients';

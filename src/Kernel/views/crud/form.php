@@ -10,6 +10,11 @@ $formTitle = $resource->formTitle($isEdit);
         <span class="page-subtitle"><?= $isEdit ? 'Atualize os dados do cadastro' : 'Preencha os dados do cadastro' ?></span>
     </div>
     <div class="page-header-actions">
+        <?php if ($resource->prefillKey() !== null): ?>
+        <button type="button" class="btn btn-outline-primary" data-ai-prefill="<?= e($resource->prefillKey()) ?>">
+            <i class="icon-base ti tabler-sparkles"></i> Preencher com IA
+        </button>
+        <?php endif; ?>
         <a href="<?= e($path) ?>" class="btn btn-outline-secondary"><i class="icon-base ti tabler-arrow-left"></i> Voltar</a>
     </div>
 </div>

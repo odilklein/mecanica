@@ -1,0 +1,80 @@
+/* =============================================
+   Preenchimento de formulário com IA
+   ============================================= */
+
+@keyframes ai-filled-pulse {
+    0% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--bs-primary) 45%, transparent); }
+    100% { box-shadow: 0 0 0 8px color-mix(in srgb, var(--bs-primary) 0%, transparent); }
+}
+
+.ai-filled {
+    border-color: var(--bs-primary) !important;
+    background-color: color-mix(in srgb, var(--bs-primary) 6%, var(--bs-body-bg)) !important;
+    animation: ai-filled-pulse 0.9s ease-out 2;
+    transition: background-color 0.4s ease, border-color 0.4s ease;
+}
+
+select.ai-filled + .select2-container .select2-selection {
+    border-color: var(--bs-primary) !important;
+    background-color: color-mix(in srgb, var(--bs-primary) 6%, var(--bs-body-bg)) !important;
+}
+
+#aiPrefillText {
+    min-height: 120px;
+    resize: vertical;
+}
+
+#aiPrefillMic.is-recording {
+    color: #fff;
+    border-color: var(--bs-danger);
+    background: var(--bs-danger);
+    animation: ai-rec-pulse 1.2s ease-in-out infinite;
+}
+
+#aiPrefillMic.is-recording::before {
+    content: "";
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    margin-right: 0.35rem;
+    border-radius: 50%;
+    background: #fff;
+}
+
+@keyframes ai-rec-pulse {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(220, 53, 69, 0.45); }
+    50% { box-shadow: 0 0 0 6px rgba(220, 53, 69, 0); }
+}
+
+.ai-toast {
+    position: fixed;
+    right: 1.25rem;
+    bottom: 1.25rem;
+    z-index: 1090;
+    max-width: min(420px, calc(100vw - 2rem));
+    padding: 0.65rem 0.9rem;
+    font-size: 0.82rem;
+    line-height: 1.4;
+    color: #fff;
+    border-radius: 10px;
+    background: var(--bs-dark, #2b2c40);
+    box-shadow: 0 12px 28px rgba(0, 0, 0, 0.22);
+    opacity: 0;
+    transform: translateY(8px);
+    pointer-events: none;
+    transition: opacity 0.18s ease, transform 0.18s ease;
+}
+
+.ai-toast.is-visible {
+    opacity: 1;
+    transform: none;
+}
+
+.ai-toast.is-success {
+    background: var(--bs-success, #71dd37);
+    color: #10331a;
+}
+
+.ai-toast.is-error {
+    background: var(--bs-danger, #ff3e1d);
+}

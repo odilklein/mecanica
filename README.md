@@ -40,6 +40,7 @@ A arquitetura é modular:
 - **Peças e fornecedores** com catálogo, categorias, preço/custo, estoque, filtros e paginação.
 - **Pedidos de peças** vinculados à OS, com quick view, quantidade, paginação e fluxo de status.
 - **Tickets** internos por OS, com conversa, anexos por áudio (Groq opcional) e notificações.
+- **Preenchimento com IA** nos formulários (cliente, veículo e nova OS): descreva ou fale e o formulário é preenchido para revisão — CEP continua vindo do ViaCEP e marca/modelo/ano da FIPE.
 - **Assistente de IA** em `/assistant`: chat com streaming, consultas por linguagem natural, widgets do sistema e propostas de alteração que só são aplicadas após aprovação humana (ver [`docs/ASSISTENTE.md`](docs/ASSISTENTE.md)).
 - **Relatórios** por período, com tabela de orçamentos, ticket médio e exportação CSV.
 - **Configurações** de oficina, tema, SEO, validade e termos de orçamento.
