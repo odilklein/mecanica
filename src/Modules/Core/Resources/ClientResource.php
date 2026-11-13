@@ -76,12 +76,26 @@ class ClientResource extends Resource
     public function datatableFilters(): array
     {
         return [
-            ['field' => 'status', 'label' => 'Situação', 'options' => [
-                1 => 'Ativo',
-                0 => 'Inativo',
-            ]],
-            ['field' => 'city', 'label' => 'Cidade'],
+            ['field' => 'neighborhood', 'label' => 'Bairro'],
         ];
+    }
+
+    /**
+     * A listagem mostra quantos veículos o cliente tem.
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    public function datatableRows(\PDO $pdo): array
+    {
+        $sql = 'SELECT c.*, (
+                    SELECT GROUP_CONCAT(v.plate ORDER BY v.plate SEPARATOR ",")
+                      FROM vehicles v
+                     WHERE v.client_id = c.id AND v.is_active = 1
+                ) AS vehicle_plates
+                  FROM clients c
+                 ORDER BY c.name';
+
+        return $pdo->query($sql)->fetchAll();
     }
 
     public function datatableColumns(): array
@@ -98,17 +112,8 @@ class ClientResource extends Resource
                 'priority' => 1,
             ],
             ['title' => 'E-mail', 'data' => 'email', 'render' => 'text', 'priority' => 5],
-            ['title' => 'Cidade', 'data' => 'location', 'render' => 'text', 'priority' => 6],
-            [
-                'title' => 'Situação',
-                'data' => 'status',
-                'render' => 'badge',
-                'badge' => [
-                    1 => ['label' => 'Ativo', 'class' => 'bg-label-success'],
-                    0 => ['label' => 'Inativo', 'class' => 'bg-label-secondary'],
-                ],
-                'priority' => 4,
-            ],
+            ['title' => 'Bairro', 'data' => 'neighborhood', 'render' => 'text', 'priority' => 6],
+            ['title' => 'Veículos', 'data' => 'vehicles_label', 'render' => 'text', 'priority' => 4],
             $this->dtActionsColumn([
                 ['label' => 'Detalhes', 'icon' => 'eye', 'href' => $this->path() . '/{id}'],
                 ['label' => 'Editar', 'icon' => 'pencil', 'href' => $this->path() . '/{id}/edit', 'primary' => true],
@@ -118,8 +123,21 @@ class ClientResource extends Resource
 
     public function datatableRow(array $row): array
     {
-        $row['location'] = trim(($row['city'] ?? '') . (($row['state'] ?? '') ? '/' . $row['state'] : ''));
-        $row['status'] = (int) ($row['is_active'] ?? 1);
+        $plates = array_values(array_filter(array_map(
+            'trim',
+            explode(',', (string) ($row['vehicle_plates'] ?? ''))
+        )));
+
+        if (!$plates) {
+            $row['vehicles_label'] = '—';
+        } else {
+            $label = implode(' · ', array_slice($plates, 0, 2));
+            if (count($plates) > 2) {
+                $label .= ' +' . (count($plates) - 2);
+            }
+            $row['vehicles_label'] = $label;
+        }
+
         return $row;
     }
 
@@ -136,8 +154,6 @@ class ClientResource extends Resource
             ['name' => 'neighborhood', 'label' => 'Bairro', 'type' => 'text', 'icon' => 'building-community', 'max' => 80, 'col' => 'col-md-4', 'placeholder' => 'Centro'],
             ['name' => 'city', 'label' => 'Cidade', 'type' => 'text', 'icon' => 'building', 'max' => 80, 'col' => 'col-md-6', 'placeholder' => 'São Paulo'],
             ['name' => 'state', 'label' => 'UF', 'type' => 'text', 'icon' => 'map', 'max' => 2, 'col' => 'col-md-2', 'placeholder' => 'SP'],
-            ['name' => 'notes', 'label' => 'Observações', 'type' => 'textarea', 'icon' => 'notes', 'col' => 'col-12', 'placeholder' => 'Informações internas sobre o cliente'],
-            ['name' => 'is_active', 'label' => 'Cliente ativo', 'type' => 'boolean', 'icon' => 'toggle-right', 'default' => 1, 'col' => 'col-md-6'],
         ];
     }
 }

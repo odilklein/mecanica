@@ -15,7 +15,7 @@ $formTitle = $resource->formTitle($isEdit);
 </div>
 
 <div class="row justify-content-center">
-    <div class="col-lg-10">
+    <div class="col-12">
         <div class="card">
             <div class="card-body p-4">
                 <form method="POST" action="<?= e($action) ?>">

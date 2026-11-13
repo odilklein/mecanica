@@ -65,7 +65,11 @@ if (!function_exists('json_response')) {
     {
         return new \Nyholm\Psr7\Response(
             $status,
-            ['Content-Type' => 'application/json; charset=utf-8'],
+            [
+                'Content-Type' => 'application/json; charset=utf-8',
+                // Dados autenticados nunca devem vir do cache do navegador.
+                'Cache-Control' => 'no-store',
+            ],
             (string) json_encode($data, JSON_UNESCAPED_UNICODE)
         );
     }

@@ -6,7 +6,7 @@
 </div>
 
 <div class="row justify-content-center">
-    <div class="col-lg-10">
+    <div class="col-12">
         <form method="POST" action="/settings">
             <input type="hidden" name="csrf_token" value="<?= e($csrf) ?>">
 

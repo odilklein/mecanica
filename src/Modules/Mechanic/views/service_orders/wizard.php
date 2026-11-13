@@ -258,7 +258,9 @@ $ticketUsers = $ticketUsers ?? $mechanics;
                                         <div class="input-group input-group-merge">
                                             <span class="input-group-text"><i class="icon-base ti tabler-palette"></i></span>
                                             <input type="text" class="form-control" id="color" name="color" maxlength="30" placeholder="Ex.: Prata">
+                                            <span class="input-group-text color-picker-holder"><span id="colorPicker"></span></span>
                                         </div>
+                                        <div class="form-text">Clique na cor ou digite o nome.</div>
                                     </div>
                                 </div>
                             </div>

@@ -47,12 +47,14 @@ class ServiceOrderController extends CrudController
             'ticketAudioEnabled' => audio_transcription_enabled(),
             'pageStyles' => array_merge($resource->formStyles(), [
                 '/assets/vendor/libs/bs-stepper/bs-stepper.css',
+                '/assets/vendor/libs/pickr/pickr-themes.css',
             ]),
             'pageScripts' => array_merge($resource->formScripts(), [
                 '/assets/vendor/libs/bs-stepper/bs-stepper.js',
                 '/js/fipe.js',
                 '/js/os-wizard.js',
-                '/js/ticket-audio.js',
+                '/assets/vendor/libs/pickr/pickr.js',
+                '/js/color-picker.js',
             ]),
         ]);
     }

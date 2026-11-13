@@ -45,7 +45,16 @@ class VehicleResource extends Resource
 
     public function formScripts(): array
     {
-        return ['/js/fipe.js'];
+        return [
+            '/assets/vendor/libs/pickr/pickr.js',
+            '/js/color-picker.js',
+            '/js/fipe.js',
+        ];
+    }
+
+    public function formStyles(): array
+    {
+        return ['/assets/vendor/libs/pickr/pickr-themes.css'];
     }
 
     public function columns(): array
@@ -225,8 +234,6 @@ class VehicleResource extends Resource
             ['name' => 'color', 'label' => 'Cor', 'type' => 'text', 'max' => 30, 'col' => 'col-md-4'],
             ['name' => 'current_km', 'label' => 'KM atual', 'type' => 'number', 'min' => 0, 'col' => 'col-md-4'],
             ['name' => 'chassis', 'label' => 'Chassi', 'type' => 'text', 'max' => 30, 'col' => 'col-md-4'],
-            ['name' => 'notes', 'label' => 'Observações', 'type' => 'textarea', 'col' => 'col-12'],
-            ['name' => 'is_active', 'label' => 'Veículo ativo', 'type' => 'boolean', 'icon' => 'toggle-right', 'default' => 1, 'col' => 'col-md-6'],
         ];
     }
 }

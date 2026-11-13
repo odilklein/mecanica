@@ -36,7 +36,7 @@ $select = static function (string $name, string $label, string $icon, array $opt
 </div>
 
 <div class="row justify-content-center">
-    <div class="col-xl-10">
+    <div class="col-12">
         <form method="POST" action="<?= e($action) ?>" id="formSO">
             <input type="hidden" name="csrf_token" value="<?= e($csrf) ?>">
 

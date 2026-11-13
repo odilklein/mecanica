@@ -37,7 +37,7 @@ $select = static function (string $name, string $label, string $icon, array $opt
 </div>
 
 <div class="row justify-content-center">
-    <div class="col-lg-10">
+    <div class="col-12">
         <div class="card">
             <div class="card-body p-4">
                 <form method="POST" action="<?= e($action) ?>">
@@ -95,7 +95,9 @@ $select = static function (string $name, string $label, string $icon, array $opt
                             <div class="input-group input-group-merge">
                                 <span class="input-group-text"><i class="icon-base ti tabler-palette"></i></span>
                                 <input type="text" class="form-control" id="color" name="color" value="<?= e($old['color'] ?? '') ?>" maxlength="30" placeholder="Ex.: Prata">
+                                <span class="input-group-text color-picker-holder"><span id="colorPicker"></span></span>
                             </div>
+                            <div class="form-text">Clique na cor ou digite o nome.</div>
                         </div>
 
                         <div class="col-12">
@@ -117,17 +119,6 @@ $select = static function (string $name, string $label, string $icon, array $opt
                             </div>
                         </div>
 
-                        <div class="col-md-4 d-flex align-items-center">
-                            <div class="form-check form-switch mb-0">
-                                <input class="form-check-input" type="checkbox" role="switch" id="is_active" name="is_active" value="1" <?= ((string) ($old['is_active'] ?? '1') !== '0') ? 'checked' : '' ?>>
-                                <label class="form-check-label" for="is_active"><i class="icon-base ti tabler-toggle-right me-1"></i>Veículo ativo</label>
-                            </div>
-                        </div>
-
-                        <div class="col-12">
-                            <label class="form-label" for="notes">Observações</label>
-                            <textarea class="form-control" id="notes" name="notes" rows="3" placeholder="Informações internas sobre o veículo"><?= e($old['notes'] ?? '') ?></textarea>
-                        </div>
 
                         <div class="col-12 d-flex justify-content-end gap-2 mt-3">
                             <a href="<?= e($path) ?>" class="btn btn-outline-secondary">Cancelar</a>
