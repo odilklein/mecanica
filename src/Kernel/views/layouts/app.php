@@ -449,6 +449,7 @@ $hideChrome = !empty($hideChrome);
     <script src="/assets/vendor/libs/@algolia/autocomplete-js.js"></script>
     <script src="<?= e(asset('/js/global-search.js')) ?>"></script>
     <script src="<?= e(asset('/js/ai-prefill.js')) ?>"></script>
+    <script src="<?= e(asset('/js/os-ai.js')) ?>"></script>
 
     <?php foreach (($pageScripts ?? []) as $script): ?>
     <script src="<?= e(asset($script)) ?>"></script>

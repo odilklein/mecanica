@@ -20,42 +20,6 @@ final class PrefillSchema
     public static function all(): array
     {
         return [
-            'client' => [
-                'label' => 'cadastro de cliente',
-                'description' => 'Nome, documento, contato e endereço do cliente. O endereço completo vem do CEP.',
-                'fields' => [
-                    'name' => ['label' => 'Nome completo', 'type' => 'text'],
-                    'cpf' => ['label' => 'CPF', 'type' => 'text'],
-                    'phone' => ['label' => 'Telefone', 'type' => 'text'],
-                    'email' => ['label' => 'E-mail', 'type' => 'text'],
-                    'zip' => [
-                        'label' => 'CEP',
-                        'type' => 'text',
-                        'hint' => 'somente o CEP informado; NÃO extraia rua, bairro, cidade ou UF',
-                    ],
-                    'address_number' => ['label' => 'Número do endereço', 'type' => 'text'],
-                    'notes' => ['label' => 'Observações internas', 'type' => 'textarea'],
-                ],
-                'derived' => ['address', 'neighborhood', 'city', 'state'],
-            ],
-
-            'vehicle' => [
-                'label' => 'cadastro de veículo',
-                'description' => 'Veículo de um cliente. Marca, modelo e ano são resolvidos pela tabela FIPE do sistema.',
-                'fields' => [
-                    'client_name' => ['label' => 'Nome do cliente proprietário', 'type' => 'text'],
-                    'plate' => ['label' => 'Placa', 'type' => 'text'],
-                    'brand' => ['label' => 'Marca', 'type' => 'text'],
-                    'model' => ['label' => 'Modelo', 'type' => 'text'],
-                    'year' => ['label' => 'Ano', 'type' => 'integer'],
-                    'color' => ['label' => 'Cor', 'type' => 'text'],
-                    'current_km' => ['label' => 'KM atual', 'type' => 'integer'],
-                    'chassis' => ['label' => 'Chassi', 'type' => 'text'],
-                    'notes' => ['label' => 'Observações internas', 'type' => 'textarea'],
-                ],
-                'derived' => ['fipe_brand_code', 'fipe_model_code', 'fipe_year_code', 'fipe_value'],
-            ],
-
             'service_order' => [
                 'label' => 'abertura de ordem de serviço',
                 'description' => 'Cliente, veículo e queixa do atendimento. Endereço vem do CEP; FIPE vem da cascata.',

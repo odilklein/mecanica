@@ -393,22 +393,238 @@ class AssistantController extends Controller
     }
 
     /**
-     * Limite simples por sessão: 30 extrações por hora.
+     * Limite simples por sessão (janela de 1 hora).
      */
     private function prefillLimit(): ?string
     {
+        return $this->sessionLimit('agent_prefill', 30, 'Muitas extrações em sequência. Aguarde alguns minutos.');
+    }
+
+    private function sessionLimit(string $key, int $max, string $message): ?string
+    {
         $now = time();
-        $bucket = (array) ($this->session->get('agent_prefill') ?? []);
+        $bucket = (array) ($this->session->get($key) ?? []);
         $bucket = array_values(array_filter($bucket, static fn ($time): bool => (int) $time > $now - 3600));
 
-        if (count($bucket) >= 30) {
-            return 'Muitas extrações em sequência. Aguarde alguns minutos.';
+        if (count($bucket) >= $max) {
+            return $message;
         }
 
         $bucket[] = $now;
-        $this->session->set('agent_prefill', $bucket);
+        $this->session->set($key, $bucket);
 
         return null;
+    }
+
+    // =========================================================
+    // TEXTO ASSISTIDO (queixa / laudo / mensagem ao cliente)
+    // =========================================================
+
+    public function enhance(ServerRequestInterface $request)
+    {
+        if ($response = $this->guardAuthJson()) {
+            return $response;
+        }
+        if (!$this->csrfOk($request)) {
+            return json_response(['error' => 'Sessão expirada. Recarregue a página.'], 403);
+        }
+        if (!$this->llm->enabled()) {
+            return json_response(['error' => 'A IA não está configurada.'], 503);
+        }
+        if ($limit = $this->sessionLimit('agent_enhance', 60, 'Muitos textos em sequência. Aguarde alguns minutos.')) {
+            return json_response(['error' => $limit], 429);
+        }
+
+        $body = $request->getParsedBody();
+        $text = trim((string) ($body['text'] ?? ''));
+        if (mb_strlen($text) < 3) {
+            return json_response(['error' => 'Fale ou escreva o texto primeiro.'], 422);
+        }
+        $text = mb_substr($text, 0, 4000);
+
+        $kind = (string) ($body['kind'] ?? 'complaint');
+        if (!in_array($kind, ['complaint', 'diagnosis'], true)) {
+            $kind = 'complaint';
+        }
+
+        $context = mb_substr(trim((string) ($body['context'] ?? '')), 0, 500);
+
+        $label = $kind === 'diagnosis' ? 'diagnóstico técnico' : 'queixa do cliente';
+
+        $prompt = "Reescreva o texto abaixo como {$label} de uma ordem de serviço.\n"
+            . "REGRAS:\n"
+            . "- Português do Brasil, claro, objetivo e um pouco mais detalhado que o original.\n"
+            . "- Mantenha todos os fatos. Não invente sintomas, peças, valores ou prazos.\n"
+            . "- Corrija gramática e organize as ideias em ordem lógica.\n"
+            . "- No máximo 3 frases. Sem listas, sem markdown, sem emojis.\n"
+            . "- Se o texto já estiver bom, apenas refine.\n"
+            . ($context !== '' ? "Contexto do veículo: {$context}\n" : '')
+            . "Texto bruto:\n\"\"\"\n{$text}\n\"\"\"";
+
+        try {
+            $improved = $this->llm->text(
+                [
+                    ['role' => 'system', 'content' => 'Você é um assistente experiente de oficina mecânica e escreve em português do Brasil.'],
+                    ['role' => 'user', 'content' => $prompt],
+                ],
+                ['max_tokens' => 600, 'temperature' => 0.4]
+            );
+        } catch (RuntimeException $e) {
+            return json_response(['error' => $e->getMessage()], 422);
+        } catch (Throwable $e) {
+            error_log('[assistant:enhance] ' . $e->getMessage());
+
+            return json_response(['error' => 'Não foi possível melhorar o texto agora.'], 500);
+        }
+
+        return json_response(['ok' => true, 'text' => trim($improved)]);
+    }
+
+    public function customerMessage(ServerRequestInterface $request)
+    {
+        if ($response = $this->guardAuthJson()) {
+            return $response;
+        }
+        if (!$this->csrfOk($request)) {
+            return json_response(['error' => 'Sessão expirada. Recarregue a página.'], 403);
+        }
+        if (!$this->llm->enabled()) {
+            return json_response(['error' => 'A IA não está configurada.'], 503);
+        }
+        if ($limit = $this->sessionLimit('agent_message', 20, 'Muitas mensagens em sequência. Aguarde alguns minutos.')) {
+            return json_response(['error' => $limit], 429);
+        }
+
+        $body = $request->getParsedBody();
+        $orderId = (int) ($body['order_id'] ?? 0);
+        if ($orderId <= 0) {
+            return json_response(['error' => 'OS inválida.'], 422);
+        }
+
+        if (!OrderAccess::canAccessOrderId($this->pdo, $this->auth, $orderId)) {
+            return json_response(['error' => 'Você não tem acesso a esta OS.'], 403);
+        }
+
+        $stmt = $this->pdo->prepare(
+            'SELECT so.number, so.initial_complaint, so.diagnosis, so.status,
+                    c.name AS client_name, c.phone AS client_phone,
+                    v.plate, v.brand, v.model, v.year
+               FROM service_orders so
+               LEFT JOIN clients c ON c.id = so.client_id
+               LEFT JOIN vehicles v ON v.id = so.vehicle_id
+              WHERE so.id = :id'
+        );
+        $stmt->execute([':id' => $orderId]);
+        $order = $stmt->fetch();
+        if (!$order) {
+            return json_response(['error' => 'OS não encontrada.'], 404);
+        }
+
+        $budgetStmt = $this->pdo->prepare(
+            'SELECT id, number, status, total FROM budgets
+              WHERE service_order_id = :id
+              ORDER BY id DESC LIMIT 1'
+        );
+        $budgetStmt->execute([':id' => $orderId]);
+        $budget = $budgetStmt->fetch() ?: null;
+
+        $items = [];
+        if ($budget) {
+            $itemsStmt = $this->pdo->prepare(
+                'SELECT type, description, quantity FROM budget_items
+                  WHERE budget_id = :id ORDER BY type DESC, id'
+            );
+            $itemsStmt->execute([':id' => (int) $budget['id']]);
+            foreach ($itemsStmt->fetchAll() as $item) {
+                $items[] = [
+                    'type' => (string) $item['type'],
+                    'description' => (string) $item['description'],
+                ];
+            }
+        }
+
+        $shop = (string) (setting('company_name', 'Mecânica') ?: 'Mecânica');
+        $vehicle = trim((string) $order['plate'] . ' ' . (string) $order['brand'] . ' ' . (string) $order['model']);
+        $firstName = trim(explode(' ', trim((string) ($order['client_name'] ?: 'cliente')))[0]);
+
+        $facts = 'Cliente: ' . ($order['client_name'] ?: 'cliente') . "\n"
+            . "Veículo: {$vehicle}\n"
+            . 'Queixa: ' . ($order['initial_complaint'] ?: '—') . "\n"
+            . ($order['diagnosis'] ? 'Diagnóstico: ' . $order['diagnosis'] . "\n" : '')
+            . 'Quantidade de itens no orçamento: ' . count($items) . "\n"
+            . ($budget ? 'Total: R$ ' . number_format((float) $budget['total'], 2, ',', '.')
+                . ' (status ' . (string) $budget['status'] . ")\n" : '');
+
+        $prompt = "Escreva três partes de uma mensagem de WhatsApp para o cliente da oficina: "
+            . "saudação, contexto e encerramento.\n"
+            . "Responda SOMENTE JSON: {\"greeting\": \"...\", \"context\": \"...\", \"closing\": \"...\"}\n"
+            . "REGRAS:\n"
+            . "- Português do Brasil, cordial e direto.\n"
+            . "- greeting: cumprimente pelo primeiro nome.\n"
+            . "- context: 1 ou 2 frases sobre o veículo e o atendimento. NÃO cite peças, serviços, valores, prazos ou garantias.\n"
+            . "- closing: peça aprovação ou diga o próximo passo, em uma frase.\n"
+            . "- Não invente nada. Sem listas, sem markdown e sem emojis.\n\n"
+            . "DADOS:\n{$facts}";
+
+        $greeting = '';
+        $context = '';
+        $closing = '';
+
+        try {
+            $parts = $this->llm->json(
+                [
+                    ['role' => 'system', 'content' => 'Você escreve mensagens claras e humanas para clientes de oficina mecânica.'],
+                    ['role' => 'user', 'content' => $prompt],
+                ],
+                ['max_tokens' => 400, 'temperature' => 0.5]
+            );
+            $greeting = trim((string) ($parts['greeting'] ?? ''));
+            $context = trim((string) ($parts['context'] ?? ''));
+            $closing = trim((string) ($parts['closing'] ?? ''));
+        } catch (Throwable $e) {
+            error_log('[assistant:customer-message] ' . $e->getMessage());
+        }
+
+        // Fallback determinístico: a mensagem nunca fica vazia.
+        if ($greeting === '') {
+            $greeting = 'Olá ' . $firstName . ', tudo bem?';
+        }
+        if ($closing === '') {
+            $closing = $budget
+                ? 'Qualquer dúvida sobre o orçamento, é só chamar.'
+                : 'Assim que tivermos novidades, avisamos por aqui.';
+        }
+
+        $blocks = [$greeting];
+        if ($context === '') {
+            $context = 'Sobre o seu ' . ($vehicle !== '' ? $vehicle : 'veículo') . '.';
+        }
+        $blocks[] = $context;
+
+        if ($items) {
+            $list = [];
+            foreach ($items as $item) {
+                $list[] = '• ' . $item['description'];
+            }
+            $blocks[] = "Itens do orçamento:\n" . implode("\n", $list);
+        }
+
+        if ($budget) {
+            $blocks[] = 'Total: R$ ' . number_format((float) $budget['total'], 2, ',', '.');
+        }
+
+        $blocks[] = $closing;
+        $blocks[] = $shop;
+
+        $message = implode("\n\n", array_filter($blocks, static fn (string $block): bool => trim($block) !== ''));
+        $phone = preg_replace('/\D/', '', (string) ($order['client_phone'] ?? '')) ?? '';
+
+        return json_response([
+            'ok' => true,
+            'message' => trim($message),
+            'phone' => $phone,
+            'client_name' => (string) ($order['client_name'] ?? ''),
+        ]);
     }
 
     // =========================================================

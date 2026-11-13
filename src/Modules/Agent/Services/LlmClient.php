@@ -261,6 +261,68 @@ class LlmClient
     }
 
     /**
+     * Chamada não-streaming em texto livre (usada por melhorar queixa e mensagem ao cliente).
+     *
+     * @param array<int, array<string, mixed>> $messages
+     * @param array{model?: string, max_tokens?: int, temperature?: float} $options
+     */
+    public function text(array $messages, array $options = []): string
+    {
+        if ($this->apiKey === '') {
+            throw new RuntimeException('Chave do provedor de IA não configurada.');
+        }
+
+        $model = ModelCatalog::resolve($options['model'] ?? null);
+        $payload = [
+            'model' => $model,
+            'messages' => $messages,
+            'stream' => false,
+            'max_completion_tokens' => max(200, (int) ($options['max_tokens'] ?? 500)),
+            'temperature' => (float) ($options['temperature'] ?? 0.4),
+        ];
+
+        if (str_starts_with($model, 'openai/gpt-oss')) {
+            $payload['include_reasoning'] = false;
+        } else {
+            $payload['reasoning_format'] = 'hidden';
+        }
+
+        $ch = curl_init($this->baseUrl . '/chat/completions');
+        curl_setopt_array($ch, [
+            CURLOPT_POST => true,
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_CONNECTTIMEOUT => 10,
+            CURLOPT_TIMEOUT => 45,
+            CURLOPT_HTTPHEADER => [
+                'Authorization: Bearer ' . $this->apiKey,
+                'Content-Type: application/json',
+            ],
+            CURLOPT_POSTFIELDS => json_encode($payload, JSON_UNESCAPED_UNICODE),
+        ]);
+
+        $body = curl_exec($ch);
+        $status = (int) curl_getinfo($ch, CURLINFO_RESPONSE_CODE);
+        $error = curl_error($ch);
+        curl_close($ch);
+
+        if ($error !== '' || $body === false) {
+            throw new RuntimeException('Falha de conexão com o provedor de IA.');
+        }
+        if ($status >= 400) {
+            throw new RuntimeException($this->errorMessage($status, (string) $body));
+        }
+
+        $decoded = json_decode((string) $body, true);
+        $content = trim((string) ($decoded['choices'][0]['message']['content'] ?? ''));
+
+        if ($content === '') {
+            throw new RuntimeException('O modelo não retornou texto.');
+        }
+
+        return $content;
+    }
+
+    /**
      * Chamada não-streaming em JSON (usada pelo preenchimento de formulário).
      *
      * @param array<int, array<string, mixed>> $messages

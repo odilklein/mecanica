@@ -11,11 +11,21 @@ $ticketUsers = $ticketUsers ?? $mechanics;
         <span class="page-subtitle">Registre a chegada do cliente em poucos passos</span>
     </div>
     <div class="page-header-actions">
-        <button type="button" class="btn btn-outline-primary" data-ai-prefill="service_order">
-            <i class="icon-base ti tabler-sparkles"></i> Preencher com IA
-        </button>
         <a href="<?= e($path) ?>" class="btn btn-outline-secondary"><i class="icon-base ti tabler-list"></i> Ver OS</a>
     </div>
+</div>
+
+<div class="os-ai-banner">
+    <span class="os-ai-banner-icon" aria-hidden="true">
+        <i class="icon-base ti tabler-sparkles"></i>
+    </span>
+    <div class="os-ai-banner-text">
+        <strong>Descreva o atendimento</strong>
+        <span>Cliente, veículo e queixa em uma frase — a IA preenche e você revisa.</span>
+    </div>
+    <button type="button" class="btn btn-primary" data-ai-prefill="service_order">
+        <i class="icon-base ti tabler-sparkles"></i> Preencher com IA
+    </button>
 </div>
 
 <form method="POST" action="<?= e($path) ?>" id="formOS">
@@ -410,17 +420,23 @@ $ticketUsers = $ticketUsers ?? $mechanics;
 
                                     <div class="col-12 col-md-6">
                                         <label class="form-label" for="initial_complaint">Queixa do cliente</label>
-                                        <div class="d-flex gap-2 align-items-start">
-                                            <textarea class="form-control" id="initial_complaint" name="initial_complaint" rows="3" placeholder="Ex.: Barulho no motor ao acelerar"></textarea>
-                                            <?php if (!empty($ticketAudioEnabled)): ?>
-                                            <button type="button" class="btn btn-icon btn-text-secondary ticket-audio-btn"
-                                                    data-ticket-audio data-target="#initial_complaint"
-                                                    data-csrf="<?= e($csrf) ?>" data-endpoint="/api/transcribe"
-                                                    title="Gravar áudio e transcrever" aria-label="Gravar áudio e transcrever">
+                                        <textarea class="form-control" id="initial_complaint" name="initial_complaint" rows="4" placeholder="Ex.: Barulho no motor ao acelerar"></textarea>
+
+                                        <?php if (!empty($ticketAudioEnabled)): ?>
+                                        <div class="os-note-tools" id="osComplaintTools"
+                                             data-csrf="<?= e($csrf) ?>"
+                                             data-endpoint="/api/transcribe"
+                                             data-enhance-endpoint="/assistant/enhance">
+                                            <button type="button" class="btn btn-sm btn-label-primary" id="osComplaintMic">
                                                 <i class="icon-base ti tabler-microphone"></i>
+                                                <span class="os-note-label">Ditar e melhorar</span>
                                             </button>
-                                            <?php endif; ?>
+                                            <button type="button" class="btn btn-sm btn-label-secondary" id="osComplaintImprove">
+                                                <i class="icon-base ti tabler-sparkles"></i> Melhorar texto
+                                            </button>
+                                            <span class="os-note-status" id="osComplaintStatus" hidden></span>
                                         </div>
+                                        <?php endif; ?>
                                     </div>
 
                                     <div class="col-12 col-md-6">

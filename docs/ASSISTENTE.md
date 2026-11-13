@@ -78,62 +78,64 @@ os arquivos não sobrevivem a um restart do container).
 
 ---
 
-## 1.1 Preenchimento dentro do formulário (principal)
+## 1.1 IA na OS (principal)
 
-O caminho recomendado para o dia a dia: o usuário descreve (ou fala) e o
-**formulário real** é preenchido para revisão. Sem cartão de proposta, sem
-segunda tela de confirmação.
+O preenchimento com IA existe **somente na abertura de OS**. Cliente e veículo
+continuam sendo cadastrados pelo formulário normal.
 
 ```text
-[ Preencher com IA ]  →  modal (texto ou microfone)
-        ↓  POST /assistant/prefill
-  o modelo devolve só os campos permitidos
+[ Preencher com IA ]  (banner centralizado no topo do wizard)
+        ↓  modal com texto ou voz
+  POST /assistant/prefill  →  campos permitidos
         ↓
-  o JS aplica no formulário e dispara as cascatas
-        ↓
+  cliente/veículo existentes são selecionados pela placa/nome
   CEP  → ViaCEP preenche rua/bairro/cidade/UF
   FIPE → marca → modelo → ano → valor
         ↓
   usuário revisa e salva
 ```
 
-### O que a IA **não** preenche
-
-Campos derivados ficam fora do schema (`PrefillSchema`) e são preenchidos pelo
-sistema:
+Campos derivados ficam fora do schema e são preenchidos pelo sistema:
 
 | Derivado | Quem preenche |
 |---|---|
 | rua, bairro, cidade, UF | ViaCEP, a partir do CEP |
-| `fipe_brand_code`, `fipe_model_code`, `fipe_year_code`, `fipe_value` | cascata FIPE |
+| códigos e valor FIPE | cascata FIPE |
 | totais, tarefas e itens | regras do domínio |
 
-Se o texto falar “rua Av. Paulista, bairro Bela Vista”, a IA extrai **apenas o
-CEP**; o ViaCEP devolve o endereço oficial. Isso evita divergência entre o que
-o usuário ditou e o que o cadastro deve ter.
+Se o texto citar a rua, ela é **ignorada**: vale o endereço oficial do CEP. A
+busca por cliente só aceita nome parcial quando existe exatamente um resultado.
 
-### Formulários suportados
+### Queixa assistida (voz ou texto)
 
-| Formulário | Schema | Campos extraídos |
-|---|---|---|
-| Cliente | `client` | nome, CPF, telefone, e-mail, CEP, número, observações |
-| Veículo | `vehicle` | cliente, placa, marca, modelo, ano, cor, KM, chassi |
-| Nova OS | `service_order` | cliente, contato, CEP/número, placa, marca/modelo/ano, queixa, prioridade |
+No campo **Queixa do cliente**:
 
-Se a placa/cliente já existir, o servidor devolve o **id** e o formulário
-seleciona o registro em vez de criar duplicata. A busca por nome só aceita
-match parcial quando existe exatamente um cliente.
+- **Ditar e melhorar** — grava, transcreve (`/api/transcribe`) e reescreve com
+  a IA (`/assistant/enhance`) em texto mais claro e detalhado;
+- **Melhorar texto** — reescreve o que já foi digitado;
+- o texto anterior fica disponível em **Desfazer**;
+- o contexto do veículo selecionado é enviado junto, sem inventar fatos.
 
-### Adicionar outro formulário
+### Texto para o cliente
 
-1. Em `PrefillSchema::all()`, declarar `label`, `description`, `fields` e
-   `derived`.
-2. No template, adicionar um botão com `data-ai-prefill="<chave>"`.
-3. Se houver cascata (CEP, FIPE), o aplicador em `ai-prefill.js` já cobre;
-   para uma nova cascata, adicionar um resolvedor em `apply()`.
+No detalhe da OS, o botão **Texto para o cliente** gera uma mensagem de
+WhatsApp com saudação, contexto, **itens do orçamento e total vindos do banco**,
+fechamento e assinatura da oficina.
 
-O endpoint é `POST /assistant/prefill` (auth + CSRF + 30 extrações/hora por
-sessão). Ele não grava nada: só devolve campos.
+- os itens e valores são inseridos pelo servidor, não pelo modelo;
+- a IA escreve apenas saudação, contexto e encerramento (JSON);
+- o modal permite editar, **copiar** e **abrir o WhatsApp Web** via `wa.me`;
+- nada é enviado automaticamente — sem API oficial, sem risco de banimento.
+
+### Endpoints
+
+| Endpoint | Uso |
+|---|---|
+| `POST /assistant/prefill` | extrair campos da OS a partir do texto |
+| `POST /assistant/enhance` | melhorar queixa/laudo |
+| `POST /assistant/customer-message` | gerar mensagem ao cliente |
+
+Todos exigem auth + CSRF e têm limite por sessão (30/60/20 por hora).
 
 ---
 
@@ -365,8 +367,10 @@ Renderização em `public/js/assistant.js` (`renderWidget`), sempre com
 - **áudio no compositor**: microfone ao lado do enviar, visualizador de
   espectro em tempo real, cronômetro; `Parar` transcreve para o campo (revisão)
   e `Enviar` durante a gravação transcreve e envia direto;
-- **preencher com IA** nos formulários de cliente, veículo e nova OS, com
-  texto ou voz e destaque nos campos preenchidos;
+- **preencher com IA** na abertura de OS (banner centralizado), com texto ou
+  voz e destaque nos campos preenchidos;
+- **queixa assistida** no wizard: ditar e melhorar o texto, com Desfazer;
+- **texto para o cliente** no detalhe da OS, com copiar e abrir o WhatsApp Web;
 - atalhos: `Enter` envia, `Shift+Enter` quebra linha, `Esc` para/descarta a
   gravação, `Ctrl/⌘+Shift+K` nova conversa, `Ctrl/⌘+Shift+A` anexar;
 - histórico de conversas, pendências e uso diário (tokens + custo estimado).

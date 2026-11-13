@@ -73,6 +73,9 @@ $canManage = $canManage ?? false;
             <i class="icon-base ti tabler-messages"></i> Central de tickets
         </a>
         <?php endif; ?>
+        <button type="button" class="btn btn-label-success" data-os-message="<?= $orderId ?>">
+            <i class="icon-base ti tabler-brand-whatsapp"></i> Texto para o cliente
+        </button>
         <?php if ($canManage): ?>
         <a href="/budgets/create?os_id=<?= $orderId ?>&cliente_id=<?= (int) $order['client_id'] ?>&veiculo_id=<?= (int) $order['vehicle_id'] ?>" class="btn btn-label-primary">
             <i class="icon-base ti tabler-file-plus"></i> Novo orçamento

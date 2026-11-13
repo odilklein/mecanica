@@ -78,3 +78,118 @@ select.ai-filled + .select2-container .select2-selection {
 .ai-toast.is-error {
     background: var(--bs-danger, #ff3e1d);
 }
+
+/* =============================================
+   IA na OS
+   ============================================= */
+
+.os-ai-banner {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.9rem;
+    flex-wrap: wrap;
+    margin-bottom: 1.25rem;
+    padding: 0.9rem 1.2rem;
+    border: 1px solid color-mix(in srgb, var(--bs-primary) 25%, var(--bs-border-color));
+    border-radius: 14px;
+    background: color-mix(in srgb, var(--bs-primary) 5%, var(--bs-paper-bg, var(--bs-body-bg)));
+    text-align: center;
+}
+
+.os-ai-banner-icon {
+    display: grid;
+    place-items: center;
+    width: 40px;
+    height: 40px;
+    flex: 0 0 40px;
+    border-radius: 12px;
+    color: #fff;
+    background: linear-gradient(135deg, var(--bs-primary), color-mix(in srgb, var(--bs-primary) 45%, #6f42c1));
+    box-shadow: 0 6px 18px color-mix(in srgb, var(--bs-primary) 30%, transparent);
+}
+
+.os-ai-banner-text {
+    text-align: left;
+}
+
+.os-ai-banner-text strong {
+    display: block;
+    font-size: 0.95rem;
+}
+
+.os-ai-banner-text span {
+    display: block;
+    font-size: 0.78rem;
+    color: var(--bs-secondary-color);
+}
+
+.os-ai-banner .btn {
+    flex: 0 0 auto;
+}
+
+@media (max-width: 575.98px) {
+    .os-ai-banner {
+        flex-direction: column;
+        gap: 0.6rem;
+    }
+
+    .os-ai-banner-text {
+        text-align: center;
+    }
+}
+
+.os-note-tools {
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+    flex-wrap: wrap;
+    margin-top: 0.5rem;
+}
+
+.os-note-status {
+    font-size: 0.72rem;
+    color: var(--bs-secondary-color);
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+}
+
+.os-note-status[hidden] {
+    display: none;
+}
+
+.os-note-status.is-error {
+    color: var(--bs-danger);
+}
+
+.os-note-status.is-success {
+    color: var(--bs-success);
+}
+
+.os-note-status.is-recording {
+    color: var(--bs-danger);
+}
+
+.os-note-undo {
+    padding: 0;
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: var(--bs-primary);
+    border: 0;
+    background: none;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+}
+
+#osComplaintMic.is-recording {
+    color: #fff;
+    border-color: var(--bs-danger);
+    background: var(--bs-danger);
+    animation: ai-rec-pulse 1.2s ease-in-out infinite;
+}
+
+#osMsgText {
+    min-height: 190px;
+    resize: vertical;
+}

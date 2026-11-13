@@ -14,15 +14,6 @@ abstract class Resource
     /** Chave/URL base da entidade (ex.: "clients"). */
     abstract public function key(): string;
 
-    /**
-     * Chave do schema de preenchimento com IA (null = formulário não suporta).
-     * Ex.: "client", "vehicle", "service_order".
-     */
-    public function prefillKey(): ?string
-    {
-        return null;
-    }
-
     /** Nome da tabela no banco. */
     abstract public function table(): string;
 

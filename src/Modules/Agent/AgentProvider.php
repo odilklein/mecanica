@@ -40,6 +40,10 @@ class AgentProvider implements ProviderInterface
         // Preenchimento de formulário a partir de texto/voz.
         $router->post('/assistant/prefill', [AssistantController::class, 'prefill']);
 
+        // Texto assistido: queixa/laudo e mensagem para o cliente.
+        $router->post('/assistant/enhance', [AssistantController::class, 'enhance']);
+        $router->post('/assistant/customer-message', [AssistantController::class, 'customerMessage']);
+
         // Escolha de uma oferta de peça (token assinado pelo servidor).
         $router->post('/assistant/parts/select', [AssistantController::class, 'selectPart']);
 
