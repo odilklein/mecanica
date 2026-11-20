@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="Documentação oficial do Torque — Sistema de Gestão para Oficinas Mecânicas. Projeto Integrador DSM — FATEC Araras." />
+    <meta name="theme-color" content="#B8270F" />
+    <link rel="icon" type="image/png" href="./logos/team-zenitec.png" />
+    <title>Torque — Documentação</title>
+    <script>
+      (function () {
+        try {
+          var salvo = localStorage.getItem('theme');
+          var escuro = salvo === 'dark' || (!salvo && window.matchMedia('(prefers-color-scheme: dark)').matches);
+          document.documentElement.classList.toggle('dark', escuro);
+        } catch (e) {}
+      })();
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

@@ -10,3 +10,15 @@
 
 # Artefatos do Playwright MCP (snapshots, screenshots, traces)
 /.playwright-mcp/
+
+# Artefatos de QA do build da documentação
+/docs/saida/qa/
+/docs/saida/toc.json
+
+# Site da documentação (gerado)
+/docs/site/node_modules/
+/docs/site/dist/
+/docs/site/src/content/generated.ts
+/docs/site/public/prints/
+/docs/site/public/logos/
+/docs/site/public/downloads/

@@ -1,0 +1,25 @@
+@startuml 09_er_conceitual
+!include _tema.puml
+hide circle
+top to bottom direction
+skinparam nodesep 90
+skinparam ranksep 90
+
+entity "Cliente" as cliente #E6F2F1
+entity "Veículo" as veiculo #E6F2F1
+entity "Usuário" as usuario #EEF0F2
+entity "Ordem de Serviço" as os #F7E4E0
+entity "Orçamento" as orcamento #FDF3E1
+entity "Pedido de Peças" as pedido #E8F3EC
+entity "Peça" as peca #E8F3EC
+entity "Ticket" as ticket #FFF3E0
+
+cliente ||--o{ veiculo
+cliente ||--o{ os
+veiculo ||--o{ os
+usuario ||--o{ os
+os ||--o{ orcamento
+os ||--o{ pedido
+os ||--o{ ticket
+peca }o--o{ pedido
+@enduml

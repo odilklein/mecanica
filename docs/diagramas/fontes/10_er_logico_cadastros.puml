@@ -1,0 +1,56 @@
+@startuml 10_er_logico_cadastros
+!include _tema.puml
+skinparam linetype ortho
+hide circle
+skinparam entityFontSize 11
+
+entity "users" as users #EEF0F2 {
+  * id : int <<PK>>
+  --
+  name : varchar(100)
+  email : varchar(120)
+  password : varchar(255)
+  role : enum
+  is_active : tinyint(1)
+}
+
+entity "clients" as clients #E6F2F1 {
+  * id : int <<PK>>
+  --
+  name : varchar(120)
+  cpf : varchar(14)
+  phone : varchar(20)
+  zip : varchar(10)
+  address : varchar(255)
+  is_active : tinyint(1)
+}
+
+entity "vehicles" as vehicles #E6F2F1 {
+  * id : int <<PK>>
+  --
+  client_id : int <<FK>>
+  plate : varchar(10)
+  brand : varchar(80)
+  model : varchar(120)
+  year : smallint
+  current_km : int
+}
+
+entity "notifications" as notif #EEF0F2 {
+  * id : bigint <<PK>>
+  --
+  user_id : int <<FK>>
+  created_by : int <<FK>>
+  type : varchar(50)
+  read_at : datetime
+}
+
+entity "settings" as settings #EEF0F2 {
+  * setting_key : varchar(80) <<PK>>
+  --
+  setting_value : text
+}
+
+clients ||--o{ vehicles
+users ||--o{ notifications
+@enduml

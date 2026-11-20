@@ -1,0 +1,33 @@
+@startuml 08_sequencia_entrega
+!include _tema.puml
+autonumber
+skinparam sequenceMessageAlign left
+skinparam maxMessageSize 170
+skinparam sequenceGroupBackgroundColor #FBF7F1
+
+actor "Secretaria" as U #F7E4E0
+participant "Tela da OS" as V #E6F2F1
+participant "ServiceOrderController" as C #E8EEF5
+database "MySQL" as DB #EEF0F2
+
+U -> V : registra entrega/retirada\ne KM de saída
+V -> C : POST /service-orders/{id}/delivery
+C -> C : valida CSRF e papel
+C -> DB : SELECT status da OS e KM do veículo
+DB --> C : OS e veículo
+alt status diferente de ready_for_delivery
+  C --> V : erro: OS não está pronta
+else já existe entrega
+  C --> V : erro: entrega já registrada
+else KM de saída menor que o atual
+  C --> V : erro: KM inválido
+else dados válidos
+  C -> DB : BEGIN
+  C -> DB : INSERT service_order_deliveries
+  C -> DB : UPDATE vehicles (current_km)
+  C -> DB : UPDATE service_orders (delivered)
+  C -> DB : INSERT service_order_events
+  C -> DB : COMMIT
+  C --> V : sucesso
+end
+@enduml

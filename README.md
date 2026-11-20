@@ -42,7 +42,7 @@ A arquitetura é modular:
 - **Tickets** internos por OS, com conversa, anexos por áudio (Groq opcional) e notificações.
 - **Preenchimento com IA na nova OS**: descreva ou fale o atendimento e o wizard é preenchido para revisão — CEP continua vindo do ViaCEP e marca/modelo/ano da FIPE.
 - **Queixa assistida e texto para o cliente**: ditado que vira uma queixa clara e mensagem de WhatsApp gerada a partir do orçamento, com cópia.
-- **Assistente de IA** em `/assistant`: chat com streaming, consultas por linguagem natural, widgets do sistema e propostas de alteração que só são aplicadas após aprovação humana (ver [`docs/ASSISTENTE.md`](docs/ASSISTENTE.md)).
+- **Assistente de IA** em `/assistant`: chat com streaming, consultas por linguagem natural, widgets do sistema, histórico de conversas com exclusão e propostas de alteração que só são aplicadas após aprovação humana (ver [`docs/ASSISTENTE.md`](docs/ASSISTENTE.md)).
 - **Relatórios** por período, com tabela de orçamentos, ticket médio e exportação CSV.
 - **Configurações** de oficina, tema, SEO, validade e termos de orçamento.
 - **Auditoria** com filtros, detalhes legíveis e links para os registros.
@@ -193,11 +193,16 @@ Os scripts de seed adicionam funcionários, clientes, veículos, OS e orçamento
 
 ## Documentação
 
+- **Documentação online:** [`docs/site/`](docs/site/) — site em React + Tailwind + React Flow, com os 14 diagramas interativos. Rode `bash docs/build/site.sh dev` e abra `http://localhost:5173`.
+- [`docs/README.md`](docs/README.md) — mapa da documentação (engenharia, entrega, diagramas, build).
+- [`docs/engenharia/`](docs/engenharia/) — fonte de verdade técnica: stack, requisitos, regras, modelo de dados, arquitetura, integrações e ADRs.
+- [`docs/entrega/`](docs/entrega/) — texto acadêmico, uma seção por arquivo do template da FATEC.
+- [`docs/saida/`](docs/saida/) — documento oficial em DOCX e PDF.
 - [`docs/ASSISTENTE.md`](docs/ASSISTENTE.md) — assistente de IA: arquitetura, segurança, ferramentas e widgets.
 - [`docs/RELATORIO_AUDITORIA_SISTEMA.md`](docs/RELATORIO_AUDITORIA_SISTEMA.md) — auditoria, correções, regras e validações.
 - [`docs/RELATORIO_CANAL_DA_PECA.md`](docs/RELATORIO_CANAL_DA_PECA.md) — integração com o catálogo Canal da Peça.
-- [`docs/apresentacao/ROTEIRO_APRESENTACAO.md`](docs/apresentacao/ROTEIRO_APRESENTACAO.md) — roteiro da trigger/view do TCC.
-- [`docs/apresentacao/banco_legado_tcc.sql`](docs/apresentacao/banco_legado_tcc.sql) — schema legado de referência do TCC.
+- [`docs/PLANO_FINALIZACAO_APRESENTACAO.md`](docs/PLANO_FINALIZACAO_APRESENTACAO.md) — plano de finalização e checklist da apresentação.
+- [`docs/apresentacao/`](docs/apresentacao/) — material **histórico** da trigger/view (não usado na apresentação atual).
 
 ## Licença
 

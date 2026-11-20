@@ -1,0 +1,33 @@
+@startuml 14_fluxo_os
+!include _tema.puml
+skinparam stateFontSize 13
+skinparam ArrowFontSize 10
+hide empty description
+
+state "Recebida" as received #EEF0F2
+state "Em análise" as in_analysis #FDF3E1
+state "Aguardando aprovação" as awaiting_approval #FDF3E1
+state "Aguardando peça" as awaiting_part #FDF3E1
+state "Em execução" as in_progress #E8EEF5
+state "Pronta para entrega" as ready_for_delivery #E8F3EC
+state "Entregue" as delivered #E8F3EC
+state "Cancelada" as cancelled #F7E4E0
+
+[*] --> received
+received --> in_analysis : iniciar análise
+in_analysis --> awaiting_approval : enviar orçamento
+in_analysis --> in_progress : serviço direto
+awaiting_approval --> awaiting_part : aguardar peça
+awaiting_approval --> in_progress : aprovado
+awaiting_part --> in_progress : peça recebida
+in_progress --> ready_for_delivery : concluir serviço
+ready_for_delivery --> delivered : registrar entrega
+received --> cancelled
+in_analysis --> cancelled
+awaiting_approval --> cancelled
+awaiting_part --> cancelled
+in_progress --> cancelled
+ready_for_delivery --> cancelled
+delivered --> [*]
+cancelled --> [*]
+@enduml

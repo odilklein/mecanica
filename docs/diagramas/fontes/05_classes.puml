@@ -1,0 +1,140 @@
+@startuml 05_classes
+!include _tema.puml
+skinparam linetype ortho
+hide circle
+skinparam classAttributeIconSize 0
+skinparam nodesep 45
+skinparam ranksep 45
+
+class User #EEF0F2 {
+  id : int
+  name : string
+  email : string
+  role : enum
+  is_active : bool
+}
+
+class Client #E6F2F1 {
+  id : int
+  name : string
+  cpf : string
+  phone : string
+  city : string
+}
+
+class Vehicle #E6F2F1 {
+  id : int
+  plate : string
+  brand : string
+  model : string
+  year : int
+  current_km : int
+}
+
+class ServiceOrder #F7E4E0 {
+  id : int
+  number : int
+  status : enum
+  priority : enum
+  initial_complaint : text
+  diagnosis : text
+  entry_date : date
+}
+
+class ServiceOrderTask #E8EEF5 {
+  id : int
+  description : string
+  status : enum
+  due_date : date
+}
+
+class ServiceOrderResponsible #E8EEF5 {
+  order_id : int
+  user_id : int
+  assigned_at : datetime
+}
+
+class ServiceOrderEvent #E8EEF5 {
+  id : int
+  type : string
+  description : string
+  created_at : datetime
+}
+
+class ServiceOrderDelivery #E8EEF5 {
+  id : int
+  modality : enum
+  responsible : string
+  exit_km : int
+}
+
+class Budget #FDF3E1 {
+  id : int
+  number : int
+  status : enum
+  discount : decimal
+  total : decimal
+  valid_until : date
+}
+
+class BudgetItem #FDF3E1 {
+  id : int
+  type : enum
+  description : string
+  quantity : decimal
+  unit_price : decimal
+  subtotal : decimal
+}
+
+class PartOrder #E8F3EC {
+  id : int
+  supplier : string
+  status : enum
+  expected_date : date
+}
+
+class PartOrderItem #E8F3EC {
+  id : int
+  description : string
+  sku : string
+  quantity : int
+}
+
+class Part #E8F3EC {
+  id : int
+  name : string
+  sku : string
+  price : decimal
+  stock : int
+}
+
+class Ticket #FFF3E0 {
+  id : int
+  subject : string
+  status : enum
+}
+
+class TicketMessage #FFF3E0 {
+  id : int
+  message : text
+  kind : enum
+  created_at : datetime
+}
+
+Client "1" *-- "0..*" Vehicle
+Client "1" *-- "0..*" ServiceOrder
+Vehicle "1" *-- "0..*" ServiceOrder
+ServiceOrder "1" *-- "0..*" ServiceOrderTask
+ServiceOrder "1" *-- "0..*" ServiceOrderResponsible
+ServiceOrder "1" *-- "0..*" ServiceOrderEvent
+ServiceOrder "1" *-- "0..1" ServiceOrderDelivery
+ServiceOrder "1" *-- "0..*" Budget
+Budget "1" *-- "1..*" BudgetItem
+ServiceOrder "1" *-- "0..*" PartOrder
+PartOrder "1" *-- "1..*" PartOrderItem
+Part "1" o-- "0..*" PartOrderItem : referência
+ServiceOrder "1" *-- "0..*" Ticket
+Ticket "1" *-- "0..*" TicketMessage
+User "1" -- "0..*" ServiceOrderResponsible
+User "1" -- "0..*" TicketMessage
+@enduml

@@ -1,0 +1,75 @@
+@startuml 11_er_logico_operacao
+!include _tema.puml
+skinparam linetype ortho
+hide circle
+skinparam entityFontSize 11
+
+entity "service_orders" as os #F7E4E0 {
+  * id : int <<PK>>
+  --
+  number : int
+  client_id : int <<FK>>
+  vehicle_id : int <<FK>>
+  status : enum
+  priority : enum
+  entry_date : date
+  lead_mechanic_id : int <<FK>>
+}
+
+entity "service_order_tasks" as tasks #E8EEF5 {
+  * id : int <<PK>>
+  --
+  order_id : int <<FK>>
+  description : varchar(255)
+  status : enum
+  assigned_to : int <<FK>>
+}
+
+entity "service_order_responsibles" as resp #E8EEF5 {
+  * id : int <<PK>>
+  --
+  order_id : int <<FK>>
+  user_id : int <<FK>>
+}
+
+entity "service_order_events" as events #E8EEF5 {
+  * id : int <<PK>>
+  --
+  order_id : int <<FK>>
+  type : varchar(40)
+  description : varchar(255)
+}
+
+entity "service_order_deliveries" as delivery #E8EEF5 {
+  * id : int <<PK>>
+  --
+  order_id : int <<FK>>
+  modality : enum
+  responsible : varchar(120)
+  exit_km : int
+}
+
+entity "tickets" as tickets #FFF3E0 {
+  * id : int <<PK>>
+  --
+  service_order_id : int <<FK>>
+  subject : varchar(200)
+  status : enum
+}
+
+entity "ticket_messages" as msgs #FFF3E0 {
+  * id : bigint <<PK>>
+  --
+  ticket_id : int <<FK>>
+  user_id : int <<FK>>
+  message : text
+  kind : enum
+}
+
+os ||--o{ tasks
+os ||--o{ resp
+os ||--o{ events
+os ||--o| delivery
+os ||--o{ tickets
+tickets ||--o{ msgs
+@enduml

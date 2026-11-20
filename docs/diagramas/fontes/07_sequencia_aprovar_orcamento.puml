@@ -1,0 +1,26 @@
+@startuml 07_sequencia_aprovar_orcamento
+!include _tema.puml
+autonumber
+skinparam sequenceMessageAlign left
+skinparam maxMessageSize 160
+skinparam sequenceGroupBackgroundColor #FBF7F1
+
+actor "Secretaria" as U #F7E4E0
+participant "Tela do orçamento" as V #E6F2F1
+participant "BudgetController" as C #E8EEF5
+database "MySQL" as DB #EEF0F2
+participant "Notificações" as N #E8F3EC
+
+U -> V : revisa itens e desconto
+V -> C : POST /budgets/{id}/status\n(approved)
+C -> C : valida CSRF e papel
+C -> DB : SELECT status, itens e desconto
+DB --> C : orçamento (open)
+C -> C : recalcula peças + mão de obra − desconto
+C -> DB : UPDATE budgets\n(status = approved, totais)
+C -> DB : INSERT audit_logs
+C -> N : notifica criador e responsáveis
+N -> DB : INSERT notifications
+C --> V : redireciona
+V --> U : status aprovado
+@enduml

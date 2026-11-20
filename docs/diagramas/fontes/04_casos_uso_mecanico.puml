@@ -1,0 +1,22 @@
+@startuml 04_casos_uso_mecanico
+!include _tema.puml
+left to right direction
+
+actor "Mecânico" as M
+
+rectangle "Torque — Sistema de Gestão" {
+  usecase "Autenticar" as UC01
+  usecase "Executar ordem\nde serviço" as UC02
+  usecase "Atualizar tarefas" as UC03
+  usecase "Solicitar peças" as UC04
+  usecase "Conversar em ticket" as UC05
+  usecase "Usar assistente de IA" as UC06
+}
+
+M --> UC01
+M --> UC02
+M --> UC03
+M --> UC04
+M --> UC05
+M --> UC06
+@enduml

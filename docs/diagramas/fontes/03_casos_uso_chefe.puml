@@ -1,0 +1,26 @@
+@startuml 03_casos_uso_chefe
+!include _tema.puml
+left to right direction
+
+actor "Mecânico-chefe" as M
+
+rectangle "Torque — Sistema de Gestão" {
+  usecase "Autenticar" as UC01
+  usecase "Abrir ordem de serviço" as UC02
+  usecase "Registrar diagnóstico" as UC03
+  usecase "Distribuir tarefas" as UC04
+  usecase "Alocar equipe" as UC05
+  usecase "Solicitar peças" as UC06
+  usecase "Registrar entrega" as UC07
+  usecase "Emitir relatórios" as UC08
+}
+
+M --> UC01
+M --> UC02
+M --> UC03
+M --> UC04
+M --> UC05
+M --> UC06
+M --> UC07
+M --> UC08
+@enduml

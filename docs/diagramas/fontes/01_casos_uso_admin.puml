@@ -1,0 +1,26 @@
+@startuml 01_casos_uso_admin
+!include _tema.puml
+left to right direction
+
+actor "Administrador" as A
+
+rectangle "Torque — Sistema de Gestão" {
+  usecase "Autenticar" as UC01
+  usecase "Gerenciar cadastros" as UC02
+  usecase "Gerenciar funcionários" as UC03
+  usecase "Configurar o sistema" as UC04
+  usecase "Auditar ações" as UC05
+  usecase "Acompanhar a operação" as UC06
+  usecase "Emitir relatórios" as UC07
+  usecase "Usar assistente de IA" as UC08
+}
+
+A --> UC01
+A --> UC02
+A --> UC03
+A --> UC04
+A --> UC05
+A --> UC06
+A --> UC07
+A --> UC08
+@enduml

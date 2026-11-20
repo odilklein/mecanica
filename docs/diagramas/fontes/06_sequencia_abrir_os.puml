@@ -1,0 +1,26 @@
+@startuml 06_sequencia_abrir_os
+!include _tema.puml
+autonumber
+skinparam sequenceMessageAlign left
+skinparam maxMessageSize 160
+skinparam sequenceGroupBackgroundColor #FBF7F1
+
+actor "Secretaria" as U #F7E4E0
+participant "Formulário\n(nova OS)" as V #E6F2F1
+participant "ServiceOrderController" as C #E8EEF5
+participant "TicketService" as T #E8F3EC
+database "MySQL" as DB #EEF0F2
+
+U -> V : preenche cliente, veículo,\nqueixa e prioridade
+V -> C : POST /service-orders
+C -> C : valida CSRF e papel
+C -> DB : INSERT service_orders\n(status = received)
+DB --> C : id e número
+C -> DB : INSERT service_order_events
+C -> DB : INSERT service_order_responsibles
+C -> T : cria ticket da OS
+T -> DB : INSERT tickets
+C -> DB : INSERT notifications
+C --> V : redireciona para a OS
+V --> U : confirmação
+@enduml

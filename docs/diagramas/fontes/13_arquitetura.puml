@@ -1,0 +1,43 @@
+@startuml 13_arquitetura
+!include _tema.puml
+skinparam componentStyle rectangle
+skinparam nodesep 40
+skinparam ranksep 55
+left to right direction
+
+package "Cliente" #E6F2F1 {
+  [Navegador\nHTML + Bootstrap 5 + JS] as web #E6F2F1
+}
+
+package "Servidor — PHP 8.2 / Apache" #EEF3F8 {
+  [public/index.php\nfront controller] as fc #EEF3F8
+  [Kernel\nsessão · container · router\nauth · views · menu] as kernel #E8EEF5
+  [Core\nlogin · dashboard · clientes\nfuncionários · configurações\nauditoria] as core #E8F3EC
+  [Mechanic\nOS · orçamentos · peças\npedidos · tickets · relatórios] as mech #FDF3E1
+  [Agent\nassistente · propostas\nanexos · ferramentas] as agent #F7E4E0
+  [Migrations e seeds\nbin/] as bin #EEF0F2
+}
+
+database "MySQL 8.4\n39 tabelas" as db
+
+[ViaCEP] as viacep #FFF3E0
+[FIPE] as fipe #FFF3E0
+[Canal da Peça] as cdp #FFF3E0
+[Groq LLM] as groq #FFF3E0
+[Turnstile] as turnstile #FFF3E0
+
+web --> fc : HTTP
+fc --> kernel
+kernel --> core
+kernel --> mech
+kernel --> agent
+bin --> db
+core --> db : PDO
+mech --> db : PDO
+agent --> db : PDO
+core --> viacep
+core --> turnstile
+mech --> fipe
+mech --> cdp
+agent --> groq
+@enduml

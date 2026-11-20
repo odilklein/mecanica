@@ -1,0 +1,74 @@
+@startuml 12_er_logico_documentos
+!include _tema.puml
+skinparam linetype ortho
+hide circle
+skinparam entityFontSize 11
+
+entity "budgets" as budgets #FDF3E1 {
+  * id : int <<PK>>
+  --
+  number : int
+  client_id : int <<FK>>
+  vehicle_id : int <<FK>>
+  service_order_id : int <<FK>>
+  status : enum
+  discount : decimal(10,2)
+  total : decimal(10,2)
+}
+
+entity "budget_items" as items #FDF3E1 {
+  * id : int <<PK>>
+  --
+  budget_id : int <<FK>>
+  type : enum
+  description : varchar(200)
+  quantity : decimal(10,2)
+  subtotal : decimal(10,2)
+}
+
+entity "part_orders" as orders #E8F3EC {
+  * id : int <<PK>>
+  --
+  service_order_id : int <<FK>>
+  supplier : varchar(120)
+  status : enum
+  received_at : datetime
+}
+
+entity "part_order_items" as oitems #E8F3EC {
+  * id : int <<PK>>
+  --
+  part_order_id : int <<FK>>
+  description : varchar(200)
+  sku : varchar(40)
+  quantity : int
+}
+
+entity "parts" as parts #E8F3EC {
+  * id : int <<PK>>
+  --
+  name : varchar(200)
+  category_id : int <<FK>>
+  price : decimal(10,2)
+  stock : int
+  min_stock : int
+}
+
+entity "part_categories" as cats #E8F3EC {
+  * id : int <<PK>>
+  --
+  name : varchar(120)
+  slug : varchar(120)
+}
+
+entity "suppliers" as sup #E8F3EC {
+  * id : int <<PK>>
+  --
+  name : varchar(160)
+  document : varchar(30)
+}
+
+budgets ||--o{ items
+orders ||--o{ oitems
+cats ||--o{ parts
+@enduml

@@ -1,0 +1,309 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: light;
+  --sand-50: 246 240 231;
+  --sand-100: 251 247 241;
+  --sand-200: 237 228 217;
+  --sand-300: 222 209 193;
+  --ink-500: 122 109 96;
+  --ink-600: 94 81 70;
+  --ink-700: 74 63 53;
+  --ink-800: 43 36 31;
+  --ink-900: 28 23 20;
+  --surface: 252 248 242;
+  --surface-2: 247 241 232;
+  --line: 231 220 207;
+  --wine-50: 249 238 233;
+  --wine-100: 244 224 217;
+  --wine-200: 230 190 179;
+  --wine-300: 214 155 139;
+  --wine-400: 201 101 78;
+  --wine-500: 184 39 15;
+  --wine-600: 158 33 12;
+  --wine-700: 142 31 12;
+  --wine-800: 110 26 11;
+  --wine-900: 74 18 8;
+  --flow-edge: #8e1f0c;
+  --flow-dot: #d8d0c6;
+  --flow-text: #2b241f;
+  --flow-canvas: #f8f2e9;
+  --code-bg: #241f1a;
+  --code-fg: #f6f0e7;
+}
+
+.dark {
+  color-scheme: dark;
+  --sand-50: 24 20 17;
+  --sand-100: 32 27 23;
+  --sand-200: 48 41 35;
+  --sand-300: 66 56 48;
+  --ink-500: 166 153 138;
+  --ink-600: 196 182 164;
+  --ink-700: 212 201 188;
+  --ink-800: 237 229 218;
+  --ink-900: 248 243 235;
+  --surface: 36 30 26;
+  --surface-2: 29 24 20;
+  --line: 58 49 42;
+  --wine-50: 55 24 18;
+  --wine-100: 74 32 24;
+  --wine-200: 105 47 35;
+  --wine-300: 140 65 48;
+  --wine-400: 190 95 72;
+  --wine-500: 220 120 96;
+  --wine-600: 200 90 68;
+  --wine-700: 240 170 150;
+  --wine-800: 246 200 185;
+  --wine-900: 250 220 210;
+  --flow-edge: #e0a090;
+  --flow-dot: #4a3e35;
+  --flow-text: #ede5da;
+  --flow-canvas: #1d1814;
+  --code-bg: #15110f;
+  --code-fg: #efe7da;
+}
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+  }
+  body {
+    @apply bg-sand-50 text-ink-800 antialiased;
+    background-image: radial-gradient(
+      1200px 500px at 50% -10%,
+      rgb(var(--wine-50) / 0.5),
+      transparent 70%
+    );
+  }
+  ::selection {
+    @apply bg-wine-200 text-wine-900;
+  }
+  :focus-visible {
+    @apply outline-none ring-2 ring-wine-400 ring-offset-2 ring-offset-sand-50;
+  }
+}
+
+@layer components {
+  .container-page {
+    @apply mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8;
+  }
+  .card {
+    @apply rounded-xl border border-line bg-surface shadow-card;
+  }
+  .badge {
+    @apply inline-flex items-center gap-1 rounded-full border border-line bg-sand-100 px-2.5 py-0.5 text-[11px] font-semibold text-ink-500;
+  }
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 rounded-lg px-3.5 py-2 text-sm font-semibold transition;
+  }
+  .btn-primary {
+    @apply btn bg-wine-600 text-white shadow-sm hover:bg-wine-700;
+  }
+  .btn-ghost {
+    @apply btn border border-line bg-surface text-ink-700 hover:border-wine-300 hover:text-wine-700;
+  }
+  .link-underline {
+    @apply underline decoration-wine-300 decoration-2 underline-offset-2 hover:decoration-wine-500;
+  }
+  .surface-line {
+    @apply border-line;
+  }
+}
+
+/* Conteúdo do documento */
+.doc-content h1 {
+  @apply mb-4 mt-2 border-b-2 border-wine-500 pb-2 text-3xl font-bold tracking-tight text-wine-700;
+}
+.doc-content h2 {
+  @apply mb-3 mt-10 border-l-4 border-wine-500 pl-3 text-xl font-bold text-ink-800;
+}
+.doc-content h3 {
+  @apply mb-2 mt-7 text-base font-bold text-wine-700;
+}
+.doc-content p {
+  @apply my-3 text-[15px] leading-7 text-ink-700;
+}
+.doc-content ul {
+  @apply my-3 list-disc space-y-1.5 pl-6 text-[15px] leading-7 text-ink-700;
+}
+.doc-content ol {
+  @apply my-3 list-decimal space-y-1.5 pl-6 text-[15px] leading-7 text-ink-700;
+}
+.doc-content li > p {
+  @apply my-0;
+}
+.doc-content strong {
+  @apply font-semibold text-ink-800;
+}
+.doc-content em {
+  @apply italic;
+}
+.doc-content a {
+  @apply font-medium text-wine-700 underline decoration-wine-300 underline-offset-2 hover:decoration-wine-500;
+}
+.doc-content blockquote {
+  @apply my-4 border-l-4 border-wine-200 bg-wine-50 px-4 py-2 text-ink-700;
+}
+.doc-content code {
+  @apply rounded bg-sand-100 px-1 py-0.5 font-mono text-[13px] text-wine-700;
+}
+.doc-content pre {
+  background: rgb(var(--code-bg));
+  color: rgb(var(--code-fg));
+  @apply my-4 overflow-x-auto rounded-lg p-4 text-sm;
+}
+.doc-content pre code {
+  @apply bg-transparent p-0 text-inherit;
+}
+.doc-content table {
+  @apply w-full border-collapse text-[13px];
+}
+.doc-content thead {
+  @apply bg-wine-600 text-white;
+}
+.doc-content th {
+  @apply border border-wine-700 px-2.5 py-2 text-left font-semibold;
+}
+.doc-content td {
+  @apply border border-line px-2.5 py-2 align-top text-ink-700;
+}
+.doc-content tbody tr:nth-child(even) {
+  @apply bg-sand-100;
+}
+.doc-content hr {
+  @apply my-8 border-line;
+}
+.doc-content img {
+  @apply mx-auto rounded-lg border border-line;
+}
+
+/* React Flow */
+.react-flow__attribution {
+  display: none;
+}
+.react-flow__controls {
+  @apply overflow-hidden rounded-lg border border-line shadow-card;
+}
+.react-flow__controls-button {
+  @apply border-b border-line bg-surface text-ink-700 hover:bg-sand-100;
+}
+.react-flow__controls-button svg {
+  fill: currentColor;
+}
+.react-flow__minimap {
+  @apply overflow-hidden rounded-lg border border-line shadow-card;
+}
+.react-flow__node {
+  font-family: inherit;
+}
+.react-flow__node > div {
+  animation: node-in 360ms cubic-bezier(0.2, 0.7, 0.3, 1) both;
+}
+.react-flow__node:hover > div {
+  filter: drop-shadow(0 10px 18px rgba(43, 36, 31, 0.16));
+}
+.react-flow__edge-path {
+  transition: stroke 180ms ease, stroke-width 180ms ease;
+}
+.react-flow__edge:hover .react-flow__edge-path {
+  stroke-width: 2.2;
+}
+.react-flow__edge.animated path {
+  stroke-dasharray: 6;
+  animation: flow-dash 1s linear infinite;
+}
+.react-flow__edge-textbg {
+  fill: rgb(var(--surface));
+}
+.react-flow__edge-text {
+  fill: rgb(var(--ink-800));
+}
+@keyframes flow-dash {
+  to {
+    stroke-dashoffset: -12;
+  }
+}
+.diagram-canvas {
+  background:
+    radial-gradient(900px 360px at 80% 0%, rgb(var(--wine-50) / 0.55), transparent 65%),
+    var(--flow-canvas);
+}
+.diagram-fullscreen:fullscreen {
+  background: var(--flow-canvas);
+  padding: 1rem;
+}
+.diagram-fullscreen:fullscreen .card,
+.diagram-fullscreen:fullscreen .diagram-canvas {
+  height: 100% !important;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+}
+.diagram-modal-panel:fullscreen {
+  height: 100vh !important;
+  width: 100vw !important;
+  border-radius: 0;
+  border: 0;
+}
+.react-flow__panel {
+  color: rgb(var(--ink-700));
+}
+
+@keyframes marquee {
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(-50%);
+  }
+}
+
+@media print {
+  html.dark {
+    --sand-50: 253 251 247;
+    --sand-100: 251 247 241;
+    --sand-200: 237 228 217;
+    --sand-300: 222 209 193;
+    --ink-500: 122 109 96;
+    --ink-600: 94 81 70;
+    --ink-700: 74 63 53;
+    --ink-800: 43 36 31;
+    --ink-900: 28 23 20;
+    --surface: 252 248 242;
+    --surface-2: 247 241 232;
+    --line: 231 220 207;
+    --wine-50: 249 238 233;
+    --wine-100: 244 224 217;
+    --wine-200: 230 190 179;
+    --wine-300: 214 155 139;
+    --wine-400: 201 101 78;
+    --wine-500: 184 39 15;
+    --wine-600: 158 33 12;
+    --wine-700: 142 31 12;
+    --wine-800: 110 26 11;
+    --wine-900: 74 18 8;
+    --flow-canvas: #f8f2e9;
+    --flow-edge: #8e1f0c;
+    --flow-dot: #d8d0c6;
+    --flow-text: #2b241f;
+  }
+  .no-print {
+    display: none !important;
+  }
+  .print-full {
+    max-width: none !important;
+  }
+  body {
+    background: #fff;
+  }
+  .doc-content h1 {
+    page-break-before: always;
+  }
+  .card {
+    box-shadow: none;
+    border-color: #e5e7eb;
+  }
+}
