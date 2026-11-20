@@ -102,7 +102,37 @@ class AgentStore
         );
         $stmt->execute([':u' => $userId]);
 
-        return $stmt->fetchAll();
+        $rows = $stmt->fetchAll();
+        foreach ($rows as &$row) {
+            $title = trim((string) ($row['title'] ?? ''));
+            if ($title !== '') {
+                $derived = self::deriveTitle($title);
+                $row['title'] = $derived;
+                if ($derived !== null && $derived !== $title) {
+                    $this->pdo->prepare('UPDATE agent_sessions SET title = :t WHERE id = :id')
+                        ->execute([':t' => $derived, ':id' => (int) $row['id']]);
+                }
+                continue;
+            }
+
+            // Títulos antigos nulos: deriva da primeira mensagem do usuário.
+            $first = $this->pdo->prepare(
+                "SELECT content FROM agent_messages
+                  WHERE session_id = :s AND role = 'user'
+                    AND content IS NOT NULL AND TRIM(content) <> ''
+                  ORDER BY id ASC LIMIT 1"
+            );
+            $first->execute([':s' => (int) $row['id']]);
+            $derived = self::deriveTitle((string) ($first->fetchColumn() ?: ''));
+            $row['title'] = $derived;
+            if ($derived !== null) {
+                $this->pdo->prepare('UPDATE agent_sessions SET title = :t WHERE id = :id')
+                    ->execute([':t' => $derived, ':id' => (int) $row['id']]);
+            }
+        }
+        unset($row);
+
+        return $rows;
     }
 
     public function archive(int $id, int $userId): void
@@ -111,6 +141,69 @@ class AgentStore
             "UPDATE agent_sessions SET status = 'archived'
               WHERE id = :id AND user_id = :u"
         )->execute([':id' => $id, ':u' => $userId]);
+    }
+
+    /**
+     * Ids das sessões do usuário (todas ou apenas uma, se informada).
+     *
+     * @return int[]
+     */
+    public function sessionIds(int $userId, ?int $sessionId = null): array
+    {
+        if ($sessionId !== null) {
+            return $this->findSession($sessionId, $userId) ? [$sessionId] : [];
+        }
+
+        $stmt = $this->pdo->prepare('SELECT id FROM agent_sessions WHERE user_id = :u');
+        $stmt->execute([':u' => $userId]);
+
+        return array_map('intval', $stmt->fetchAll(PDO::FETCH_COLUMN));
+    }
+
+    /**
+     * Exclui conversas do usuário. Mensagens e anexos caem por cascade.
+     *
+     * @param int[] $ids
+     */
+    public function deleteSessions(int $userId, array $ids): void
+    {
+        $ids = array_values(array_unique(array_filter(
+            array_map('intval', $ids),
+            static fn (int $id): bool => $id > 0
+        )));
+        if (!$ids) {
+            return;
+        }
+
+        $placeholders = implode(',', array_fill(0, count($ids), '?'));
+        $this->pdo->prepare(
+            "DELETE FROM agent_sessions
+              WHERE user_id = ? AND id IN ({$placeholders})"
+        )->execute(array_merge([$userId], $ids));
+    }
+
+    /**
+     * Remove propostas pendentes ligadas às conversas excluídas.
+     * As já decididas permanecem como histórico (com session_id nulo).
+     *
+     * @param int[] $sessionIds
+     */
+    public function deletePendingProposals(int $userId, array $sessionIds): void
+    {
+        $ids = array_values(array_unique(array_filter(
+            array_map('intval', $sessionIds),
+            static fn (int $id): bool => $id > 0
+        )));
+        if (!$ids) {
+            return;
+        }
+
+        $placeholders = implode(',', array_fill(0, count($ids), '?'));
+        $this->pdo->prepare(
+            "DELETE FROM agent_proposals
+              WHERE user_id = ? AND status = 'pending'
+                AND session_id IN ({$placeholders})"
+        )->execute(array_merge([$userId], $ids));
     }
 
     /**
@@ -180,16 +273,52 @@ class AgentStore
     public function touch(int $sessionId, ?string $title = null): void
     {
         if ($title !== null && trim($title) !== '') {
-            $this->pdo->prepare(
-                'UPDATE agent_sessions
-                    SET title = COALESCE(title, :t), last_activity_at = NOW()
-                  WHERE id = :id'
-            )->execute([':t' => mb_substr(trim($title), 0, 160), ':id' => $sessionId]);
-            return;
+            $title = self::deriveTitle($title);
+            if ($title !== null) {
+                $this->pdo->prepare(
+                    'UPDATE agent_sessions
+                        SET title = COALESCE(title, :t), last_activity_at = NOW()
+                      WHERE id = :id'
+                )->execute([':t' => $title, ':id' => $sessionId]);
+
+                return;
+            }
         }
 
         $this->pdo->prepare('UPDATE agent_sessions SET last_activity_at = NOW() WHERE id = :id')
             ->execute([':id' => $sessionId]);
+    }
+
+    /**
+     * Título curto para a lista de conversas (estilo chatbot).
+     */
+    private static function deriveTitle(?string $text): ?string
+    {
+        $value = trim(preg_replace('/\s+/u', ' ', (string) $text) ?? '');
+        if ($value === '') {
+            return null;
+        }
+
+        $value = preg_replace('/^(oi|olá|ola|bom dia|boa tarde|boa noite)[,!\s]+/iu', '', $value) ?? $value;
+        $value = preg_replace('/^(por favor|pfv|por gentileza)[,!\s]+/iu', '', $value) ?? $value;
+        $value = preg_replace('/^(você pode|voce pode|vc pode|pode|poderia|consegue|me (?:ajuda|ajude|dá|da|dê|de|diz|diga|mostra|mostre|informa|informe)|gostaria de saber|quero saber|preciso saber|preciso de|existe|tem|há|ha|qual|quais)\s+/iu', '', $value) ?? $value;
+        $value = preg_replace('/^(um|uma|o|a|os|as)\s+/iu', '', $value) ?? $value;
+        $value = trim(preg_replace('/[\s?!.;,]+$/u', '', $value) ?? $value);
+
+        if ($value === '') {
+            return null;
+        }
+
+        if (mb_strlen($value) > 52) {
+            $value = mb_substr($value, 0, 52);
+            $space = mb_strrpos($value, ' ');
+            if ($space !== false && $space > 24) {
+                $value = mb_substr($value, 0, $space);
+            }
+            $value = rtrim($value, " \t\n\r\0\x0B,.;:!?") . '…';
+        }
+
+        return mb_strtoupper(mb_substr($value, 0, 1)) . mb_substr($value, 1);
     }
 
     public function bumpUsage(int $userId, int $tokensIn, int $tokensOut): void

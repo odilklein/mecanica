@@ -402,13 +402,18 @@ class LlmClient
         }
 
         if ($status === 429) {
-            $wait = '';
-            if (preg_match('/try again in ([0-9.]+\s*(?:s|ms|m))/i', $detail, $match)) {
-                $wait = ' Aguarde cerca de ' . $match[1] . '.';
+            $seconds = 0;
+            if (preg_match('/try again in ([0-9.]+)\s*(ms|s|m)/i', $detail, $match)) {
+                $value = (float) $match[1];
+                $unit = strtolower($match[2]);
+                $seconds = $unit === 'ms'
+                    ? (int) ceil($value / 1000)
+                    : ($unit === 'm' ? (int) ceil($value * 60) : (int) ceil($value));
             }
 
-            return 'Limite de uso do provedor atingido.' . $wait
-                . ($wait === '' ? ' Tente novamente em instantes.' : '');
+            $seconds = max(15, min(60, $seconds > 0 ? $seconds + 1 : 15));
+
+            return 'Limite de uso do provedor atingido. Tente novamente em cerca de ' . $seconds . ' segundos.';
         }
         if ($status >= 400) {
             return 'Provedor de IA respondeu HTTP ' . $status . ': ' . mb_substr($detail, 0, 300);

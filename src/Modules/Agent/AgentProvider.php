@@ -31,6 +31,8 @@ class AgentProvider implements ProviderInterface
         $router->post('/assistant/sessions', [AssistantController::class, 'newSession']);
         $router->get('/assistant/sessions/{id}', [AssistantController::class, 'history']);
         $router->post('/assistant/sessions/{id}/archive', [AssistantController::class, 'archiveSession']);
+        $router->post('/assistant/sessions/{id}/delete', [AssistantController::class, 'deleteSession']);
+        $router->post('/assistant/sessions/delete-all', [AssistantController::class, 'deleteAllSessions']);
 
         // Anexos (upload, download com checagem de dono e remoção).
         $router->post('/assistant/attachments', [AssistantController::class, 'uploadAttachment']);

@@ -41,7 +41,6 @@
     var modelLabel = document.getElementById('assistantModelLabel');
     var modelMenu = document.getElementById('assistantModelMenu');
     var modelChip = document.getElementById('assistantModelChip');
-    var effortEl = document.getElementById('assistantEffort');
     var attachmentsEl = document.getElementById('assistantAttachments');
     var attachBtn = document.getElementById('assistantAttach');
     var fileInput = document.getElementById('assistantFile');
@@ -62,15 +61,12 @@
         proposalIndex: boot.proposalIndex || {},
         model: boot.model,
         effort: '',
+        mode: '',
+        hasUserMessages: (boot.messages || []).some(function (message) {
+            return message.role === 'user';
+        }),
         attachments: [],
         uploading: 0
-    };
-
-    var EFFORT_LABELS = {
-        none: 'Sem raciocínio',
-        low: 'Rápido',
-        medium: 'Equilibrado',
-        high: 'Profundo'
     };
 
     /* ============================ UTIL ============================ */
@@ -102,12 +98,51 @@
         return (n / (1024 * 1024)).toFixed(1) + ' MB';
     }
 
-    function formatCost(value) {
-        var n = Number(value || 0);
-        if (!n) {
-            return '';
+    // Título curto da conversa, no estilo dos chatbots: parte da primeira mensagem.
+    function titleFromText(text) {
+        var value = String(text || '').replace(/\s+/g, ' ').trim();
+        value = value.replace(/^(oi|olá|ola|bom dia|boa tarde|boa noite)[,!\s]+/i, '');
+        value = value.replace(/^(por favor|pfv|por gentileza)[,!\s]+/i, '');
+        value = value.replace(/^(você pode|voce pode|vc pode|pode|poderia|consegue|me (ajuda|ajude|dá|da|dê|de|diz|diga|mostra|mostre|informa|informe)|gostaria de saber|quero saber|preciso saber|preciso de|existe|tem|há|ha|qual|quais)\s+/i, '');
+        value = value.replace(/^(um|uma|o|a|os|as)\s+/i, '');
+        value = value.replace(/[\s?!.;,]+$/, '');
+
+        if (value.length > 52) {
+            value = value.slice(0, 52);
+            var cut = value.lastIndexOf(' ');
+            if (cut > 24) {
+                value = value.slice(0, cut);
+            }
+            value = value.replace(/[\s,.;:!?]+$/, '') + '…';
         }
-        return 'US$ ' + n.toFixed(4).replace('.', ',');
+
+        return value ? value.charAt(0).toUpperCase() + value.slice(1) : '';
+    }
+
+    function titleCurrentSession(text) {
+        if (state.hasUserMessages) {
+            return;
+        }
+        state.hasUserMessages = true;
+
+        var title = titleFromText(text);
+        var row = document.querySelector('.assistant-session-row.is-current');
+        if (!title || !row) {
+            return;
+        }
+
+        var label = row.querySelector('.assistant-session-text');
+        if (label) {
+            label.textContent = title;
+        }
+        var link = row.querySelector('.assistant-session');
+        if (link) {
+            link.title = title;
+        }
+        var remove = row.querySelector('.assistant-session-delete');
+        if (remove) {
+            remove.setAttribute('data-session-title', title);
+        }
     }
 
     function attachmentIcon(kind) {
@@ -172,41 +207,26 @@
         }
     }
 
-    /* ============================ MODELO / ESFORÇO ============================ */
+    /* ============================ MODO DE RESPOSTA ============================ */
 
-    function currentModel() {
-        var found = (boot.models || []).filter(function (m) {
-            return m.id === state.model;
-        })[0];
-
-        return found || (boot.models || [])[0] || {
-            id: boot.model,
-            label: boot.model,
-            hint: '',
-            efforts: ['low', 'medium', 'high'],
-            default_effort: 'low',
-            vision: false
-        };
+    function modes() {
+        return boot.modes || [];
     }
 
-    function effortOptions(model) {
-        var efforts = (model && model.efforts) || [];
-        var options = [];
+    function modeByKey(key) {
+        return modes().filter(function (mode) {
+            return mode.key === key;
+        })[0] || null;
+    }
 
-        if (efforts.indexOf('none') !== -1) {
-            options.push({ value: 'none', label: EFFORT_LABELS.none });
-        }
-        if (efforts.indexOf('low') !== -1) {
-            options.push({ value: 'low', label: EFFORT_LABELS.low });
-        }
-        if (efforts.indexOf('medium') !== -1) {
-            options.push({ value: 'medium', label: EFFORT_LABELS.medium });
-        }
-        if (efforts.indexOf('high') !== -1) {
-            options.push({ value: 'high', label: EFFORT_LABELS.high });
-        }
+    function modeFor(modelId, effort) {
+        return modes().filter(function (mode) {
+            return mode.model === modelId && mode.effort === effort;
+        })[0] || null;
+    }
 
-        return options;
+    function currentMode() {
+        return modeByKey(state.mode) || modes()[0] || null;
     }
 
     function renderModelMenu() {
@@ -215,89 +235,61 @@
         }
         modelMenu.innerHTML = '';
 
-        (boot.models || []).forEach(function (model) {
-            var item = el('button', 'assistant-model-item' + (model.id === state.model ? ' is-active' : ''));
+        var active = currentMode();
+        modes().forEach(function (mode) {
+            var isActive = !!active && mode.key === active.key;
+            var item = el('button', 'assistant-model-item' + (isActive ? ' is-active' : ''));
             item.type = 'button';
             item.setAttribute('role', 'option');
-            item.setAttribute('aria-selected', model.id === state.model ? 'true' : 'false');
+            item.setAttribute('aria-selected', isActive ? 'true' : 'false');
 
             var text = document.createElement('span');
             text.className = 'assistant-model-item-text';
-            text.appendChild(el('strong', null, model.label));
-            text.appendChild(el('small', null, model.hint || model.id));
+            text.appendChild(el('strong', null, mode.label));
+            text.appendChild(el('small', null, mode.hint));
             item.appendChild(text);
 
-            var badges = document.createElement('span');
-            badges.className = 'assistant-model-badges';
-            if (model.vision) {
-                badges.appendChild(el('i', 'icon-base ti tabler-photo', ''));
-            }
-            if (model.reasoning) {
-                badges.appendChild(el('i', 'icon-base ti tabler-brain', ''));
-            }
-            if (model.is_default) {
+            if (mode.is_default) {
+                var badges = document.createElement('span');
+                badges.className = 'assistant-model-badges';
                 badges.appendChild(el('span', 'assistant-model-default', 'padrão'));
+                item.appendChild(badges);
             }
-            item.appendChild(badges);
 
             item.addEventListener('click', function () {
-                selectModel(model.id);
+                selectMode(mode.key);
             });
 
             modelMenu.appendChild(item);
         });
     }
 
-    function selectModel(id) {
-        state.model = id;
-        try {
-            localStorage.setItem('mecanica-assistant-model', id);
-        } catch (e) {}
-
-        var model = currentModel();
-        var options = effortOptions(model);
-        var valid = options.some(function (option) {
-            return option.value === state.effort;
-        });
-        if (!valid) {
-            state.effort = model.default_effort || (options[0] && options[0].value) || '';
+    function applyMode(mode) {
+        if (!mode) {
+            return;
         }
-
+        state.mode = mode.key;
+        state.model = mode.model;
+        state.effort = mode.effort;
+        try {
+            localStorage.setItem('mecanica-assistant-mode', mode.key);
+        } catch (e) {}
         updateModelUi();
+    }
+
+    function selectMode(key) {
+        applyMode(modeByKey(key));
         closeModelMenu();
     }
 
     function updateModelUi() {
-        var model = currentModel();
-        var options = effortOptions(model);
+        var mode = currentMode();
 
         if (modelLabel) {
-            modelLabel.textContent = model.label;
+            modelLabel.textContent = mode ? mode.label : 'Modo';
         }
         if (modelChip) {
-            modelChip.textContent = model.label;
-        }
-
-        if (effortEl) {
-            effortEl.hidden = !model.reasoning || !options.length;
-            effortEl.innerHTML = '';
-            options.forEach(function (option) {
-                var button = el('button', null, option.label);
-                button.type = 'button';
-                button.setAttribute('data-effort', option.value);
-                button.title = option.label;
-                if (option.value === state.effort) {
-                    button.classList.add('is-active');
-                }
-                button.addEventListener('click', function () {
-                    state.effort = option.value;
-                    try {
-                        localStorage.setItem('mecanica-assistant-effort', option.value);
-                    } catch (e) {}
-                    updateModelUi();
-                });
-                effortEl.appendChild(button);
-            });
+            modelChip.textContent = mode ? mode.label : '';
         }
 
         renderModelMenu();
@@ -1434,8 +1426,6 @@
         var spinner = el('span', 'assistant-tool-spinner');
         head.appendChild(spinner);
         head.appendChild(el('span', null, label || name));
-        head.appendChild(el('span', 'assistant-tool-name', name));
-        head.appendChild(el('span', 'assistant-tool-ms', '…'));
 
         var detail = el('div', 'assistant-tool-detail');
         detail.hidden = true;
@@ -1459,26 +1449,8 @@
         var icon = el('i', 'icon-base ti ' + (payload.ok ? 'tabler-check' : 'tabler-alert-triangle'));
         tool.head.insertBefore(icon, tool.head.firstChild);
 
-        var ms = tool.head.querySelector('.assistant-tool-ms');
-        if (ms) {
-            ms.textContent = payload.ms !== undefined ? payload.ms + ' ms' : '';
-        }
-
         if (payload.summary) {
             tool.detail.textContent = payload.summary;
-        }
-    }
-
-    function addMetaInfo(meta, usage, model, cost) {
-        meta.innerHTML = '';
-        if (usage && (usage.in || usage.out)) {
-            meta.appendChild(el('span', null, '↑' + (usage.in || 0) + ' ↓' + (usage.out || 0) + ' tokens'));
-        }
-        if (cost) {
-            meta.appendChild(el('span', null, formatCost(cost)));
-        }
-        if (model) {
-            meta.appendChild(el('span', null, model));
         }
     }
 
@@ -1514,8 +1486,6 @@
                 var head = el('div', 'assistant-tool-head');
                 head.appendChild(el('i', 'icon-base ti ' + (tool.ok === false ? 'tabler-alert-triangle' : 'tabler-check')));
                 head.appendChild(el('span', null, tool.label || tool.name));
-                head.appendChild(el('span', 'assistant-tool-name', tool.name));
-                head.appendChild(el('span', 'assistant-tool-ms', (tool.ms || 0) + ' ms'));
                 row.appendChild(head);
                 toolsBox.appendChild(row);
             });
@@ -1539,7 +1509,6 @@
         }
 
         var metaBox = el('div', 'assistant-msg-meta');
-        addMetaInfo(metaBox, meta.usage, meta.model_label || meta.model, meta.cost);
 
         var copy = el('button', 'assistant-copy', 'copiar');
         copy.type = 'button';
@@ -1580,15 +1549,13 @@
         orb.appendChild(el('i', 'icon-base ti tabler-sparkles'));
         wrap.appendChild(orb);
         wrap.appendChild(el('h2', null, 'Como posso ajudar?'));
-        wrap.appendChild(el('p', null, 'Pergunte sobre o dia, consulte uma OS ou peça para preparar uma alteração. ' +
-            'Nada é gravado sem a sua aprovação.'));
+        wrap.appendChild(el('p', null, 'Pergunte sobre clientes, veículos, OS e peças — ou prepare uma alteração.'));
 
         var grid = el('div', 'assistant-suggestions');
         suggestions().forEach(function (item) {
             var button = el('button', 'assistant-suggestion');
             button.type = 'button';
-            button.appendChild(el('i', 'icon-base ti ' + item.icon));
-            button.appendChild(document.createTextNode(item.label));
+            button.appendChild(el('span', 'assistant-suggestion-label', item.label));
             button.addEventListener('click', function () {
                 input.value = item.prompt;
                 resizeInput();
@@ -1787,6 +1754,7 @@
         input.value = '';
         resizeInput();
         addUserMessage(text, sentAttachments);
+        titleCurrentSession(text);
 
         var assistant = addAssistantMessage();
         state.current = assistant;
@@ -2025,8 +1993,6 @@
             current.md.appendChild(el('p', null, 'Não recebi resposta. Tente novamente.'));
         }
 
-        addMetaInfo(current.meta, current.usage, current.modelLabel || currentModel().label, current.cost);
-
         var copy = el('button', 'assistant-copy', 'copiar');
         copy.type = 'button';
         copy.addEventListener('click', function () {
@@ -2186,6 +2152,112 @@
         });
     }
 
+    /* ============================ EXCLUSÃO ============================ */
+
+    var confirmEl = document.getElementById('assistantConfirm');
+    var confirmTitleEl = document.getElementById('assistantConfirmTitle');
+    var confirmTextEl = document.getElementById('assistantConfirmText');
+    var confirmOkEl = document.getElementById('assistantConfirmOk');
+    var confirmInstance = (window.bootstrap && confirmEl)
+        ? window.bootstrap.Modal.getOrCreateInstance(confirmEl)
+        : null;
+    var confirmAction = null;
+
+    function askConfirm(options) {
+        if (!confirmInstance) {
+            if (window.confirm(options.text)) {
+                options.onOk();
+            }
+            return;
+        }
+
+        confirmTitleEl.textContent = options.title || 'Confirmar';
+        confirmTextEl.textContent = options.text || '';
+        confirmOkEl.textContent = options.ok || 'Confirmar';
+        confirmAction = options.onOk;
+        confirmInstance.show();
+    }
+
+    if (confirmOkEl) {
+        confirmOkEl.addEventListener('click', function () {
+            var action = confirmAction;
+            confirmAction = null;
+            if (confirmInstance) {
+                confirmInstance.hide();
+            }
+            if (action) {
+                action();
+            }
+        });
+    }
+
+    if (confirmEl) {
+        confirmEl.addEventListener('hidden.bs.modal', function () {
+            confirmAction = null;
+        });
+    }
+
+    function postSessionAction(url) {
+        var body = new URLSearchParams();
+        body.set('csrf_token', boot.csrf);
+
+        return fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: body.toString(),
+            credentials: 'same-origin'
+        }).then(function (response) {
+            return response.json().then(function (data) {
+                if (!response.ok || data.ok === false) {
+                    throw new Error(data.error || 'Não foi possível excluir.');
+                }
+                return data;
+            });
+        });
+    }
+
+    function goToSession(sessionId) {
+        window.location.href = sessionId ? '/assistant?s=' + sessionId : '/assistant';
+    }
+
+    function deleteSession(id, title) {
+        if (!id) {
+            return;
+        }
+
+        askConfirm({
+            title: 'Excluir conversa',
+            text: 'Excluir "' + (title || 'esta conversa') + '"? As mensagens e os anexos serão removidos.',
+            ok: 'Excluir',
+            onOk: function () {
+                postSessionAction('/assistant/sessions/' + id + '/delete')
+                    .then(function (data) {
+                        goToSession(data.session_id || 0);
+                    })
+                    .catch(function (error) {
+                        toast(error.message || 'Falha ao excluir a conversa.', 'error');
+                    });
+            }
+        });
+    }
+
+    function deleteAllSessions() {
+        askConfirm({
+            title: 'Excluir todas as conversas',
+            text: 'Isso remove todas as suas conversas, mensagens e anexos. Não dá para desfazer.',
+            ok: 'Excluir tudo',
+            onOk: function () {
+                postSessionAction(boot.deleteAllUrl)
+                    .then(function (data) {
+                        goToSession(data.session_id || 0);
+                    })
+                    .catch(function (error) {
+                        toast(error.message || 'Falha ao excluir as conversas.', 'error');
+                    });
+            }
+        });
+    }
+
     /* ============================ EVENTOS ============================ */
 
     form.addEventListener('submit', function (event) {
@@ -2253,6 +2325,96 @@
         newMobileBtn.addEventListener('click', startNewSession);
     }
 
+    var deleteAllBtn = document.getElementById('assistantDeleteAll');
+    if (deleteAllBtn) {
+        deleteAllBtn.addEventListener('click', deleteAllSessions);
+    }
+
+    document.querySelectorAll('[data-session-delete]').forEach(function (button) {
+        button.addEventListener('click', function (event) {
+            event.preventDefault();
+            event.stopPropagation();
+            deleteSession(
+                parseInt(button.getAttribute('data-session-delete'), 10),
+                button.getAttribute('data-session-title') || ''
+            );
+        });
+    });
+
+    /* ============================ RAIL ============================ */
+
+    var shellEl = document.getElementById('assistantShell');
+    var railToggleBtn = document.getElementById('assistantRailToggle');
+    var railOpenBtn = document.getElementById('assistantRailOpen');
+    var railBackdrop = document.getElementById('assistantRailBackdrop');
+    var RAIL_KEY = 'mecanica-assistant-rail';
+
+    function isMobileRail() {
+        return window.matchMedia('(max-width: 991.98px)').matches;
+    }
+
+    function setRailCollapsed(collapsed) {
+        if (!shellEl || isMobileRail()) {
+            return;
+        }
+        shellEl.classList.toggle('is-collapsed', collapsed);
+        if (railToggleBtn) {
+            railToggleBtn.title = collapsed ? 'Expandir histórico' : 'Recolher histórico';
+            railToggleBtn.setAttribute('aria-label', railToggleBtn.title);
+        }
+        try {
+            localStorage.setItem(RAIL_KEY, collapsed ? '1' : '0');
+        } catch (e) {}
+    }
+
+    function toggleMobileRail(open) {
+        if (!shellEl) {
+            return;
+        }
+        shellEl.classList.toggle('is-rail-open', open);
+        if (railBackdrop) {
+            railBackdrop.hidden = !open;
+        }
+    }
+
+    if (shellEl) {
+        var savedRail = null;
+        try {
+            savedRail = localStorage.getItem(RAIL_KEY);
+        } catch (e) {}
+        if (savedRail === '1' && !isMobileRail()) {
+            setRailCollapsed(true);
+        }
+    }
+
+    if (railToggleBtn) {
+        railToggleBtn.addEventListener('click', function () {
+            if (isMobileRail()) {
+                toggleMobileRail(false);
+                return;
+            }
+            setRailCollapsed(!shellEl.classList.contains('is-collapsed'));
+        });
+    }
+
+    if (railOpenBtn) {
+        railOpenBtn.addEventListener('click', function () {
+            toggleMobileRail(true);
+        });
+    }
+
+    if (railBackdrop) {
+        railBackdrop.addEventListener('click', function () {
+            toggleMobileRail(false);
+        });
+    }
+
+    window.addEventListener('resize', function () {
+        if (!isMobileRail()) {
+            toggleMobileRail(false);
+        }
+    });
+
     if (copyAllBtn) {
         copyAllBtn.addEventListener('click', function () {
             var lines = [];
@@ -2288,33 +2450,30 @@
 
     /* ============================ INIT ============================ */
 
-    // Modelo e esforço (preferência do navegador).
-    (function initModelSelection() {
-        var savedModel = null;
-        var savedEffort = null;
+    // Modo de resposta (preferência do navegador).
+    (function initModeSelection() {
+        var savedMode = null;
         try {
-            savedModel = localStorage.getItem('mecanica-assistant-model');
-            savedEffort = localStorage.getItem('mecanica-assistant-effort');
+            savedMode = localStorage.getItem('mecanica-assistant-mode');
         } catch (e) {}
 
-        var known = (boot.models || []).filter(function (model) {
-            return model.id === savedModel;
-        })[0];
-        if (known) {
-            state.model = known.id;
+        var mode = modeByKey(savedMode);
+
+        if (!mode) {
+            // Compatibilidade com a preferência antiga (modelo + esforço).
+            var legacyModel = null;
+            var legacyEffort = null;
+            try {
+                legacyModel = localStorage.getItem('mecanica-assistant-model');
+                legacyEffort = localStorage.getItem('mecanica-assistant-effort');
+            } catch (e) {}
+
+            mode = modeFor(legacyModel, legacyEffort)
+                || modeByKey(boot.defaultMode)
+                || modes()[0];
         }
 
-        var model = currentModel();
-        var options = effortOptions(model);
-        var validEffort = options.filter(function (option) {
-            return option.value === savedEffort;
-        })[0];
-
-        state.effort = validEffort
-            ? validEffort.value
-            : (model.default_effort || (options[0] && options[0].value) || '');
-
-        updateModelUi();
+        applyMode(mode);
     })();
 
     if (modelBtn) {

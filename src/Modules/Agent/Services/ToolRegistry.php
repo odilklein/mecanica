@@ -15,6 +15,7 @@ namespace Modules\Agent\Services;
 
 use Kernel\Auth\Auth;
 use Modules\Mechanic\Support\OrderAccess;
+use Modules\Mechanic\Support\PartOrderStatus;
 use Modules\Mechanic\Support\ServiceOrderStatus;
 use PDO;
 use RuntimeException;
@@ -40,6 +41,7 @@ class ToolRegistry
     private const ROLES = [
         'buscar_os' => null,
         'detalhar_os' => null,
+        'buscar_pedidos_pecas' => null,
         'buscar_cliente' => ['admin', 'secretary', 'lead_mechanic'],
         'buscar_veiculo' => ['admin', 'secretary', 'lead_mechanic'],
         'resumo_operacional' => ['admin', 'secretary', 'lead_mechanic'],
@@ -50,6 +52,7 @@ class ToolRegistry
         'propor_abrir_os' => ['admin', 'secretary', 'lead_mechanic'],
         'propor_cadastro_cliente' => ['admin', 'secretary', 'lead_mechanic'],
         'propor_pedido_pecas' => null,
+        'propor_status_pedido_peca' => ['admin', 'secretary', 'lead_mechanic'],
         'propor_status_os' => ['admin', 'secretary', 'lead_mechanic'],
     ];
 
@@ -83,9 +86,21 @@ class ToolRegistry
                     'required' => ['os'],
                 ],
             ],
-            'buscar_cliente' => [
-                'description' => 'Busca clientes por nome, CPF, telefone, e-mail ou cidade.',
+            'buscar_pedidos_pecas' => [
+                'description' => 'Lista pedidos de peças por cliente, OS, placa, item ou id do pedido, com itens e status. Use para responder se existe pedido de peça para um cliente ou quais pedidos estão pendentes.',
                 'parameters' => [
+                    'type' => 'object',
+                    'properties' => [
+                        'termo' => ['type' => 'string', 'description' => 'Nome do cliente, número da OS, placa, descrição do item ou id do pedido.'],
+                        'status' => ['type' => 'string', 'enum' => array_keys(PartOrderStatus::STATUSES)],
+                        'pendentes' => ['type' => 'boolean', 'description' => 'Quando verdadeiro, mostra apenas pedidos ainda não recebidos nem cancelados.'],
+                        'limite' => ['type' => 'integer', 'minimum' => 1, 'maximum' => 20],
+                    ],
+                    'required' => [],
+                ],
+            ],
+            'buscar_cliente' => [
+                'description' => 'Busca clientes por nome, CPF, telefone, e-mail ou cidade.',                'parameters' => [
                     'type' => 'object',
                     'properties' => [
                         'termo' => ['type' => 'string'],
@@ -242,6 +257,18 @@ class ToolRegistry
                     'required' => ['os', 'items'],
                 ],
             ],
+            'propor_status_pedido_peca' => [
+                'description' => 'Cria uma PROPOSTA de mudança de status de um PEDIDO DE PEÇAS (não da OS), respeitando o fluxo Solicitado → Validado → Pedido → A caminho → Recebido. Use o id do pedido retornado por buscar_pedidos_pecas.',
+                'parameters' => [
+                    'type' => 'object',
+                    'properties' => [
+                        'pedido_id' => ['type' => 'integer', 'description' => 'ID interno do pedido de peças. Não use o número da OS.'],
+                        'os' => ['type' => 'string', 'description' => 'Opcional. Número da OS do pedido; usado para conferir se o pedido é o certo.'],
+                        'status' => ['type' => 'string', 'enum' => array_keys(PartOrderStatus::STATUSES)],
+                    ],
+                    'required' => ['pedido_id', 'status'],
+                ],
+            ],
             'propor_status_os' => [
                 'description' => 'Cria uma PROPOSTA de mudança de status da OS, respeitando o fluxo permitido.',
                 'parameters' => [
@@ -358,7 +385,15 @@ class ToolRegistry
         }
 
         $sql = 'SELECT so.id, so.number, so.status, so.priority, so.entry_date, so.initial_complaint,
-                       c.name AS client_name, v.plate, v.model, u.name AS lead_name
+                       c.name AS client_name, v.plate, v.model, u.name AS lead_name,
+                       (SELECT COUNT(*) FROM part_orders po
+                         WHERE po.service_order_id = so.id
+                           AND po.status IN (\'requested\',\'validated\',\'ordered\',\'on_the_way\')) AS open_parts,
+                       (SELECT GROUP_CONCAT(CONCAT(i.description, \' x\', i.quantity) SEPARATOR \', \')
+                          FROM part_orders po
+                          JOIN part_order_items i ON i.part_order_id = po.id
+                         WHERE po.service_order_id = so.id
+                           AND po.status IN (\'requested\',\'validated\',\'ordered\',\'on_the_way\')) AS open_part_items
                   FROM service_orders so
                   LEFT JOIN clients c ON c.id = so.client_id
                   LEFT JOIN vehicles v ON v.id = so.vehicle_id
@@ -379,11 +414,16 @@ class ToolRegistry
         $tableRows = [];
         $lines = [];
         foreach ($rows as $row) {
+            $openParts = (int) ($row['open_parts'] ?? 0);
+            $partsText = $openParts > 0
+                ? ($row['open_part_items'] ?: $openParts . ' pedido(s)')
+                : '—';
             $tableRows[] = [
                 'number' => '#' . str_pad((string) $row['number'], 4, '0', STR_PAD_LEFT),
                 'id' => (int) $row['id'],
                 'client' => (string) ($row['client_name'] ?: '—'),
                 'vehicle' => trim((string) ($row['plate'] ?? '') . ' ' . (string) ($row['model'] ?? '')),
+                'parts' => $partsText,
                 'status' => ServiceOrderStatus::label((string) $row['status']),
                 'status_raw' => (string) $row['status'],
                 'priority' => ServiceOrderStatus::priorityLabel((string) $row['priority']),
@@ -391,7 +431,8 @@ class ToolRegistry
             ];
             $lines[] = '#' . $row['number'] . ' — ' . ($row['client_name'] ?: 'sem cliente')
                 . ' — ' . ServiceOrderStatus::label((string) $row['status'])
-                . ' — ' . ($row['plate'] ?: 'sem placa');
+                . ' — ' . ($row['plate'] ?: 'sem placa')
+                . ($openParts > 0 ? ' — peças em aberto: ' . $partsText : '');
         }
 
         return [
@@ -404,11 +445,146 @@ class ToolRegistry
                     ['key' => 'number', 'label' => 'OS'],
                     ['key' => 'client', 'label' => 'Cliente'],
                     ['key' => 'vehicle', 'label' => 'Veículo'],
+                    ['key' => 'parts', 'label' => 'Peças'],
                     ['key' => 'status', 'label' => 'Status'],
                     ['key' => 'priority', 'label' => 'Prioridade'],
                 ],
                 'rows' => $tableRows,
                 'link' => ['key' => 'id', 'base' => '/service-orders/'],
+            ]],
+            'data' => ['ids' => array_map(static fn (array $r): int => (int) $r['id'], $rows)],
+        ];
+    }
+
+    /**
+     * Pedidos de peças por cliente, OS, placa ou item.
+     *
+     * @param array<string, mixed> $args
+     */
+    private function runBuscarPedidosPecas(array $args): array
+    {
+        $term = trim((string) ($args['termo'] ?? ''));
+        $status = (string) ($args['status'] ?? '');
+        $pendingOnly = !empty($args['pendentes']);
+        $limit = max(1, min(20, (int) ($args['limite'] ?? 10)));
+
+        [$scopeSql, $scopeParams] = OrderAccess::scopeSql($this->auth, 'so');
+        $where = ['1 = 1'];
+        $params = $scopeParams;
+
+        if ($status !== '' && isset(PartOrderStatus::STATUSES[$status])) {
+            $where[] = 'po.status = :status';
+            $params[':status'] = $status;
+        } elseif ($pendingOnly) {
+            $where[] = "po.status IN ('requested','validated','ordered','on_the_way')";
+        }
+
+        if ($term !== '') {
+            $conditions = [
+                'c.name LIKE :term_client',
+                'v.plate LIKE :term_plate',
+                'EXISTS (SELECT 1 FROM part_order_items pi WHERE pi.part_order_id = po.id AND pi.description LIKE :term_item)',
+            ];
+            $params[':term_client'] = '%' . $term . '%';
+            $params[':term_plate'] = '%' . $term . '%';
+            $params[':term_item'] = '%' . $term . '%';
+
+            $numericTerm = preg_replace('/^(?:os|pedido)?\s*#?\s*/i', '', $term);
+            if ($numericTerm !== '' && ctype_digit($numericTerm)) {
+                $conditions[] = 'so.number = :term_number';
+                $conditions[] = 'so.id = :term_order_id';
+                $conditions[] = 'po.id = :term_part_order_id';
+                $params[':term_number'] = (int) $numericTerm;
+                $params[':term_order_id'] = (int) $numericTerm;
+                $params[':term_part_order_id'] = (int) $numericTerm;
+            }
+
+            $where[] = '(' . implode(' OR ', $conditions) . ')';
+        }
+
+        if ($scopeSql !== '') {
+            $where[] = $scopeSql;
+        }
+
+        $sql = "SELECT po.id, po.status, po.supplier, po.expected_date, po.created_at,
+                       so.id AS order_id, so.number AS order_number,
+                       c.name AS client_name, v.plate, v.model,
+                       GROUP_CONCAT(CONCAT(i.description, ' x', i.quantity) SEPARATOR ', ') AS items
+                  FROM part_orders po
+                  JOIN service_orders so ON so.id = po.service_order_id
+                  LEFT JOIN clients c ON c.id = so.client_id
+                  LEFT JOIN vehicles v ON v.id = so.vehicle_id
+                  LEFT JOIN part_order_items i ON i.part_order_id = po.id
+                 WHERE " . implode(' AND ', $where) . "
+                 GROUP BY po.id, po.status, po.supplier, po.expected_date, po.created_at,
+                          so.id, so.number, c.name, v.plate, v.model
+                 ORDER BY po.id DESC
+                 LIMIT " . $limit;
+
+        $stmt = $this->pdo->prepare($sql);
+        $stmt->execute($params);
+        $rows = $stmt->fetchAll();
+
+        if (!$rows) {
+            return ['ok' => true, 'summary' => 'Nenhum pedido de peça encontrado para esse critério.'];
+        }
+
+        $lines = [];
+        $tableRows = [];
+        foreach ($rows as $row) {
+            $order = '#' . str_pad((string) $row['order_number'], 4, '0', STR_PAD_LEFT);
+            $statusLabel = PartOrderStatus::label((string) $row['status']);
+            $items = trim((string) ($row['items'] ?? '')) ?: 'sem itens';
+            $supplier = trim((string) ($row['supplier'] ?? ''));
+
+            $lines[] = 'Pedido ' . (int) $row['id'] . ' — ' . $order . ' — ' . ($row['client_name'] ?: 'sem cliente')
+                . ' — ' . $statusLabel . ': ' . $items
+                . ($supplier !== '' ? ' (' . $supplier . ')' : '');
+
+            $tableRows[] = [
+                'id' => (int) $row['id'],
+                'pedido' => '#' . (int) $row['id'],
+                'order' => $order,
+                'client' => (string) ($row['client_name'] ?: '—'),
+                'vehicle' => trim((string) ($row['plate'] ?? '') . ' ' . (string) ($row['model'] ?? '')),
+                'items' => $items,
+                'status' => $statusLabel,
+                'supplier' => $supplier !== '' ? $supplier : '—',
+            ];
+        }
+
+        $clientCounts = array_filter(
+            array_count_values(array_map(
+                static fn (array $row): string => (string) ($row['client_name'] ?? ''),
+                $rows
+            )),
+            static fn (int $n): bool => $n > 1
+        );
+        $multipleClients = array_keys($clientCounts);
+
+        $summary = count($rows) . " pedido(s) de peça:\n" . implode("\n", $lines);
+        if ($multipleClients) {
+            $summary .= "\nAtenção: há mais de um pedido para " . implode(', ', $multipleClients)
+                . '. Confirme o id do pedido antes de alterar.';
+        }
+
+        return [
+            'ok' => true,
+            'summary' => $summary,
+            'renders' => [[
+                'type' => 'table',
+                'title' => 'Pedidos de peças',
+                'columns' => [
+                    ['key' => 'pedido', 'label' => 'Pedido'],
+                    ['key' => 'order', 'label' => 'OS'],
+                    ['key' => 'client', 'label' => 'Cliente'],
+                    ['key' => 'vehicle', 'label' => 'Veículo'],
+                    ['key' => 'items', 'label' => 'Itens'],
+                    ['key' => 'status', 'label' => 'Status'],
+                    ['key' => 'supplier', 'label' => 'Fornecedor'],
+                ],
+                'rows' => $tableRows,
+                'link' => ['key' => 'id', 'base' => '/part-orders/'],
             ]],
             'data' => ['ids' => array_map(static fn (array $r): int => (int) $r['id'], $rows)],
         ];
@@ -1285,6 +1461,120 @@ class ToolRegistry
             'ok' => true,
             'summary' => 'Proposta criada: pedido de ' . count($items) . ' item(ns) para a OS #' . $order['number']
                 . '. Nada foi gravado; aguarda aprovação.',
+            'renders' => [[
+                'type' => 'proposal',
+                'proposal' => $this->proposalCard($proposal),
+            ]],
+            'proposal_id' => (int) $proposal['id'],
+        ];
+    }
+
+    /** @param array<string, mixed> $args */
+    private function runProporStatusPedidoPeca(array $args): array
+    {
+        $partOrderId = (int) ($args['pedido_id'] ?? 0);
+        $osRef = trim((string) ($args['os'] ?? ''));
+        $to = (string) ($args['status'] ?? '');
+
+        if ($partOrderId <= 0) {
+            return ['ok' => false, 'summary' => 'Informe o id do pedido de peças retornado pela consulta.'];
+        }
+        if (!isset(PartOrderStatus::STATUSES[$to])) {
+            return ['ok' => false, 'summary' => 'Status de pedido inválido.'];
+        }
+
+        $stmt = $this->pdo->prepare(
+            'SELECT po.*, so.number AS order_number, so.created_by AS os_created_by,
+                    so.lead_mechanic_id, c.name AS client_name, v.plate
+               FROM part_orders po
+               JOIN service_orders so ON so.id = po.service_order_id
+               LEFT JOIN clients c ON c.id = so.client_id
+               LEFT JOIN vehicles v ON v.id = so.vehicle_id
+              WHERE po.id = :id'
+        );
+        $stmt->execute([':id' => $partOrderId]);
+        $partOrder = $stmt->fetch();
+
+        if (!$partOrder) {
+            return ['ok' => false, 'summary' => 'Pedido de peças não encontrado.'];
+        }
+
+        // O vínculo do pedido com a OS é feito pelo próprio pedido. A OS
+        // informada serve como conferência; se apontar para outra OS existente,
+        // a ação é recusada. Se não existir, vale o vínculo do pedido.
+        $orderId = (int) $partOrder['service_order_id'];
+        if ($osRef !== '') {
+            $informedOrder = $this->resolveOrder($osRef);
+            if ($informedOrder && (int) $informedOrder['id'] !== $orderId) {
+                return [
+                    'ok' => false,
+                    'summary' => 'O pedido #' . $partOrderId . ' pertence à OS #'
+                        . str_pad((string) $partOrder['order_number'], 4, '0', STR_PAD_LEFT)
+                        . ', não à OS informada. Confirme o pedido correto.',
+                ];
+            }
+        }
+
+        if (!OrderAccess::canAccessOrderId($this->pdo, $this->auth, $orderId)) {
+            return ['ok' => false, 'summary' => 'Você não tem acesso a este pedido.'];
+        }
+
+        $from = (string) $partOrder['status'];
+        if ($from === $to) {
+            return ['ok' => false, 'summary' => 'Este pedido já está como "' . PartOrderStatus::label($from) . '".'];
+        }
+
+        if (!PartOrderStatus::canTransition($from, $to)) {
+            $next = PartOrderStatus::next($from);
+            return [
+                'ok' => false,
+                'summary' => 'O pedido está como "' . PartOrderStatus::label($from) . '". '
+                    . ($next
+                        ? 'O próximo passo permitido é: ' . implode(', ', array_map([PartOrderStatus::class, 'label'], $next)) . '.'
+                        : 'Este pedido está em estado final.'),
+            ];
+        }
+
+        $osLabel = '#' . str_pad((string) $partOrder['order_number'], 4, '0', STR_PAD_LEFT);
+        $payload = [
+            'part_order_id' => $partOrderId,
+            'from' => $from,
+            'to' => $to,
+        ];
+        $preview = [
+            'kind' => 'part_status_change',
+            'title' => 'Alterar status do pedido de peças',
+            'subtitle' => 'Pedido #' . $partOrderId . ' · OS ' . $osLabel,
+            'risk' => $to === 'cancelled' ? 'high' : 'low',
+            'approve_label' => 'Confirmar mudança',
+            'fields' => [
+                ['label' => 'Pedido', 'value' => '#' . $partOrderId],
+                ['label' => 'OS', 'value' => $osLabel],
+                ['label' => 'Cliente', 'value' => (string) ($partOrder['client_name'] ?? '—')],
+                ['label' => 'Fornecedor', 'value' => (string) ($partOrder['supplier'] ?: '—')],
+                ['label' => 'De', 'value' => PartOrderStatus::label($from)],
+                ['label' => 'Para', 'value' => PartOrderStatus::label($to)],
+            ],
+            'items' => [],
+            'warnings' => $to === 'cancelled' ? ['Cancelar o pedido é uma ação de impacto.'] : [],
+            'tasks' => [],
+        ];
+
+        $proposal = $this->proposals->create(
+            (int) ($args['__session_id'] ?? 0),
+            (int) $this->auth->id(),
+            'propor_status_pedido_peca',
+            $payload,
+            $preview,
+            'partstatus:' . $partOrderId,
+            false
+        );
+
+        return [
+            'ok' => true,
+            'summary' => 'Proposta criada: mudar o pedido #' . $partOrderId . ' (OS ' . $osLabel . ') de "'
+                . PartOrderStatus::label($from) . '" para "' . PartOrderStatus::label($to)
+                . '". Aguarda aprovação.',
             'renders' => [[
                 'type' => 'proposal',
                 'proposal' => $this->proposalCard($proposal),

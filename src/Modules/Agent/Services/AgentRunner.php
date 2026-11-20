@@ -131,7 +131,7 @@ class AgentRunner
                 };
             }
 
-            $response = $this->llm->stream(
+            $response = $this->streamWithRetry(
                 $messages,
                 $tools,
                 [
@@ -143,7 +143,8 @@ class AgentRunner
                 static function (string $delta) use ($emit): bool {
                     return $emit('delta', ['text' => $delta]) !== false;
                 },
-                $onReasoning
+                $onReasoning,
+                $emit
             );
 
             $usage['in'] += $response['usage']['in'];
@@ -519,6 +520,61 @@ class AgentRunner
         return $messages;
     }
 
+    /**
+     * Repete a chamada quando o provedor sinaliza limite de uso.
+     * Avisa no chat e espera um intervalo mínimo antes de tentar de novo.
+     *
+     * @param array<int, array<string, mixed>> $messages
+     * @param array<int, array<string, mixed>> $tools
+     * @param array<string, mixed> $options
+     * @return array<string, mixed>
+     */
+    private function streamWithRetry(
+        array $messages,
+        array $tools,
+        array $options,
+        callable $onDelta,
+        ?callable $onReasoning,
+        callable $emit
+    ): array {
+        $retries = max(0, min(3, (int) env('LLM_RATE_LIMIT_RETRIES', '1')));
+        $minWait = max(1, min(60, (int) env('LLM_RATE_LIMIT_MIN_WAIT', '10')));
+
+        for ($attempt = 0; ; $attempt++) {
+            try {
+                return $this->llm->stream($messages, $tools, $options, $onDelta, $onReasoning);
+            } catch (RuntimeException $e) {
+                if (!str_contains($e->getMessage(), 'Limite de uso do provedor') || $attempt >= $retries) {
+                    throw $e;
+                }
+
+                $seconds = self::rateLimitWait($e->getMessage(), $minWait);
+                $emit('notice', [
+                    'message' => 'O provedor de IA está limitando as solicitações. Tentando novamente em '
+                        . $seconds . ' segundos.',
+                ]);
+                sleep($seconds);
+            }
+        }
+    }
+
+    private static function rateLimitWait(string $message, int $minimum): int
+    {
+        $seconds = 0;
+
+        if (preg_match('/cerca de ([0-9.]+)\s*(ms|s|m)/i', $message, $match)) {
+            $value = (float) $match[1];
+            $unit = strtolower($match[2]);
+            $seconds = $unit === 'ms'
+                ? (int) ceil($value / 1000)
+                : ($unit === 'm' ? (int) ceil($value * 60) : (int) ceil($value));
+        }
+
+        $seconds = $seconds > 0 ? $seconds + 1 : $minimum;
+
+        return max($minimum, min(60, $seconds));
+    }
+
     private function systemPrompt(int $userId): string
     {
         $user = $this->auth->user() ?? ['name' => 'Usuário', 'role' => 'mechanic'];
@@ -551,6 +607,10 @@ CRIAÇÃO VS BUSCA
 
 TOM E VARIEDADE
 - Varie a abertura e a estrutura das respostas. Não comece sempre com "Claro", "Encontrei" ou "Aqui está".
+- Escreva como uma pessoa da oficina falaria: frases diretas, sem bordão de texto gerado por IA.
+- Evite fórmulas vazias como "não é apenas X, é Y", "no fim do dia", "vale destacar", "é importante ressaltar", "de forma abrangente", "solução completa", "robusto" e "poderoso". Se a frase não acrescenta um fato, corte.
+- Não empilhe três itens só para preencher a frase e não use travessão como conectivo universal.
+- Não repita a pergunta do usuário antes de responder nem feche com um resumo do que você acabou de dizer.
 - Não narre as ferramentas ("consultando...", "buscando...") — a interface já mostra a timeline.
 - Uma informação simples pede uma frase. Não use lista para um item único e não repita os dados que já estão em cartões.
 - Quando fizer sentido, sugira o próximo passo concreto em vez de terminar com uma pergunta genérica.
@@ -562,6 +622,10 @@ AÇÕES E APROVAÇÃO
 
 PEÇAS E VEÍCULO
 - Quando o pedido envolver peça (óleo, filtro, freio, suspensão, correia...), primeiro identifique o veículo pela OS ou placa.
+- Se o usuário perguntar se existe pedido de peça para um cliente, OS ou placa, use buscar_pedidos_pecas. Não conclua que não há pedido sem consultar essa ferramenta.
+- Pedido de peças e OS são coisas diferentes. Para mudar o status de um pedido, use propor_status_pedido_peca com o id do pedido retornado por buscar_pedidos_pecas. Nunca use propor_status_os para pedido de peças.
+- Se houver mais de um pedido para o mesmo cliente, não escolha por conta própria: confirme qual pedido (OS ou id) antes de propor a mudança.
+- O fluxo do pedido é Solicitado → Validado → Pedido → A caminho → Recebido. Se o usuário pedir para pular etapa, explique o próximo passo permitido em vez de alterar a OS.
 - Se o usuário já informou o número da OS, chame buscar_pecas_veiculo direto com esse número. Não chame buscar_os nem detalhar_os antes; isso gasta tempo e limite.
 - Consulte a ficha técnica com ficha_veiculo antes de indicar óleo, viscosidade ou código de filtro.
 - Use buscar_pecas_veiculo com a descrição do mecânico, mesmo genérica ("amortecedor dianteiro de alta performance"). O sistema cruza com o veículo, busca ofertas reais e mostra um cartão para o mecânico escolher.
@@ -616,6 +680,7 @@ PROMPT;
         return [
             'buscar_os' => 'Consultando ordens de serviço',
             'detalhar_os' => 'Abrindo detalhe da OS',
+            'buscar_pedidos_pecas' => 'Consultando pedidos de peças',
             'buscar_cliente' => 'Consultando clientes',
             'buscar_veiculo' => 'Consultando veículos',
             'resumo_operacional' => 'Montando resumo do dia',
@@ -625,6 +690,7 @@ PROMPT;
             'salvar_ficha_veiculo' => 'Salvando ficha técnica',
             'propor_abrir_os' => 'Preparando proposta de OS',
             'propor_pedido_pecas' => 'Preparando pedido de peças',
+            'propor_status_pedido_peca' => 'Preparando mudança do pedido de peças',
             'propor_status_os' => 'Preparando mudança de status',
         ][$name] ?? $name;
     }

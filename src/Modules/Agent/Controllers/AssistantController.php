@@ -91,7 +91,7 @@ class AssistantController extends Controller
             'pageStyles' => ['/css/assistant.css'],
             'pageScripts' => ['/js/assistant-audio.js', '/js/assistant.js'],
             'session' => $session,
-            'sessions' => $this->store->sessions($userId, 15),
+            'sessions' => $this->store->sessions($userId, 40),
             'messages' => $messages,
             'proposals' => $proposals,
             'proposalIndex' => $proposalIndex,
@@ -100,6 +100,8 @@ class AssistantController extends Controller
             'mock' => $this->llm->mock(),
             'model' => $this->llm->model(),
             'models' => ModelCatalog::forFront(),
+            'modes' => ModelCatalog::modesForFront(),
+            'defaultMode' => ModelCatalog::defaultMode(),
             'canReasoning' => $this->auth->hasRole(['admin']),
             'audioEnabled' => trim((string) env('GROQ_API_KEY', '')) !== '',
             'attachmentLimits' => [
@@ -108,8 +110,8 @@ class AssistantController extends Controller
                 'max_images' => AttachmentService::MAX_IMAGES_PER_TURN,
             ],
             'limits' => [
-                'hour' => max(1, (int) env('AGENT_MAX_TURNS_HOUR', '30')),
-                'day' => max(1, (int) env('AGENT_MAX_TURNS_DAY', '200')),
+                'hour' => max(1, (int) env('AGENT_MAX_TURNS_HOUR', '120')),
+                'day' => max(1, (int) env('AGENT_MAX_TURNS_DAY', '1000')),
                 'turns_today' => $usage['turns'],
                 'tokens_today' => $usage['tokens_in'] + $usage['tokens_out'],
             ],
@@ -252,6 +254,78 @@ class AssistantController extends Controller
         $this->store->archive((int) $id, (int) $this->auth->id());
 
         return json_response(['ok' => true]);
+    }
+
+    /**
+     * Exclui uma conversa do usuário (mensagens, anexos e pendências).
+     * Retorna a conversa ativa para onde a interface deve navegar.
+     */
+    public function deleteSession(ServerRequestInterface $request, string $id)
+    {
+        if ($response = $this->guardAuthJson()) {
+            return $response;
+        }
+        if (!$this->csrfOk($request)) {
+            return json_response(['error' => 'csrf'], 403);
+        }
+
+        $userId = (int) $this->auth->id();
+        $sessionId = (int) $id;
+
+        if (!$this->store->findSession($sessionId, $userId)) {
+            return json_response(['error' => 'not_found'], 404);
+        }
+
+        $this->purgeSessions($userId, [$sessionId]);
+
+        return json_response([
+            'ok' => true,
+            'session_id' => (int) ($this->store->activeSession($userId)['id'] ?? 0),
+        ]);
+    }
+
+    /**
+     * Exclui todas as conversas do usuário.
+     */
+    public function deleteAllSessions(ServerRequestInterface $request)
+    {
+        if ($response = $this->guardAuthJson()) {
+            return $response;
+        }
+        if (!$this->csrfOk($request)) {
+            return json_response(['error' => 'csrf'], 403);
+        }
+
+        $userId = (int) $this->auth->id();
+        $this->purgeSessions($userId, $this->store->sessionIds($userId));
+
+        return json_response(['ok' => true, 'session_id' => 0]);
+    }
+
+    /**
+     * Remove conversas por completo: anexos + arquivos, propostas pendentes
+     * e, por último, as sessões (mensagens caem por cascade).
+     *
+     * @param int[] $sessionIds
+     */
+    private function purgeSessions(int $userId, array $sessionIds): void
+    {
+        if (!$sessionIds) {
+            return;
+        }
+
+        $this->pdo->beginTransaction();
+        try {
+            $this->attachments->purgeSessions($userId, $sessionIds);
+            $this->store->deletePendingProposals($userId, $sessionIds);
+            $this->store->deleteSessions($userId, $sessionIds);
+            $this->pdo->commit();
+        } catch (Throwable $e) {
+            if ($this->pdo->inTransaction()) {
+                $this->pdo->rollBack();
+            }
+            throw $e;
+        }
     }
 
     // =========================================================
@@ -397,7 +471,7 @@ class AssistantController extends Controller
      */
     private function prefillLimit(): ?string
     {
-        return $this->sessionLimit('agent_prefill', 30, 'Muitas extrações em sequência. Aguarde alguns minutos.');
+        return $this->sessionLimit('agent_prefill', 60, 'Muitas extrações em sequência. Aguarde alguns minutos.');
     }
 
     private function sessionLimit(string $key, int $max, string $message): ?string
@@ -431,7 +505,7 @@ class AssistantController extends Controller
         if (!$this->llm->enabled()) {
             return json_response(['error' => 'A IA não está configurada.'], 503);
         }
-        if ($limit = $this->sessionLimit('agent_enhance', 60, 'Muitos textos em sequência. Aguarde alguns minutos.')) {
+        if ($limit = $this->sessionLimit('agent_enhance', 120, 'Muitos textos em sequência. Aguarde alguns minutos.')) {
             return json_response(['error' => $limit], 429);
         }
 
@@ -491,7 +565,7 @@ class AssistantController extends Controller
         if (!$this->llm->enabled()) {
             return json_response(['error' => 'A IA não está configurada.'], 503);
         }
-        if ($limit = $this->sessionLimit('agent_message', 20, 'Muitas mensagens em sequência. Aguarde alguns minutos.')) {
+        if ($limit = $this->sessionLimit('agent_message', 60, 'Muitas mensagens em sequência. Aguarde alguns minutos.')) {
             return json_response(['error' => $limit], 429);
         }
 
@@ -790,8 +864,8 @@ class AssistantController extends Controller
 
     private function checkRateLimit(int $userId): ?string
     {
-        $perHour = max(1, (int) env('AGENT_MAX_TURNS_HOUR', '30'));
-        $perDay = max(1, (int) env('AGENT_MAX_TURNS_DAY', '200'));
+        $perHour = max(1, (int) env('AGENT_MAX_TURNS_HOUR', '120'));
+        $perDay = max(1, (int) env('AGENT_MAX_TURNS_DAY', '1000'));
 
         if ($this->store->turnsLastHour($userId) >= $perHour) {
             return 'Limite de ' . $perHour . ' mensagens por hora atingido. Tente novamente mais tarde.';

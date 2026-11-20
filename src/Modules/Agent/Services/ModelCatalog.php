@@ -54,10 +54,76 @@ final class ModelCatalog
         ],
     ];
 
+    /**
+     * Modos do assistente exibidos no seletor do chat.
+     * Cada modo aponta para um modelo e um nível de esforço.
+     */
+    public const MODES = [
+        'fast' => [
+            'label' => 'Rápido',
+            'hint' => 'GPT-OSS 20B · rápido e econômico',
+            'model' => 'openai/gpt-oss-20b',
+            'effort' => 'low',
+        ],
+        'balanced' => [
+            'label' => 'Equilibrado',
+            'hint' => 'GPT-OSS 120B · mais contexto e análise',
+            'model' => 'openai/gpt-oss-120b',
+            'effort' => 'medium',
+        ],
+        'deep' => [
+            'label' => 'Profundo',
+            'hint' => 'GPT-OSS 120B · análise aprofundada',
+            'model' => 'openai/gpt-oss-120b',
+            'effort' => 'high',
+        ],
+    ];
+
     /** @return array<string, array<string, mixed>> */
     public static function all(): array
     {
         return self::MODELS;
+    }
+
+    /**
+     * Modo padrão conforme o modelo configurado no ambiente.
+     */
+    public static function defaultMode(): string
+    {
+        $model = self::default();
+        $effort = (string) (self::MODELS[$model]['default_effort'] ?? 'low');
+
+        foreach (self::MODES as $key => $mode) {
+            if ($mode['model'] === $model && $mode['effort'] === $effort) {
+                return $key;
+            }
+        }
+
+        return 'fast';
+    }
+
+    /**
+     * Modos prontos para o seletor do chat.
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    public static function modesForFront(): array
+    {
+        $default = self::defaultMode();
+        $items = [];
+
+        foreach (self::MODES as $key => $mode) {
+            $items[] = [
+                'key' => $key,
+                'label' => $mode['label'],
+                'hint' => $mode['hint'],
+                'model' => $mode['model'],
+                'effort' => $mode['effort'],
+                'is_default' => $key === $default,
+            ];
+        }
+
+        return $items;
     }
 
     /** @return array<string, mixed>|null */

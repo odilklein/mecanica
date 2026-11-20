@@ -12,8 +12,10 @@ declare(strict_types=1);
 namespace Modules\Agent\Services;
 
 use Kernel\Auth\Auth;
+use Modules\Core\Support\Notify;
 use Modules\Mechanic\Services\TicketService;
 use Modules\Mechanic\Support\OrderAccess;
+use Modules\Mechanic\Support\PartOrderStatus;
 use Modules\Mechanic\Support\ServiceOrderStatus;
 use PDO;
 use RuntimeException;
@@ -32,6 +34,7 @@ class ProposalService
         'propor_cadastro_cliente' => ['admin', 'secretary', 'lead_mechanic'],
         'propor_pedido_pecas' => null,
         'propor_status_os' => ['admin', 'secretary', 'lead_mechanic'],
+        'propor_status_pedido_peca' => ['admin', 'secretary', 'lead_mechanic'],
     ];
 
     public function __construct(PDO $pdo, Auth $auth)
@@ -337,6 +340,7 @@ class ProposalService
                 'propor_cadastro_cliente' => $this->applyCreateClient($payload, $userId),
                 'propor_pedido_pecas' => $this->applyPartOrder($payload, $userId),
                 'propor_status_os' => $this->applyStatusChange($payload, $userId),
+                'propor_status_pedido_peca' => $this->applyPartOrderStatusChange($payload, $userId),
                 default => throw new RuntimeException('Tipo de proposta desconhecido.'),
             };
 
@@ -683,6 +687,110 @@ class ProposalService
             'message' => 'OS #' . str_pad((string) $order['number'], 4, '0', STR_PAD_LEFT)
                 . ' agora está em "' . ServiceOrderStatus::label($to) . '".',
             'url' => '/service-orders/' . $orderId,
+            'status' => $to,
+        ];
+    }
+
+    /**
+     * Aplica a mudança de status de um pedido de peças já aprovada.
+     *
+     * @param array<string, mixed> $payload
+     * @return array<string, mixed>
+     */
+    private function applyPartOrderStatusChange(array $payload, int $userId): array
+    {
+        $partOrderId = (int) ($payload['part_order_id'] ?? 0);
+        $from = (string) ($payload['from'] ?? '');
+        $to = (string) ($payload['to'] ?? '');
+
+        if (!isset(PartOrderStatus::STATUSES[$to])) {
+            throw new RuntimeException('Status do pedido inválido.');
+        }
+
+        $stmt = $this->pdo->prepare(
+            'SELECT po.id, po.status, po.supplier, po.created_by, po.service_order_id,
+                    so.number AS order_number, so.created_by AS os_created_by, so.lead_mechanic_id
+               FROM part_orders po
+               JOIN service_orders so ON so.id = po.service_order_id
+              WHERE po.id = :id'
+        );
+        $stmt->execute([':id' => $partOrderId]);
+        $partOrder = $stmt->fetch();
+
+        if (!$partOrder) {
+            throw new RuntimeException('Pedido de peças não encontrado.');
+        }
+
+        $orderId = (int) $partOrder['service_order_id'];
+        if (!OrderAccess::canAccessOrderId($this->pdo, $this->auth, $orderId)) {
+            throw new RuntimeException('Você não tem acesso a este pedido.');
+        }
+        if ((string) $partOrder['status'] !== $from) {
+            throw new RuntimeException('O status do pedido mudou desde a proposta. Peça novamente.');
+        }
+        if (!PartOrderStatus::canTransition($from, $to)) {
+            throw new RuntimeException(
+                'Transição não permitida: ' . PartOrderStatus::label($from) . ' → ' . PartOrderStatus::label($to)
+            );
+        }
+
+        $this->pdo->prepare(
+            'UPDATE part_orders
+                SET status = :st,
+                    received_by = :rb,
+                    received_at = :ra
+              WHERE id = :id'
+        )->execute([
+            ':st' => $to,
+            ':rb' => $to === 'received' ? $userId : null,
+            ':ra' => $to === 'received' ? date('Y-m-d H:i:s') : null,
+            ':id' => $partOrderId,
+        ]);
+
+        record_audit($this->pdo, $userId, 'part_orders', $partOrderId, 'status', [
+            'origin' => 'agent',
+            'from' => $from,
+            'to' => $to,
+        ]);
+
+        // Mantém o resumo da OS no ticket atualizado.
+        $tickets = new TicketService($this->pdo);
+        $ticket = $tickets->findByOrder($orderId);
+        if ($ticket) {
+            $tickets->ensureOrderSummary((int) $ticket['id'], $orderId);
+        }
+
+        $recipientIds = [
+            (int) ($partOrder['created_by'] ?? 0),
+            (int) ($partOrder['os_created_by'] ?? 0),
+            (int) ($partOrder['lead_mechanic_id'] ?? 0),
+        ];
+        $resp = $this->pdo->prepare('SELECT user_id FROM service_order_responsibles WHERE order_id = :o');
+        $resp->execute([':o' => $orderId]);
+        foreach ($resp->fetchAll(PDO::FETCH_COLUMN) as $responsibleId) {
+            $recipientIds[] = (int) $responsibleId;
+        }
+
+        $recipients = array_values(array_unique(array_filter(
+            $recipientIds,
+            static fn (int $id): bool => $id > 0 && $id !== $userId
+        )));
+
+        if ($recipients) {
+            Notify::to(
+                $this->pdo,
+                $recipients,
+                'part',
+                'Pedido #' . $partOrderId . ' da OS #' . str_pad((string) $partOrder['order_number'], 4, '0', STR_PAD_LEFT)
+                    . ': ' . PartOrderStatus::label($from) . ' → ' . PartOrderStatus::label($to) . '.',
+                '/part-orders/' . $partOrderId,
+                $userId
+            );
+        }
+
+        return [
+            'message' => 'Pedido #' . $partOrderId . ' agora está em "' . PartOrderStatus::label($to) . '".',
+            'url' => '/part-orders/' . $partOrderId,
             'status' => $to,
         ];
     }

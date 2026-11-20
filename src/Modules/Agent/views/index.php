@@ -3,6 +3,10 @@
 // ASSISTENTE — chat com streaming, reasoning,
 // anexos, timeline de ferramentas e propostas.
 //
+// Layout inspirado no chat do AI SDK (rail de
+// histórico recolhível + compositor arredondado),
+// usando os componentes e o tema do Vuexy.
+//
 // O estado inicial vai em JSON; o JS (assistant.js)
 // é o único responsável por renderizar mensagens.
 // =============================================
@@ -24,12 +28,15 @@ $bootstrap = [
     'csrf' => (string) $csrf,
     'endpoint' => '/assistant/stream',
     'newSessionUrl' => '/assistant/sessions',
+    'deleteAllUrl' => '/assistant/sessions/delete-all',
     'proposalsUrl' => '/assistant/proposals',
     'uploadUrl' => '/assistant/attachments',
     'enabled' => (bool) $configured,
     'mock' => (bool) $mock,
     'model' => (string) $model,
     'models' => $models,
+    'modes' => $modes,
+    'defaultMode' => $defaultMode,
     'canReasoning' => (bool) $canReasoning,
     'attachmentLimits' => $attachmentLimits,
     'role' => (string) ($user['role'] ?? ''),
@@ -41,79 +48,104 @@ $bootstrap = [
     'tools' => $tools,
 ];
 
+$defaultModeLabel = 'Rápido';
+foreach ($modes as $mode) {
+    if (($mode['key'] ?? '') === $defaultMode) {
+        $defaultModeLabel = (string) $mode['label'];
+        break;
+    }
+}
+
 $jsonFlags = JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT;
+$hasSessions = !empty($sessions);
 ?>
 <div class="assistant-page" id="assistantApp">
-    <div class="assistant-shell">
+    <div class="assistant-shell" id="assistantShell">
 
-        <aside class="assistant-rail">
+        <div class="assistant-rail-backdrop" id="assistantRailBackdrop" hidden></div>
+
+        <aside class="assistant-rail" id="assistantRail">
             <div class="assistant-rail-head">
                 <span class="assistant-orb" aria-hidden="true">
                     <i class="icon-base ti tabler-sparkles"></i>
                 </span>
-                <div>
+                <div class="assistant-rail-brand">
                     <strong>Assistente</strong>
-                    <span><?= e($mock ? 'modo demonstração' : $model) ?></span>
+                    <span>Assistente da oficina</span>
                 </div>
+                <button type="button" class="assistant-icon-btn assistant-rail-toggle" id="assistantRailToggle"
+                        title="Recolher histórico" aria-label="Recolher histórico">
+                    <i class="icon-base ti tabler-layout-sidebar-left-collapse"></i>
+                </button>
             </div>
 
-            <button type="button" class="assistant-new" id="assistantNew">
-                <i class="icon-base ti tabler-plus"></i>
-                <span class="assistant-new-label">Nova conversa</span>
-                <kbd>⇧K</kbd>
-            </button>
+            <div class="assistant-rail-actions">
+                <button type="button" class="assistant-new" id="assistantNew">
+                    <i class="icon-base ti tabler-edit"></i>
+                    <span class="assistant-new-label">Nova conversa</span>
+                    <kbd>⇧K</kbd>
+                </button>
+                <button type="button" class="assistant-delete-all" id="assistantDeleteAll"
+                        <?= $hasSessions ? '' : 'hidden' ?>>
+                    <i class="icon-base ti tabler-trash"></i>
+                    <span class="assistant-delete-label">Excluir tudo</span>
+                </button>
+            </div>
 
-            <div class="assistant-rail-section">
+            <div class="assistant-rail-section assistant-rail-history">
                 <div class="assistant-rail-title">
-                    Conversas
+                    <span>Conversas</span>
                     <span class="assistant-rail-hint"><?= count($sessions) ?></span>
                 </div>
                 <div class="assistant-sessions">
                     <?php foreach ($sessions as $item): ?>
-                        <?php $isCurrent = (int) $item['id'] === (int) $session['id']; ?>
-                        <a class="assistant-session <?= $isCurrent ? 'is-current' : '' ?>"
-                           href="/assistant?s=<?= (int) $item['id'] ?>">
-                            <i class="icon-base ti tabler-message-2"></i>
-                            <span class="assistant-session-text">
-                                <?= e($item['title'] ?: 'Conversa #' . (int) $item['id']) ?>
-                            </span>
-                            <?php if ((int) ($item['message_count'] ?? 0) > 0): ?>
-                                <span class="assistant-session-count"><?= (int) $item['message_count'] ?></span>
-                            <?php endif; ?>
-                        </a>
+                        <?php
+                        $isCurrent = (int) $item['id'] === (int) $session['id'];
+                        $sessionTitle = $item['title'] ?: 'Nova conversa';
+                        ?>
+                        <div class="assistant-session-row <?= $isCurrent ? 'is-current' : '' ?>">
+                            <a class="assistant-session <?= $isCurrent ? 'is-current' : '' ?>"
+                               href="/assistant?s=<?= (int) $item['id'] ?>"
+                               title="<?= e($sessionTitle) ?>">
+                                <i class="icon-base ti tabler-message-2"></i>
+                                <span class="assistant-session-text"><?= e($sessionTitle) ?></span>
+                                <?php if ((int) ($item['message_count'] ?? 0) > 0): ?>
+                                    <span class="assistant-session-count"><?= (int) $item['message_count'] ?></span>
+                                <?php endif; ?>
+                            </a>
+                            <button type="button" class="assistant-session-delete"
+                                    data-session-delete="<?= (int) $item['id'] ?>"
+                                    data-session-title="<?= e($sessionTitle) ?>"
+                                    title="Excluir conversa" aria-label="Excluir conversa">
+                                <i class="icon-base ti tabler-trash"></i>
+                            </button>
+                        </div>
                     <?php endforeach; ?>
+
+                    <?php if (!$hasSessions): ?>
+                        <div class="assistant-pending-empty">Nenhuma conversa ainda.</div>
+                    <?php endif; ?>
                 </div>
             </div>
 
             <div class="assistant-rail-section assistant-rail-pending">
                 <div class="assistant-rail-title">
-                    Pendências
+                    <span>Pendências</span>
                     <span class="assistant-rail-hint" id="assistantPendingCount"><?= count($proposals) ?></span>
                 </div>
                 <div id="assistantPending" class="assistant-pending">
                     <div class="assistant-pending-empty">Nada aguardando aprovação.</div>
                 </div>
             </div>
-
-            <div class="assistant-rail-foot">
-                <div class="assistant-meter">
-                    <span>Uso hoje</span>
-                    <strong id="assistantUsage">
-                        <?= (int) $limits['turns_today'] ?>/<?= (int) $limits['day'] ?>
-                    </strong>
-                </div>
-                <div class="assistant-meter-bar">
-                    <span id="assistantUsageBar" style="width: <?= min(100, (int) round(((int) $limits['turns_today'] / max(1, (int) $limits['day'])) * 100)) ?>%"></span>
-                </div>
-                <p class="assistant-rail-note">
-                    Toda alteração é uma proposta. Nada é gravado sem a sua aprovação.
-                </p>
-            </div>
         </aside>
 
         <section class="assistant-main">
             <header class="assistant-head">
                 <div class="assistant-head-title">
+                    <button type="button" class="assistant-icon-btn assistant-rail-open" id="assistantRailOpen"
+                            aria-label="Abrir histórico" title="Histórico">
+                        <i class="icon-base ti tabler-menu-2"></i>
+                    </button>
                     <span class="assistant-status-dot" id="assistantStatusDot"></span>
                     <div>
                         <h1>Assistente</h1>
@@ -128,12 +160,12 @@ $jsonFlags = JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APO
                     <?php if ($mock): ?>
                         <span class="assistant-chip assistant-chip-warn">demonstração</span>
                     <?php else: ?>
-                        <span class="assistant-chip" id="assistantModelChip"><?= e($model) ?></span>
+                        <span class="assistant-chip" id="assistantModelChip"><?= e($defaultModeLabel) ?></span>
                     <?php endif; ?>
-                    <button type="button" class="assistant-icon-btn d-lg-none" id="assistantNewMobile" title="Nova conversa">
+                    <button type="button" class="assistant-icon-btn d-lg-none" id="assistantNewMobile" title="Nova conversa" aria-label="Nova conversa">
                         <i class="icon-base ti tabler-plus"></i>
                     </button>
-                    <button type="button" class="assistant-icon-btn" id="assistantCopyAll" title="Copiar conversa">
+                    <button type="button" class="assistant-icon-btn" id="assistantCopyAll" title="Copiar conversa" aria-label="Copiar conversa">
                         <i class="icon-base ti tabler-copy"></i>
                     </button>
                 </div>
@@ -181,16 +213,11 @@ $jsonFlags = JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APO
 
                             <div class="assistant-model" id="assistantModel">
                                 <button type="button" class="assistant-model-btn" id="assistantModelBtn" aria-haspopup="listbox" aria-expanded="false">
-                                    <span id="assistantModelLabel">Modelo</span>
+                                    <i class="icon-base ti tabler-sparkles assistant-model-icon" aria-hidden="true"></i>
+                                    <span id="assistantModelLabel"><?= e($defaultModeLabel) ?></span>
                                     <i class="icon-base ti tabler-chevron-down"></i>
                                 </button>
                                 <div class="assistant-model-menu" id="assistantModelMenu" role="listbox" hidden></div>
-                            </div>
-
-                            <div class="assistant-effort" id="assistantEffort" role="group" aria-label="Esforço de raciocínio" hidden>
-                                <button type="button" data-effort="low" title="Resposta rápida">Rápido</button>
-                                <button type="button" data-effort="medium" title="Equilíbrio entre tempo e profundidade">Equilibrado</button>
-                                <button type="button" data-effort="high" title="Analisa com mais cuidado">Profundo</button>
                             </div>
                         </div>
 
@@ -211,7 +238,7 @@ $jsonFlags = JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APO
                                 <i class="icon-base ti tabler-microphone"></i>
                             </button>
 
-                            <button type="submit" class="assistant-send" id="assistantSend" aria-label="Enviar">
+                            <button type="submit" class="assistant-send" id="assistantSend" aria-label="Enviar" title="Enviar">
                                 <span>Enviar</span>
                                 <i class="icon-base ti tabler-arrow-up"></i>
                             </button>
@@ -226,6 +253,22 @@ $jsonFlags = JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APO
                 </div>
             </div>
         </section>
+    </div>
+</div>
+
+<div class="modal fade" id="assistantConfirm" tabindex="-1" aria-hidden="true" aria-labelledby="assistantConfirmTitle">
+    <div class="modal-dialog modal-dialog-centered modal-sm">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="assistantConfirmTitle">Confirmar</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+            </div>
+            <div class="modal-body" id="assistantConfirmText"></div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-label-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-danger" id="assistantConfirmOk">Excluir</button>
+            </div>
+        </div>
     </div>
 </div>
 

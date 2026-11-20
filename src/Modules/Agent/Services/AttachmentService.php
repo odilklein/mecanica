@@ -313,6 +313,52 @@ class AttachmentService
     }
 
     /**
+     * Remove anexos das conversas excluídas e os arquivos que ficarem órfãos.
+     *
+     * @param int[] $sessionIds
+     */
+    public function purgeSessions(int $userId, array $sessionIds): void
+    {
+        $ids = array_values(array_unique(array_filter(
+            array_map('intval', $sessionIds),
+            static fn (int $id): bool => $id > 0
+        )));
+        if (!$ids) {
+            return;
+        }
+
+        $placeholders = implode(',', array_fill(0, count($ids), '?'));
+        $params = array_merge([$userId], $ids);
+
+        $stmt = $this->pdo->prepare(
+            "SELECT storage_path FROM agent_attachments
+              WHERE user_id = ? AND session_id IN ({$placeholders})"
+        );
+        $stmt->execute($params);
+        $paths = array_values(array_unique(array_filter(
+            array_map('strval', $stmt->fetchAll(PDO::FETCH_COLUMN))
+        )));
+
+        $this->pdo->prepare(
+            "DELETE FROM agent_attachments
+              WHERE user_id = ? AND session_id IN ({$placeholders})"
+        )->execute($params);
+
+        $stillUsed = $this->pdo->prepare(
+            'SELECT COUNT(*) FROM agent_attachments WHERE storage_path = :p'
+        );
+        foreach ($paths as $path) {
+            $stillUsed->execute([':p' => $path]);
+            if ((int) $stillUsed->fetchColumn() === 0) {
+                $absolute = $this->baseDir . '/' . $path;
+                if (is_file($absolute)) {
+                    @unlink($absolute);
+                }
+            }
+        }
+    }
+
+    /**
      * Conteúdo textual dos anexos, delimitado como dado (não instrução).
      *
      * @param array<int, array<string, mixed>> $attachments
