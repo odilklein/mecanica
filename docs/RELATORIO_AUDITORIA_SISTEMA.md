@@ -384,7 +384,7 @@ Depois da auditoria inicial, cada seção foi revisada com correções de UX, re
 - Helpers de login e Turnstile migrados para `src/Modules/Core/Support/`.
 - O `docker-compose.yml` não monta mais `sql/` no initdb; um banco novo é criado por `php bin/migrate.php migrate` (27 migrations).
 - Tabelas legadas não usadas foram removidas pelas migrations `Core/0011` e `Core/0012` (backup em `/tmp/opencode/legacy-unused-tables-backup.sql`).
-- Documentação organizada em `docs/`; o material do TCC (trigger/view) foi preservado em `docs/apresentacao/` e não é usado pelo app em execução.
+- Documentação organizada em `docs/`; o material do TCC (trigger/view do banco legado) foi removido junto com o app antigo e permanece apenas no histórico do Git.
 - O banco atual mantém as tabelas/trigger/view legadas usadas pelo roteiro de apresentação; o app novo usa apenas as tabelas em inglês criadas pelas migrations.
 
 ---
