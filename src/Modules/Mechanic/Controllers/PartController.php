@@ -174,18 +174,18 @@ class PartController extends CrudController
         foreach ($rows as $row) {
             fputcsv($handle, [
                 (int) $row['id'],
-                (string) $row['name'],
-                (string) ($row['brand'] ?? ''),
-                (string) ($row['part_code'] ?? ''),
-                (string) ($row['sku'] ?? $row['cdp_sku'] ?? ''),
-                (string) ($row['category_name'] ?? $row['category'] ?? ''),
-                $row['price'] !== null ? number_format((float) $row['price'], 2, ',', '') : '',
-                $row['cost_price'] !== null ? number_format((float) $row['cost_price'], 2, ',', '') : '',
+                csv_cell($row['name']),
+                csv_cell($row['brand'] ?? ''),
+                csv_cell($row['part_code'] ?? ''),
+                csv_cell($row['sku'] ?? $row['cdp_sku'] ?? ''),
+                csv_cell($row['category_name'] ?? $row['category'] ?? ''),
+                csv_cell($row['price'] !== null ? number_format((float) $row['price'], 2, ',', '') : ''),
+                csv_cell($row['cost_price'] !== null ? number_format((float) $row['cost_price'], 2, ',', '') : ''),
                 (int) $row['stock'],
                 (int) $row['min_stock'],
-                self::STATUSES[$row['status']] ?? (string) $row['status'],
-                (string) ($row['supplier'] ?? ''),
-                (string) ($row['updated_at'] ?? ''),
+                csv_cell(self::STATUSES[$row['status']] ?? (string) $row['status']),
+                csv_cell($row['supplier'] ?? ''),
+                csv_cell($row['updated_at'] ?? ''),
             ], ';');
         }
 

@@ -278,9 +278,19 @@ class AttachmentService
      */
     public function absolutePath(array $attachment): ?string
     {
-        $path = $this->baseDir . '/' . (string) ($attachment['storage_path'] ?? '');
+        $base = realpath($this->baseDir);
+        $path = realpath($this->baseDir . '/' . (string) ($attachment['storage_path'] ?? ''));
 
-        return is_file($path) ? $path : null;
+        if ($base === false || $path === false || !is_file($path)) {
+            return null;
+        }
+
+        // O arquivo precisa estar dentro do diretório de anexos.
+        if (!str_starts_with($path, rtrim($base, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR)) {
+            return null;
+        }
+
+        return $path;
     }
 
     public function delete(int $id, int $userId, bool $isAdmin = false): void

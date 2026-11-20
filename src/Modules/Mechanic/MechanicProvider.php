@@ -18,7 +18,6 @@ use Modules\Mechanic\Controllers\BudgetController;
 use Modules\Mechanic\Controllers\PartOrderController;
 use Modules\Mechanic\Controllers\ReportController;
 use Modules\Mechanic\Controllers\ServiceOrderController;
-use Modules\Mechanic\Controllers\TaskController;
 use Modules\Mechanic\Controllers\TicketController;
 use Modules\Mechanic\Services\TicketService;
 use PDO;

@@ -269,6 +269,8 @@ class FipeService
                 curl_setopt_array($ch, [
                     CURLOPT_RETURNTRANSFER => true,
                     CURLOPT_FOLLOWLOCATION => true,
+                    CURLOPT_PROTOCOLS => CURLPROTO_HTTPS,
+                    CURLOPT_REDIR_PROTOCOLS => CURLPROTO_HTTPS,
                     CURLOPT_MAXREDIRS => 3,
                     CURLOPT_CONNECTTIMEOUT => 10,
                     CURLOPT_TIMEOUT => 30,

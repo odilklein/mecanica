@@ -22,6 +22,19 @@ if (!function_exists('clean')) {
     }
 }
 
+if (!function_exists('csv_cell')) {
+    /**
+     * Neutraliza fórmulas de planilha em exportações CSV (CSV injection).
+     * Células iniciadas por = + - @ TAB ou CR recebem um apóstrofo à frente.
+     */
+    function csv_cell(mixed $value): string
+    {
+        $text = (string) $value;
+
+        return ($text !== '' && preg_match('/^[=+\-@\t\r]/', $text) === 1) ? "'" . $text : $text;
+    }
+}
+
 if (!function_exists('asset')) {
     /**
      * URL de um asset público com cache-busting pelo mtime do arquivo.

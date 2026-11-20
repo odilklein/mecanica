@@ -12,8 +12,14 @@ use PDO;
 
 class Auth
 {
+    /** Tempo máximo de inatividade (minutos) quando SESSION_IDLE_TIMEOUT não está definido. */
+    private const DEFAULT_IDLE_MINUTES = 120;
+
     private Session $session;
     private PDO $pdo;
+
+    /** Evita mais de uma revalidação no banco por request. */
+    private bool $validated = false;
 
     public function __construct(Session $session, PDO $pdo)
     {
@@ -45,15 +51,65 @@ class Auth
             $this->session->set('auth_user_name', (string) $user['name']);
             $this->session->set('auth_user_email', (string) $user['email']);
             $this->session->set('auth_user_role', (string) $user['role']);
+            $this->session->set('auth_last_seen', time());
+            $this->validated = true;
             return true;
         }
 
         return false;
     }
 
+    /**
+     * Sessão válida? Aplica timeout de inatividade e revalida o usuário
+     * no banco (is_active e papel) uma vez por request.
+     */
     public function check(): bool
     {
-        return $this->session->has('auth_user_id');
+        if (!$this->session->has('auth_user_id')) {
+            return false;
+        }
+
+        $idleMinutes = (int) env('SESSION_IDLE_TIMEOUT', (string) self::DEFAULT_IDLE_MINUTES);
+        $lastSeen = $this->session->get('auth_last_seen');
+
+        if ($idleMinutes > 0 && $lastSeen !== null && (time() - (int) $lastSeen) > ($idleMinutes * 60)) {
+            $this->logout();
+            return false;
+        }
+
+        $this->session->set('auth_last_seen', time());
+
+        if ($this->validated) {
+            return true;
+        }
+        $this->validated = true;
+
+        try {
+            $stmt = $this->pdo->prepare('SELECT name, email, role, is_active FROM users WHERE id = :id');
+            $stmt->execute([':id' => (int) $this->session->get('auth_user_id')]);
+            $user = $stmt->fetch();
+        } catch (\Throwable $e) {
+            // Sem banco disponível: mantém a sessão para não derrubar o painel.
+            return true;
+        }
+
+        if (!$user || (int) $user['is_active'] !== 1) {
+            $this->logout();
+            return false;
+        }
+
+        // Reflete no ato rebaixamento/promoção e edição de perfil.
+        if ((string) $user['role'] !== (string) $this->session->get('auth_user_role')) {
+            $this->session->set('auth_user_role', (string) $user['role']);
+        }
+        if ((string) $user['name'] !== (string) $this->session->get('auth_user_name')) {
+            $this->session->set('auth_user_name', (string) $user['name']);
+        }
+        if ((string) $user['email'] !== (string) $this->session->get('auth_user_email')) {
+            $this->session->set('auth_user_email', (string) $user['email']);
+        }
+
+        return true;
     }
 
     /** @return array{id: int, name: string, email: string, role: string}|null */
@@ -63,25 +119,10 @@ class Auth
             return null;
         }
 
-        // Sessões criadas antes da inclusão do e-mail buscam o dado uma vez
-        // e passam a carregá-lo na sessão (evita consulta a cada request).
-        $email = $this->session->get('auth_user_email');
-        if ($email === null) {
-            $email = '';
-            try {
-                $stmt = $this->pdo->prepare('SELECT email FROM users WHERE id = :id');
-                $stmt->execute([':id' => (int) $this->session->get('auth_user_id')]);
-                $email = (string) ($stmt->fetchColumn() ?: '');
-            } catch (\Throwable $e) {
-                // Sem banco disponível: o painel segue sem e-mail.
-            }
-            $this->session->set('auth_user_email', $email);
-        }
-
         return [
             'id' => (int) $this->session->get('auth_user_id'),
             'name' => (string) $this->session->get('auth_user_name'),
-            'email' => (string) $email,
+            'email' => (string) $this->session->get('auth_user_email'),
             'role' => (string) $this->session->get('auth_user_role'),
         ];
     }
@@ -115,11 +156,12 @@ class Auth
         }
     }
 
+    /**
+     * Encerra a sessão por completo (dados + cookie + ID).
+     */
     public function logout(): void
     {
-        $this->session->remove('auth_user_id');
-        $this->session->remove('auth_user_name');
-        $this->session->remove('auth_user_email');
-        $this->session->remove('auth_user_role');
+        $this->validated = false;
+        $this->session->destroy();
     }
 }

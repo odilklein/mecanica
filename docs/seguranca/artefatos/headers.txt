@@ -1,0 +1,65 @@
+### GET /
+HTTP/1.1 302 Found
+Date: Fri, 20 Nov 2026 17:21:40 GMT
+Server: Apache/2.4.69 (Debian)
+X-Content-Type-Options: nosniff
+X-Frame-Options: SAMEORIGIN
+Referrer-Policy: strict-origin-when-cross-origin
+Permissions-Policy: geolocation=(), microphone=(self), camera=()
+Set-Cookie: PHPSESSID=f28c0d41c38d883baba34f327c795cce; path=/; HttpOnly; SameSite=Lax
+Expires: Thu, 19 Nov 1981 08:52:00 GMT
+Cache-Control: no-store, no-cache, must-revalidate
+Pragma: no-cache
+Location: /login
+Content-Length: 0
+Content-Type: text/html; charset=UTF-8
+
+
+### GET /login
+HTTP/1.1 200 OK
+Date: Fri, 20 Nov 2026 17:21:40 GMT
+Server: Apache/2.4.69 (Debian)
+X-Content-Type-Options: nosniff
+X-Frame-Options: SAMEORIGIN
+Referrer-Policy: strict-origin-when-cross-origin
+Permissions-Policy: geolocation=(), microphone=(self), camera=()
+Set-Cookie: PHPSESSID=168876cae73ef90e08ad4789e3025409; path=/; HttpOnly; SameSite=Lax
+Expires: Thu, 19 Nov 1981 08:52:00 GMT
+Cache-Control: no-store, no-cache, must-revalidate
+Pragma: no-cache
+Vary: Accept-Encoding
+Content-Length: 5370
+Content-Type: text/html; charset=utf-8
+
+<!DOCTYPE html>
+<html lang="pt-BR" dir="ltr" data-skin="default" data-bs-theme="light" data-assets-path="/assets/" data-template="vertical-menu-template">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+    <meta name="theme-color" content="#97071d">
+    <script>
+        (function () {
+            try {
+                var pref = localStorage.getItem('mecanica-theme') || 'system';
+                var resolved = pref === 'system'
+                    ? (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light')
+                    : pref;
+                document.documentElement.setAttribute('data-bs-theme', resolved);
+                document.documentElement.setAttribute('data-theme-pref', pref);
+                var meta = document.querySelector('meta[name="theme-color"]');
+                if (meta) {
+                    meta.dataset.lightColor = meta.dataset.lightColor || meta.getAttribute('content') || '#b8270f';
+                    meta.setAttribute('content', resolved === 'dark' ? '#1f1f1f' : meta.dataset.lightColor);
+                }
+            } catch (e) {}
+        })();
+    </script>
+    <title>Login | Mecânica — Sistema de Gestão</title>
+    <link rel="icon" type="image/svg+xml" href="/assets/img/favicon/favicon.svg">
+
+### GET /.env
+status=404 size=0
+### GET /.git/HEAD
+status=404 size=0
+### GET /server-status
+status=403 size=316

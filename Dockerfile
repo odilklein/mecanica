@@ -22,7 +22,12 @@ RUN { \
         echo '    AllowOverride All'; \
         echo '</Directory>'; \
     } > /etc/apache2/conf-available/allowoverride.conf \
+    && { \
+        echo 'ServerTokens Prod'; \
+        echo 'ServerSignature Off'; \
+    } > /etc/apache2/conf-available/server-tokens.conf \
     && a2enconf allowoverride \
+    && a2enconf server-tokens \
     && a2enmod rewrite headers \
     && sed -ri -e 's!/var/www/html!/var/www/html/public!g' /etc/apache2/sites-available/*.conf
 

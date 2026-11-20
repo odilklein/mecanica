@@ -1,0 +1,56 @@
+===============================================================
+Gobuster v3.8.2
+by OJ Reeves (@TheColonial) & Christian Mehlmauer (@firefart)
+===============================================================
+[+] Url:                     http://127.0.0.1:8080
+[+] Method:                  GET
+[+] Threads:                 20
+[+] Wordlist:                /usr/share/dirb/wordlists/common.txt
+[+] Negative Status codes:   404
+[+] User Agent:              gobuster/3.8.2
+[+] Extensions:              env,sql,bak,php,txt,js,json
+[+] Timeout:                 10s
+===============================================================
+Starting gobuster in directory enumeration mode
+===============================================================
+.hta                 (Status: 403) [Size: 316]
+.hta.env             (Status: 403) [Size: 316]
+.hta.php             (Status: 403) [Size: 316]
+.hta.bak             (Status: 403) [Size: 316]
+.hta.sql             (Status: 403) [Size: 316]
+.hta.js              (Status: 403) [Size: 316]
+.hta.json            (Status: 403) [Size: 316]
+.hta.txt             (Status: 403) [Size: 316]
+.htaccess.js         (Status: 403) [Size: 316]
+.htaccess            (Status: 403) [Size: 316]
+.htaccess.json       (Status: 403) [Size: 316]
+.htaccess.php        (Status: 403) [Size: 316]
+.htaccess.txt        (Status: 403) [Size: 316]
+.htaccess.sql        (Status: 403) [Size: 316]
+.htaccess.bak        (Status: 403) [Size: 316]
+.htaccess.env        (Status: 403) [Size: 316]
+.htpasswd.json       (Status: 403) [Size: 316]
+.htpasswd.txt        (Status: 403) [Size: 316]
+.htpasswd.js         (Status: 403) [Size: 316]
+.htpasswd            (Status: 403) [Size: 316]
+.htpasswd.env        (Status: 403) [Size: 316]
+.htpasswd.sql        (Status: 403) [Size: 316]
+.htpasswd.php        (Status: 403) [Size: 316]
+.htpasswd.bak        (Status: 403) [Size: 316]
+assets               (Status: 301) [Size: 354] [--> http://127.0.0.1:8080/assets/]
+audit                (Status: 302) [Size: 0] [--> /login]
+clients              (Status: 302) [Size: 0] [--> /login]
+css                  (Status: 301) [Size: 351] [--> http://127.0.0.1:8080/css/]
+js                   (Status: 301) [Size: 350] [--> http://127.0.0.1:8080/js/]
+login                (Status: 200) [Size: 5370]
+notifications        (Status: 302) [Size: 0] [--> /login]
+parts                (Status: 302) [Size: 0] [--> /login]
+profile              (Status: 302) [Size: 0] [--> /login]
+reports              (Status: 302) [Size: 0] [--> /login]
+server-status        (Status: 403) [Size: 316]
+settings             (Status: 302) [Size: 0] [--> /login]
+tickets              (Status: 302) [Size: 0] [--> /login]
+users                (Status: 302) [Size: 0] [--> /login]
+===============================================================
+Finished
+===============================================================

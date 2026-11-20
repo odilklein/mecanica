@@ -22,6 +22,7 @@ docs/
   diagramas/     fontes dos diagramas + imagens renderizadas
   imagens/       capturas de tela e logotipos
   entrega/       texto acadêmico, uma seção por arquivo do template
+  seguranca/     relatório de pentest (HexStrike) e artefatos brutos
   site/          documentação online em React + Tailwind + React Flow
   build/         scripts que montam o DOCX, o PDF e o site
   saida/         documentos finais (gerados)
@@ -57,6 +58,15 @@ Cada arquivo corresponde a uma seção do template do professor, na mesma ordem:
 | 5. Considerações Finais | [`entrega/05-consideracoes.md`](entrega/05-consideracoes.md) |
 | Referências | [`entrega/referencias.md`](entrega/referencias.md) |
 | Anexos I a III | [`entrega/anexos/`](entrega/anexos/) |
+
+### 3. `seguranca/` — pentest
+
+Relatório da varredura dinâmica com **HexStrike AI** combinada à revisão white-box,
+com achados priorizados, evidências e plano de remediação:
+
+- [`seguranca/RELATORIO_PENTEST_HEXSTRIKE.md`](seguranca/RELATORIO_PENTEST_HEXSTRIKE.md)
+- [`seguranca/artefatos/`](seguranca/artefatos/) — saídas brutas (nmap, nikto, nuclei, ffuf, headers)
+- [`seguranca/scripts/`](seguranca/scripts/) — `hexstrike-up.sh` (sobe o container) e `scan-hexstrike.sh` (reproduz a suíte)
 
 ## Site da documentação
 

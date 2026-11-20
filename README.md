@@ -108,7 +108,7 @@ src/Kernel/             Kernel, Auth, Session, Router, CRUD, Database, View, Men
 src/Modules/Core/       Login, dashboard, clientes, funcionários, configurações, auditoria, perfil
 src/Modules/Mechanic/   Veículos, OS, orçamentos, peças, fornecedores, pedidos, tickets, relatórios
 src/Modules/Agent/      Assistente de IA: ferramentas, propostas, sessões e streaming
-bin/                    migrate.php, fipe.php, seed_demo.php, seed_operacao.php, import_parts.php
+bin/                    migrate.php, create_admin.php, fipe.php, seed_demo.php, seed_operacao.php, import_parts.php
 docs/                   Relatórios e material de apresentação do TCC
 storage/                Cache e logs em runtime (ignorado no Git)
 vendor/                 Dependências Composer (ignorado no Git)
@@ -120,14 +120,18 @@ vendor/                 Dependências Composer (ignorado no Git)
 
 ```bash
 cp .env.example .env
-# ajuste DB_HOST, DB_PORT, DB_USER, DB_PASS e DB_NAME se necessário
+# DB_PASS é obrigatória: escolha uma senha forte antes de subir
+# (ex.: openssl rand -hex 24). O compose não sobe sem ela.
 
 docker compose up -d --build
 
-# cria/atualiza o schema (32 migrations)
+# cria/atualiza o schema (migrations)
 docker compose exec app php bin/migrate.php migrate
 
-# opcional: dados de demonstração
+# cria/redefine o administrador (gera senha se omitir --password)
+docker compose exec app php bin/create_admin.php --email=admin@mecanica.com
+
+# opcional: dados de demonstração (senha gerada e impressa, ou --password=...)
 docker compose exec app php bin/seed_demo.php
 docker compose exec app php bin/seed_operacao.php
 
@@ -135,9 +139,14 @@ docker compose exec app php bin/seed_operacao.php
 docker compose exec app php bin/fipe.php sync
 ```
 
-Acesse **http://localhost:8080**. O phpMyAdmin fica em **http://localhost:8081**.
+Acesse **http://localhost:8080**.
+O phpMyAdmin não sobe no `up` padrão e escuta apenas em localhost:
 
-> Em uma base nova, as migrations criam o schema e os três usuários padrão. O `docker-compose.yml` não importa mais um dump SQL automaticamente; o schema é responsabilidade de `bin/migrate.php`.
+```bash
+docker compose --profile dev up -d phpmyadmin   # http://localhost:8081
+```
+
+> Em uma base nova, as migrations criam o schema e **um** administrador. A senha vem de `SEED_ADMIN_PASSWORD`; sem ela, é gerada e impressa uma única vez no console da migration. O `docker-compose.yml` não importa dump SQL automaticamente; o schema é responsabilidade de `bin/migrate.php`.
 
 ### Instalação local (Apache/XAMPP)
 
@@ -146,17 +155,21 @@ Acesse **http://localhost:8080**. O phpMyAdmin fica em **http://localhost:8081**
 - Instale as dependências com `composer install`.
 - Configure o `.env` e rode `php bin/migrate.php migrate`.
 
-## Logins padrão
+## Acesso inicial
 
-Criados pela migration `Core/0002_seed_default_users` (senha `admin123`):
+Não existe mais senha padrão. Crie (ou redefina) o administrador com:
 
-| Nome | E-mail | Perfil |
-| --- | --- | --- |
-| Administrador | `admin@mecanica.com` | Administrador |
-| Secretária | `secretaria@mecanica.com` | Secretaria |
-| Mecânico | `mecanico@mecanica.com` | Mecânico |
+```bash
+docker compose exec app php bin/create_admin.php --email=admin@mecanica.com
+# a senha é gerada e impressa; para definir uma específica:
+docker compose exec app php bin/create_admin.php --email=admin@mecanica.com --password='SuaSenhaForte'
+```
 
-Os scripts de seed adicionam funcionários, clientes, veículos, OS e orçamentos de demonstração. **Troque as senhas e remova os dados de exemplo antes de expor o sistema publicamente.**
+O comando exige senha de 12+ caracteres. Contas de demonstração criadas por
+`bin/seed_demo.php` / `bin/seed_operacao.php` recebem uma senha aleatória
+impressa ao final do seed (ou a definida em `SEED_PASSWORD`/`--password=`).
+**Troque as senhas e remova os dados de exemplo antes de expor o sistema
+publicamente.**
 
 ## Comandos
 
@@ -164,20 +177,27 @@ Os scripts de seed adicionam funcionários, clientes, veículos, OS e orçamento
 | --- | --- |
 | `php bin/migrate.php migrate` | Aplica as migrations pendentes. |
 | `php bin/migrate.php status` | Mostra o status das migrations. |
+| `php bin/create_admin.php` | Cria/redefine usuário e senha (12+ caracteres). |
 | `php bin/fipe.php sync` | Sincroniza marcas/modelos/anos/preços da FIPE. |
-| `php bin/seed_demo.php` | Cria dados básicos de demonstração. |
-| `php bin/seed_operacao.php` | Simula meses de operação da oficina. |
+| `php bin/seed_demo.php` | Cria dados básicos de demonstração (`--password=` opcional). |
+| `php bin/seed_operacao.php` | Simula meses de operação da oficina (`--password=` opcional). |
 | `php bin/import_parts.php all` | Importa veículos/produtos do catálogo Canal da Peça. |
 
 ## Segurança
 
-- CSRF em formulários e ações POST.
-- Senhas com `password_hash`/`password_verify`; mínimo de 8 caracteres em novos usuários.
-- Rate-limit de login por e-mail + IP (`login_tentativas`).
+- CSRF em formulários e ações POST (token fail-closed, gerado no início da sessão).
+- Senhas com `password_hash`/`password_verify`; nenhuma senha padrão no código.
+- Rate-limit de login por e-mail + IP, por IP e por conta (`login_tentativas`).
 - Cloudflare Turnstile opcional (ativado apenas com site key e secret).
-- Sessão com `HttpOnly`, `SameSite=Lax` e `use_strict_mode`.
+- Sessão com `HttpOnly`, `SameSite=Lax`, `use_strict_mode`, expiração por
+  inatividade (`SESSION_IDLE_TIMEOUT`) e revalidação de `is_active`/papel.
+- CSP e HSTS (HSTS só em HTTPS); `ServerTokens Prod`.
+- Banco sem porta publicada; phpMyAdmin apenas em `127.0.0.1` e sob profile `dev`.
 - Controle de acesso por papel e escopo de OS para mecânicos.
 - Auditoria de ações sensíveis em `audit_logs`, sem credenciais/tokens.
+
+O relatório da varredura de segurança (HexStrike + revisão de código) está em
+[`docs/seguranca/RELATORIO_PENTEST_HEXSTRIKE.md`](docs/seguranca/RELATORIO_PENTEST_HEXSTRIKE.md).
 - Cabeçalhos de segurança em `public/.htaccess`.
 - `.env` e credenciais fora do versionamento.
 

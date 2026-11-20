@@ -363,7 +363,7 @@ class ServiceOrderController extends CrudController
         } catch (\Throwable $e) {
             $this->pdo->rollBack();
             error_log('Wizard OS: ' . $e->getMessage());
-            $this->session->flash('error', 'Não foi possível criar a OS: ' . $e->getMessage());
+            $this->session->flash('error', 'Não foi possível criar a OS. Tente novamente ou contate o suporte.');
             return redirect($resource->path() . '/create');
         }
     }

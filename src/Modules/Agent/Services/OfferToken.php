@@ -60,12 +60,13 @@ final class OfferToken
     private static function secret(): string
     {
         $key = trim((string) env('APP_KEY', ''));
-        if ($key !== '') {
+        if ($key !== '' && strlen($key) >= 32) {
             return $key;
         }
 
-        // Fallback previsível para desenvolvimento; em produção defina APP_KEY.
-        return hash('sha256', 'agent-offer|' . (string) env('DB_PASS', 'dev'));
+        // Fail-closed: nunca derive o segredo de outra credencial (ex.: DB_PASS).
+        // Gere com: php -r "echo bin2hex(random_bytes(32));"
+        throw new \RuntimeException('APP_KEY ausente ou curta: defina uma chave de 32+ bytes no .env.');
     }
 
     private static function base64Url(string $value): string

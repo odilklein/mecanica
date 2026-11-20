@@ -71,10 +71,28 @@ class TranscriptionController extends Controller
             fclose($out);
 
             $clientName = (string) ($upload->getClientFilename() ?: 'audio.webm');
-            $ext = strtolower((string) pathinfo($clientName, PATHINFO_EXTENSION));
-            $ext = preg_match('/^[a-z0-9]{1,5}$/', $ext) ? $ext : 'webm';
-            $mime = (string) ($upload->getClientMediaType() ?: 'audio/webm');
             $model = trim((string) env('GROQ_TRANSCRIPTION_MODEL', 'whisper-large-v3-turbo')) ?: 'whisper-large-v3-turbo';
+
+            // Tipo real do arquivo (não confia no MIME declarado pelo cliente).
+            $allowed = [
+                'audio/webm' => 'webm',
+                'video/webm' => 'webm',
+                'audio/ogg' => 'ogg',
+                'audio/mpeg' => 'mp3',
+                'audio/mp3' => 'mp3',
+                'audio/mp4' => 'm4a',
+                'audio/x-m4a' => 'm4a',
+                'audio/wav' => 'wav',
+                'audio/x-wav' => 'wav',
+                'video/mp4' => 'mp4',
+            ];
+            $detected = strtolower(trim((string) (new \finfo(FILEINFO_MIME_TYPE))->file($tmp)));
+            if (!isset($allowed[$detected])) {
+                error_log('Transcrição recusada: tipo não suportado (' . $detected . ') em ' . $clientName);
+                return json_response(['error' => 'unsupported_type'], 422);
+            }
+            $mime = $detected;
+            $ext = $allowed[$detected];
 
             $ch = curl_init(self::ENDPOINT);
             curl_setopt_array($ch, [

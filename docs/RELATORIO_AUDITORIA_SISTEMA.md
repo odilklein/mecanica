@@ -395,13 +395,19 @@ O sistema está funcional e as falhas críticas de autorização, login, exclus�
 
 
 Nome	E-mail	Senha	Perfil
-Administrador Geral	admin@mecanica.com	admin123	Administrador
-Secretária	secretaria@mecanica.com	admin123	Secretaria
-Mecânico	mecanico@mecanica.com	admin123	Mecânico
-Carlos Souza	carlos.souza@mecanica.com	admin123	Mecânico-chefe
-Fernanda Lima	fernanda.lima@mecanica.com	admin123	Mecânico
-Rafael Alves	rafael.alves@mecanica.com	admin123	Mecânico
-Juliana Prado	juliana.prado@mecanica.com	admin123	Secretaria
-André Santos	andre.santos@mecanica.com	admin123	Mecânico
-Patrícia Gomes	patricia.gomes@mecanica.com	admin123	Secretaria
-Teste Funcionario	teste.func@mecanica.com	senha alterada (não é admin123)	Mecânico
+Administrador Geral	admin@mecanica.com	(definida no ambiente)	Administrador
+Secretária	secretaria@mecanica.com	(definida no ambiente)	Secretaria
+Mecânico	mecanico@mecanica.com	(definida no ambiente)	Mecânico
+Carlos Souza	carlos.souza@mecanica.com	(definida no ambiente)	Mecânico-chefe
+Fernanda Lima	fernanda.lima@mecanica.com	(definida no ambiente)	Mecânico
+Rafael Alves	rafael.alves@mecanica.com	(definida no ambiente)	Mecânico
+Juliana Prado	juliana.prado@mecanica.com	(definida no ambiente)	Secretaria
+André Santos	andre.santos@mecanica.com	(definida no ambiente)	Mecânico
+Patrícia Gomes	patricia.gomes@mecanica.com	(definida no ambiente)	Secretaria
+Teste Funcionario	teste.func@mecanica.com	(definida no ambiente)	Mecânico
+
+> **Atualização (20/11/2026):** a senha compartilhada `admin123` foi removida do
+> código e todas as contas que ainda a usavam foram rotacionadas pela migration
+> `Core/0015_rotate_default_credentials`. Use `php bin/create_admin.php` para
+> criar ou redefinir credenciais. Detalhes em
+> [`seguranca/RELATORIO_PENTEST_HEXSTRIKE.md`](seguranca/RELATORIO_PENTEST_HEXSTRIKE.md).

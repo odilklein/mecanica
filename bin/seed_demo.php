@@ -119,7 +119,24 @@ if ($alreadySeeded > 0 && !$fresh) {
 $pdo->beginTransaction();
 
 try {
-    $hash = password_hash('admin123', PASSWORD_DEFAULT);
+    // Senha dos usuários de demonstração: --password=... ou SEED_PASSWORD.
+    // Sem isso, gera uma senha aleatória e imprime no final (nunca "admin123").
+    $seedPassword = '';
+    foreach ($argv as $arg) {
+        if (preg_match('/^--password=(.+)$/', $arg, $m) === 1) {
+            $seedPassword = $m[1];
+        }
+    }
+    if ($seedPassword === '') {
+        $seedPassword = (string) env('SEED_PASSWORD', '');
+    }
+    $seedPasswordGenerated = false;
+    if ($seedPassword === '') {
+        $seedPassword = bin2hex(random_bytes(9));
+        $seedPasswordGenerated = true;
+    }
+
+    $hash = password_hash($seedPassword, PASSWORD_DEFAULT);
     $now = new DateTimeImmutable('now');
 
     // ---------------- Usuários ----------------
@@ -481,12 +498,17 @@ try {
     $pdo->commit();
 
     echo "Seed aplicado com sucesso.\n";
-    echo "  Usuários: " . count($seedUsers) . " novos (senha: admin123)\n";
+    echo "  Usuários: " . count($seedUsers) . " novos\n";
     echo "  Clientes: " . count($clientIds) . "\n";
     echo "  Veículos: " . count($vehicleIds) . "\n";
     echo "  Ordens de serviço: " . count($osIds) . "\n";
     echo "  Pedidos de peças: 9\n";
     echo "  Orçamentos: 10\n";
+
+    if ($seedPasswordGenerated) {
+        echo "\nSenha gerada para os usuários de demonstração: {$seedPassword}\n";
+        echo "Troque no primeiro acesso ou crie contas com bin/create_admin.php.\n";
+    }
 } catch (Throwable $e) {
     $pdo->rollBack();
     fwrite(STDERR, 'Erro no seed: ' . $e->getMessage() . "\n");

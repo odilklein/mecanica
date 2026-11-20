@@ -59,7 +59,7 @@ class ReportController extends Controller
         $handle = fopen('php://temp', 'r+');
         fwrite($handle, "\xEF\xBB\xBF");
         fputcsv($handle, ['Indicador', 'Valor'], ';');
-        fputcsv($handle, ['Período', $data['periodLabel']], ';');
+        fputcsv($handle, ['Período', csv_cell($data['periodLabel'])], ';');
         fputcsv($handle, ['Clientes', (string) $data['kpis']['clients']], ';');
         fputcsv($handle, ['Veículos', (string) $data['kpis']['vehicles']], ';');
         fputcsv($handle, ['OS em aberto', (string) $data['kpis']['open_orders']], ';');

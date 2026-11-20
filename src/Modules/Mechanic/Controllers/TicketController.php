@@ -34,6 +34,42 @@ class TicketController extends Controller
     // PÁGINA
     // =========================================================
 
+    /**
+     * Usuários que podem ser atribuídos a um ticket.
+     *
+     * Administração, recepção e chefia veem todos; mecânicos veem apenas a
+     * chefia, a recepção e os colegas com quem já dividiram uma OS.
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    private function visibleUsers(int $userId): array
+    {
+        if ($this->auth->hasRole(['admin', 'secretary', 'lead_mechanic'])) {
+            return $this->pdo->query(
+                'SELECT id, name, role FROM users WHERE is_active = 1 ORDER BY name'
+            )->fetchAll();
+        }
+
+        $stmt = $this->pdo->prepare(
+            "SELECT DISTINCT u.id, u.name, u.role
+               FROM users u
+              WHERE u.is_active = 1
+                AND (u.id = :me
+                     OR u.role IN ('admin', 'secretary', 'lead_mechanic')
+                     OR u.id IN (
+                        SELECT r2.user_id
+                          FROM service_order_responsibles r2
+                         WHERE r2.order_id IN (
+                            SELECT r1.order_id FROM service_order_responsibles r1 WHERE r1.user_id = :me
+                         )
+                     ))
+              ORDER BY u.name"
+        );
+        $stmt->execute([':me' => $userId]);
+
+        return $stmt->fetchAll();
+    }
+
     public function index(ServerRequestInterface $request)
     {
         if ($response = $this->guardAuth()) {
@@ -107,9 +143,7 @@ class TicketController extends Controller
             $orders = $ordersStmt->fetchAll();
         }
 
-        $users = $this->pdo->query(
-            "SELECT id, name, role FROM users WHERE is_active = 1 ORDER BY name"
-        )->fetchAll();
+        $users = $this->visibleUsers($userId);
 
         return $this->render('mechanic::tickets/index', [
             'title' => 'Tickets',

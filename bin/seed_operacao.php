@@ -200,7 +200,24 @@ if ($onlyClean) {
 // ---------------------------------------------------------------------
 // Usuários
 // ---------------------------------------------------------------------
-$hash = password_hash('admin123', PASSWORD_DEFAULT);
+// Senha dos usuários de teste: --password=... ou SEED_PASSWORD.
+// Sem isso, gera uma senha aleatória e imprime no final.
+$seedPassword = '';
+foreach ($flags as $flag) {
+    if (preg_match('/^--password=(.+)$/', $flag, $pm) === 1) {
+        $seedPassword = $pm[1];
+    }
+}
+if ($seedPassword === '') {
+    $seedPassword = (string) env('SEED_PASSWORD', '');
+}
+$seedPasswordGenerated = false;
+if ($seedPassword === '') {
+    $seedPassword = bin2hex(random_bytes(9));
+    $seedPasswordGenerated = true;
+}
+
+$hash = password_hash($seedPassword, PASSWORD_DEFAULT);
 
 $seedUsers = [
     ['Carlos Souza', 'carlos.souza@mecanica.com', 'lead_mechanic', 'Mecânico-chefe', 6500.00, '2019-03-12'],
@@ -1204,4 +1221,7 @@ echo '  Orçamentos:      ' . (int) $totals['budgets'] . "\n";
 echo '  Pedidos de peças: ' . (int) $totals['part_orders'] . "\n";
 echo '  Tickets:         ' . (int) $totals['tickets'] . "\n";
 echo '  Receita aprovada: R$ ' . number_format((float) $totals['revenue'], 2, ',', '.') . "\n";
-echo "\nSenha dos usuários de teste: admin123\n";
+if ($seedPasswordGenerated) {
+    echo "\nSenha gerada para os usuários de teste: {$seedPassword}\n";
+    echo "Troque no primeiro acesso ou use bin/create_admin.php.\n";
+}

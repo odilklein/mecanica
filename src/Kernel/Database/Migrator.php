@@ -39,8 +39,15 @@ class Migrator
 
             // MySQL executa DDL com commit implícito, então não usamos
             // transação aqui (CREATE TABLE/DROP não são transacionais).
-            foreach ($migration['up'] as $sql) {
-                $this->pdo->exec($sql);
+            // Uma migration pode conter SQL (string) ou um callable que recebe
+            // o PDO — necessário para passos que dependem de PHP (ex.: gerar
+            // hash de senha aleatório no seed de usuários).
+            foreach ($migration['up'] as $step) {
+                if (is_callable($step)) {
+                    $step($this->pdo);
+                    continue;
+                }
+                $this->pdo->exec((string) $step);
             }
             $this->record($key);
             $ran[] = $key;
@@ -114,7 +121,7 @@ class Migrator
     /**
      * Carrega o array retornado pelo arquivo de migration.
      *
-     * @return array{up: string[], down?: string[]}
+     * @return array{up: array<int, string|callable>, down?: array<int, string|callable>}
      */
     private function load(string $file): array
     {
