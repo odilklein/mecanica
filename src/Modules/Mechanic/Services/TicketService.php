@@ -29,7 +29,8 @@ class TicketService
         bool $isAdmin,
         int $limit = 50,
         ?string $status = null,
-        string $search = ''
+        string $search = '',
+        int $offset = 0
     ): array {
         $where = ['(:is_admin = 1 OR t.created_by = :uid_created OR t.assigned_to = :uid_assigned
                     OR EXISTS (
@@ -64,6 +65,7 @@ class TicketService
         }
 
         $limit = max(1, min(200, $limit));
+        $offset = max(0, $offset);
         $sql = 'SELECT t.*, so.number AS order_number, c.name AS client_name,
                        creator.name AS creator_name, assigned.name AS assigned_name,
                        (SELECT m.message FROM ticket_messages m WHERE m.ticket_id = t.id ORDER BY m.id DESC LIMIT 1) AS last_message,
@@ -79,12 +81,70 @@ class TicketService
                   LEFT JOIN ticket_reads r ON r.ticket_id = t.id AND r.user_id = :uid_join
                  WHERE ' . implode(' AND ', $where) . '
                  ORDER BY COALESCE(last_message_at, t.created_at) DESC, t.id DESC
-                 LIMIT ' . $limit;
+                 LIMIT ' . $limit . ' OFFSET ' . $offset;
 
         $stmt = $this->pdo->prepare($sql);
         $stmt->execute($params);
 
         return $stmt->fetchAll();
+    }
+
+    /**
+     * Contagens das abas do chat para o usuário atual.
+     *
+     * "Abertos" e "Encerrados" são totais; "Não lidos"/"Lidos" consideram
+     * apenas tickets abertos, para o mesmo conjunto exibido na lista.
+     *
+     * @return array{open:int, unread:int, read:int, closed:int}
+     */
+    public function tabCounts(int $userId, bool $isAdmin): array
+    {
+        $sql = <<<'SQL'
+            SELECT
+                COALESCE(SUM(t.status = 'open'), 0) AS open_total,
+                COALESCE(SUM(t.status = 'closed'), 0) AS closed_total,
+                COALESCE(SUM(t.status = 'open' AND COALESCE(unread.total, 0) > 0), 0) AS unread_total,
+                COALESCE(SUM(t.status = 'open' AND COALESCE(unread.total, 0) = 0), 0) AS read_total
+              FROM tickets t
+              LEFT JOIN service_orders so ON so.id = t.service_order_id
+              LEFT JOIN (
+                    SELECT m.ticket_id, COUNT(*) AS total
+                      FROM ticket_messages m
+                      LEFT JOIN ticket_reads r ON r.ticket_id = m.ticket_id AND r.user_id = :uid_read
+                     WHERE m.user_id <> :uid_read_own
+                       AND (r.last_read_message_id IS NULL OR m.id > r.last_read_message_id)
+                     GROUP BY m.ticket_id
+              ) unread ON unread.ticket_id = t.id
+             WHERE (:is_admin = 1 OR t.created_by = :uid_created OR t.assigned_to = :uid_assigned
+                    OR EXISTS (
+                        SELECT 1 FROM service_orders so_p
+                         WHERE so_p.id = t.service_order_id
+                           AND (so_p.created_by = :uid_os_created
+                                OR so_p.lead_mechanic_id = :uid_os_lead
+                                OR EXISTS (SELECT 1 FROM service_order_responsibles r_p
+                                            WHERE r_p.order_id = so_p.id AND r_p.user_id = :uid_os_resp)))
+                   )
+            SQL;
+
+        $stmt = $this->pdo->prepare($sql);
+        $stmt->execute([
+            ':is_admin' => $isAdmin ? 1 : 0,
+            ':uid_read' => $userId,
+            ':uid_read_own' => $userId,
+            ':uid_created' => $userId,
+            ':uid_assigned' => $userId,
+            ':uid_os_created' => $userId,
+            ':uid_os_lead' => $userId,
+            ':uid_os_resp' => $userId,
+        ]);
+        $row = $stmt->fetch() ?: [];
+
+        return [
+            'open' => (int) ($row['open_total'] ?? 0),
+            'unread' => (int) ($row['unread_total'] ?? 0),
+            'read' => (int) ($row['read_total'] ?? 0),
+            'closed' => (int) ($row['closed_total'] ?? 0),
+        ];
     }
 
     public function find(int $id): ?array
@@ -405,8 +465,8 @@ class TicketService
     public function orderContext(int $orderId): ?array
     {
         $stmt = $this->pdo->prepare(
-            'SELECT so.*, c.name AS client_name, c.phone AS client_phone,
-                    v.plate, v.brand, v.model, v.year, v.color, v.current_km
+            'SELECT so.*, c.id AS client_record_id, c.name AS client_name, c.phone AS client_phone, c.email AS client_email,
+                    v.id AS vehicle_record_id, v.plate, v.brand, v.model, v.year, v.color, v.current_km
                FROM service_orders so
                LEFT JOIN clients c ON c.id = so.client_id
                LEFT JOIN vehicles v ON v.id = so.vehicle_id

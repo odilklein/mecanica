@@ -180,7 +180,7 @@
             tooltip: { enabled: false },
             grid: {
                 show: false,
-                padding: { top: -20, bottom: -12, left: -13, right: -3 }
+                padding: { top: -20, bottom: 0, left: -13, right: -3 }
             },
             colors: values.map(function (_, index) {
                 return index === lastIndex ? c.primary : c.primarySubtle;

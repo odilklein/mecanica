@@ -70,6 +70,25 @@
     --c-gray: #4b5563;
 }
 
+/* Paleta clara em tons de areia — a mesma da documentação do projeto. */
+[data-bs-theme="light"] {
+    --bs-body-bg: #f6f0e7;
+    --bs-body-bg-rgb: 246, 240, 231;
+    --bs-paper-bg: #fcf8f2;
+    --bs-secondary-bg: #f7f1e8;
+    --bs-secondary-bg-rgb: 247, 241, 232;
+    --bs-tertiary-bg: #ede4d9;
+    --bs-tertiary-bg-rgb: 237, 228, 217;
+    --bs-border-color: #e7dccf;
+    --bs-heading-color: #2b241f;
+    --bs-body-color: #5e5146;
+    --bs-body-color-rgb: 94, 81, 70;
+    --bs-secondary-color: #7a6d60;
+    --bs-secondary-color-rgb: 122, 109, 96;
+    --bs-emphasis-color: #1c1714;
+    --bs-emphasis-color-rgb: 28, 23, 20;
+}
+
 /* =============================================
    TEMA ESCURO — clean, monocromático + vermelho
    - Apenas variações de PRETO, CINZA, BRANCO e o
@@ -686,29 +705,6 @@ textarea.form-control { min-height: 100px; }
 .quick-action-btn svg.green, .quick-action-btn .icon-base.green { background: var(--success-bg); color: var(--success); }
 .quick-action-btn svg.blue, .quick-action-btn .icon-base.blue { background: var(--info-bg); color: var(--info); }
 .quick-action-btn svg.yellow, .quick-action-btn .icon-base.yellow { background: var(--warning-bg); color: var(--warning); }
-
-/* ---------- Timeline ---------- */
-.timeline { position: relative; padding-left: 24px; }
-.timeline::before {
-    content: '';
-    position: absolute;
-    left: 8px; top: 4px; bottom: 4px;
-    width: 2px;
-    background: var(--border-color);
-}
-.timeline-item { position: relative; padding-bottom: 16px; }
-.timeline-item::before {
-    content: '';
-    position: absolute;
-    left: -20px; top: 4px;
-    width: 12px; height: 12px;
-    border-radius: 50%;
-    background: var(--accent);
-    border: 2px solid var(--bs-body-bg);
-}
-.timeline-item .timeline-title { font-size: 0.83rem; font-weight: 600; color: var(--bs-heading-color); }
-.timeline-item .timeline-desc { font-size: 0.78rem; color: var(--text-muted); margin-top: 2px; }
-.timeline-item .timeline-date { font-size: 0.7rem; color: var(--text-muted); margin-top: 2px; opacity: 0.8; }
 
 /* ---------- Status pill ---------- */
 .status-pill {
@@ -1620,6 +1616,35 @@ body > .select2-container {
 }
 .tickets-page .chat-contact-info {
     min-inline-size: 0;
+}
+.tickets-page .ticket-filter {
+    padding-inline: 0.55rem;
+    font-size: 0.78rem;
+    white-space: nowrap;
+}
+.tickets-page .ticket-filter-count {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-inline-size: 1.3rem;
+    margin-inline-start: 0.3rem;
+    padding: 0.05rem 0.3rem;
+    border-radius: 999px;
+    background: rgba(var(--bs-primary-rgb), 0.14);
+    color: var(--bs-primary-text-emphasis);
+    font-size: 0.68rem;
+    font-weight: 700;
+    line-height: 1.25;
+}
+.tickets-page .ticket-filter.btn-label-primary .ticket-filter-count {
+    background: rgba(255, 255, 255, 0.28);
+    color: inherit;
+}
+.tickets-page .chat-contact-list-item.is-unread .chat-contact-name {
+    font-weight: 700;
+}
+.tickets-page .chat-contact-list-item.is-unread .chat-contact-status {
+    color: var(--bs-heading-color);
 }
 
 /* A página não usa PerfectScrollbar: rolagem nativa nas duas colunas. */

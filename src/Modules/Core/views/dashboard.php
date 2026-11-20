@@ -64,7 +64,6 @@ $eventMeta = [
     'delivery' => ['icon' => 'truck-delivery', 'point' => 'success'],
 ];
 
-$totalParts = array_sum($chartData['partsByStatus']['values']);
 $weekTone = $tone((float) $kpis['week_delta']);
 $ticketTone = $tone((float) $kpis['ticket_delta']);
 $weekBadge = $kpis['previous_week'] > 0
@@ -124,17 +123,17 @@ $ticketBadgeTone = $ticketHasBase ? $ticketTone : 'info';
     </div>
 
     <?php if ($canSeeFinancials): ?>
-    <!-- Faturamento aprovado (área dos últimos 6 meses) -->
+    <!-- Faturamento aprovado (área dos últimos 3 meses) -->
     <div class="col-xxl-2 col-xl-2 col-lg-3 col-md-3 col-6">
         <div class="card h-100">
             <div class="card-header pb-0">
                 <h5 class="card-title mb-1">Faturamento</h5>
-                <p class="card-subtitle">Aprovados nos últimos 6 meses</p>
+                <p class="card-subtitle">Aprovados nos últimos 3 meses</p>
             </div>
             <div id="revenueLastMonths"></div>
             <div class="card-body pt-0">
                 <div class="d-flex flex-column align-items-start mt-3 gap-1">
-                    <h4 class="mb-0" title="<?= e($money($revenue6m) . ' nos últimos 6 meses · histórico: ' . $money((float) $kpis['approved_revenue'])) ?>"><?= e($shortMoney($revenue6m)) ?></h4>
+                    <h4 class="mb-0" title="<?= e($money($revenue6m) . ' nos últimos 3 meses · histórico: ' . $money((float) $kpis['approved_revenue'])) ?>"><?= e($shortMoney($revenue6m)) ?></h4>
                     <small class="text-success" title="Taxa histórica de aprovação: aprovados ÷ decididos"><?= number_format((float) $kpis['approval_rate'], 0, ',', '.') ?>% de aprovação histórica</small>
                 </div>
             </div>
@@ -217,84 +216,6 @@ $ticketBadgeTone = $ticketHasBase ? $ticketTone : 'info';
                     </div>
                 </div>
                 <div id="weekOrders" class="col-7"></div>
-            </div>
-        </div>
-    </div>
-</div>
-
-<div class="row g-3 mb-3">
-    <!-- Indicadores por aba -->
-    <div class="col-xxl-8 col-12">
-        <div class="card h-100 dashboard-indicators">
-            <div class="card-header d-flex justify-content-between">
-                <div class="card-title m-0">
-                    <h5 class="mb-1">Indicadores</h5>
-                    <p class="card-subtitle">Evolução dos últimos <?= count($chartData['indicatorTabs'][0]['labels']) ?> meses</p>
-                </div>
-                <div class="dropdown">
-                    <button class="btn btn-text-secondary rounded-pill text-body-secondary border-0 p-2 me-n1" type="button" id="indicatorMenu" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                        <i class="icon-base ti tabler-dots-vertical icon-md text-body-secondary"></i>
-                    </button>
-                    <div class="dropdown-menu dropdown-menu-end" aria-labelledby="indicatorMenu">
-                        <a class="dropdown-item" href="/service-orders">Ver atendimentos</a>
-                        <?php if ($canSeeFinancials): ?>
-                        <a class="dropdown-item" href="/budgets">Ver orçamentos</a>
-                        <a class="dropdown-item" href="/reports">Relatórios completos</a>
-                        <?php else: ?>
-                        <a class="dropdown-item" href="/part-orders">Ver pedidos de peças</a>
-                        <?php endif; ?>
-                    </div>
-                </div>
-            </div>
-            <div class="card-body">
-                <ul class="nav nav-tabs widget-nav-tabs pb-4 gap-4 mx-1 d-flex flex-nowrap" role="tablist">
-                    <?php foreach ($chartData['indicatorTabs'] as $tab): ?>
-                    <li class="nav-item">
-                        <a href="javascript:void(0);" class="nav-link btn d-flex flex-column align-items-center justify-content-center <?= $tab['active'] ? 'active' : '' ?>" role="tab" data-bs-toggle="tab" data-bs-target="#indicator-<?= e($tab['key']) ?>" aria-controls="indicator-<?= e($tab['key']) ?>" aria-selected="<?= $tab['active'] ? 'true' : 'false' ?>">
-                            <div class="badge bg-label-secondary rounded p-2"><i class="icon-base ti tabler-<?= e($tab['icon']) ?> icon-md"></i></div>
-                            <h6 class="tab-widget-title mb-0 mt-2"><?= e($tab['label']) ?></h6>
-                        </a>
-                    </li>
-                    <?php endforeach; ?>
-                    <li class="nav-item">
-                        <a href="<?= $canSeeFinancials ? '/reports' : '/service-orders' ?>" class="nav-link btn d-flex align-items-center justify-content-center" title="<?= $canSeeFinancials ? 'Relatórios completos' : 'Ver todas as OS' ?>">
-                            <div class="badge bg-label-secondary rounded p-2"><i class="icon-base ti tabler-plus icon-md"></i></div>
-                        </a>
-                    </li>
-                </ul>
-                <div class="tab-content p-0 ms-0 ms-sm-2">
-                    <?php foreach ($chartData['indicatorTabs'] as $tab): ?>
-                    <div class="tab-pane fade <?= $tab['active'] ? 'show active' : '' ?>" id="indicator-<?= e($tab['key']) ?>" role="tabpanel">
-                        <div class="indicator-chart" data-indicator="<?= e($tab['key']) ?>"></div>
-                    </div>
-                    <?php endforeach; ?>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Pedidos de peças por status -->
-    <div class="col-xl-4 col-md-6 order-xxl-0 order-1">
-        <div class="card h-100">
-            <div class="card-header d-flex justify-content-between pb-4">
-                <div class="card-title mb-0">
-                    <h5 class="mb-1"><?= $canCreateOrder ? 'Pedidos de peças' : 'Meus pedidos de peças' ?></h5>
-                    <p class="card-subtitle"><?= (int) $totalParts ?> pedidos registrados</p>
-                </div>
-                <div class="dropdown">
-                    <button class="btn btn-text-secondary rounded-pill text-body-secondary border-0 p-2 me-n1" type="button" id="partsMenu" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                        <i class="icon-base ti tabler-dots-vertical icon-md text-body-secondary"></i>
-                    </button>
-                    <div class="dropdown-menu dropdown-menu-end" aria-labelledby="partsMenu">
-                        <a class="dropdown-item" href="/part-orders">Ver pedidos</a>
-                        <?php if ($canManageParts ?? false): ?>
-                        <a class="dropdown-item" href="/parts">Catálogo de peças</a>
-                        <?php endif; ?>
-                    </div>
-                </div>
-            </div>
-            <div class="card-body pt-0">
-                <div id="partsChart"></div>
             </div>
         </div>
     </div>

@@ -72,6 +72,7 @@
         var subtitleEl = document.getElementById('ticketSubtitle');
         var statusBadge = document.getElementById('ticketStatusBadge');
         var toggleStatus = document.getElementById('ticketToggleStatus');
+        var headerActions = document.getElementById('ticketHeaderActions');
         var assignBtn = document.getElementById('ticketAssignBtn');
         var assignModalEl = document.getElementById('ticketAssignModal');
         var assignForm = document.getElementById('ticketAssignForm');
@@ -86,12 +87,18 @@
             : 0;
 
         var params = new URLSearchParams(window.location.search);
-        var scope = params.get('scope') === 'unread' ? 'unread' : (params.get('status') === 'closed' ? 'closed' : 'all');
-        var statusFilter = params.get('status') === 'closed' ? 'closed' : '';
+        var scope = params.get('scope') || '';
+        if (['open', 'unread', 'read', 'closed'].indexOf(scope) === -1) {
+            scope = params.get('status') === 'closed' ? 'closed' : 'open';
+        }
         var search = params.get('q') || '';
         if (searchEl && searchEl.value) {
             search = searchEl.value;
         }
+
+        var CLOSED_PAGE = 30;
+        var closedOffset = 0;
+        var loadMoreBtn = document.getElementById('ticketLoadMore');
 
         function scrollBottom() {
             if (historyBody) {
@@ -101,17 +108,82 @@
 
         function setActiveFilter() {
             root.querySelectorAll('.ticket-filter').forEach(function (btn) {
-                var matchScope = btn.getAttribute('data-scope');
-                var matchStatus = btn.getAttribute('data-status');
-                var active = false;
-                if (matchScope) {
-                    active = scope === matchScope;
-                } else if (matchStatus) {
-                    active = statusFilter === matchStatus;
-                }
+                var active = scope === btn.getAttribute('data-scope');
                 btn.classList.toggle('btn-label-primary', active);
                 btn.classList.toggle('btn-label-secondary', !active);
             });
+        }
+
+        function renderCounts(counts) {
+            if (!counts) {
+                return;
+            }
+            root.querySelectorAll('[data-count]').forEach(function (el) {
+                var count = parseInt(counts[el.getAttribute('data-count')] || 0, 10);
+                el.textContent = String(count);
+                el.classList.toggle('d-none', count <= 0);
+            });
+        }
+
+        function emptyLabel() {
+            return {
+                open: 'Nenhum ticket aberto.',
+                unread: 'Nenhum ticket não lido.',
+                read: 'Nenhum ticket lido.',
+                closed: 'Nenhum ticket encerrado.'
+            }[scope] || 'Nenhum ticket encontrado.';
+        }
+
+        function updateLoadMore(show) {
+            if (loadMoreBtn) {
+                loadMoreBtn.classList.toggle('d-none', !show);
+            }
+        }
+
+        // Limpa a conversa quando o filtro atual não tem mais o ticket aberto.
+        function clearSelection() {
+            selectedId = 0;
+            if (subjectEl) {
+                subjectEl.textContent = 'Selecione um ticket';
+            }
+            if (subtitleEl) {
+                subtitleEl.textContent = 'Escolha uma conversa na lista';
+            }
+            if (statusBadge) {
+                statusBadge.className = 'badge bg-label-secondary';
+                statusBadge.textContent = '';
+            }
+            if (footer) {
+                footer.classList.add('d-none');
+            }
+            if (closedNotice) {
+                closedNotice.classList.add('d-none');
+            }
+            if (headerActions) {
+                headerActions.classList.add('d-none');
+            }
+            if (messagesEl) {
+                messagesEl.innerHTML = '';
+            }
+            var contextWrap = document.getElementById('ticketContextWrap');
+            if (contextWrap) {
+                contextWrap.innerHTML = '';
+                contextWrap.classList.add('d-none');
+            }
+            if (emptyState) {
+                emptyState.classList.remove('d-none');
+            }
+            if (noMessages) {
+                noMessages.classList.add('d-none');
+            }
+            if (listEl) {
+                listEl.querySelectorAll('.chat-contact-list-item.active').forEach(function (li) {
+                    li.classList.remove('active');
+                });
+            }
+            if (window.history && window.history.replaceState) {
+                window.history.replaceState(null, '', buildUrl(0));
+            }
         }
 
         // Mantém a conversa aberta destacada também na sidebar.
@@ -136,10 +208,8 @@
             if (search) {
                 query.set('q', search);
             }
-            if (scope === 'unread') {
-                query.set('scope', 'unread');
-            } else if (statusFilter === 'closed') {
-                query.set('status', 'closed');
+            if (scope !== 'open') {
+                query.set('scope', scope);
             }
             if (ticketId) {
                 query.set('ticket', ticketId);
@@ -249,13 +319,11 @@
 
         function syncSidebarUnread(tickets) {
             // A sidebar lista apenas tickets abertos: remove os que foram encerrados.
-            if (statusFilter !== 'closed') {
-                tickets.forEach(function (ticket) {
-                    if (ticket.status === 'closed') {
-                        removeSidebarTicket(ticket.id);
-                    }
-                });
-            }
+            tickets.forEach(function (ticket) {
+                if (ticket.status === 'closed') {
+                    removeSidebarTicket(ticket.id);
+                }
+            });
 
             var unreadByTicket = {};
             tickets.forEach(function (ticket) {
@@ -286,7 +354,7 @@
             });
         }
 
-        function renderList(tickets) {
+        function renderList(tickets, append) {
             if (!listEl) {
                 return;
             }
@@ -294,9 +362,12 @@
             var container = listEl.closest('.sidebar-body');
             var scrollTop = container ? container.scrollTop : 0;
 
-            listEl.innerHTML = '';
-            if (!tickets.length) {
-                listEl.innerHTML = '<li class="text-center text-body-secondary py-6 px-4">Nenhum ticket encontrado.</li>';
+            if (!append) {
+                listEl.innerHTML = '';
+            }
+
+            if (!tickets.length && !append) {
+                listEl.innerHTML = '<li class="text-center text-body-secondary py-6 px-4">' + esc(emptyLabel()) + '</li>';
                 if (container) {
                     container.scrollTop = 0;
                 }
@@ -307,10 +378,11 @@
                 var item = document.createElement('li');
                 var unread = parseInt(ticket.unread || 0, 10);
                 var isSelected = parseInt(ticket.id, 10) === selectedId;
-                var isClosed = ticket.status === 'closed';
-                item.className = 'chat-contact-list-item mb-1' + (isSelected ? ' active' : '');
+                var showUnread = scope !== 'closed' && unread > 0 && !isSelected;
+                item.className = 'chat-contact-list-item mb-1' + (isSelected ? ' active' : '')
+                    + (showUnread ? ' is-unread' : '');
                 item.setAttribute('data-ticket-id', ticket.id);
-                item.innerHTML = '<a href="' + baseUrl + '?ticket=' + ticket.id + '" class="d-flex align-items-center text-reset text-decoration-none p-0">'
+                item.innerHTML = '<a href="' + buildUrl(ticket.id) + '" class="d-flex align-items-center text-reset text-decoration-none p-0">'
                     + '<div class="avatar avatar-sm flex-shrink-0">'
                     + '<span class="avatar-initial rounded-circle bg-label-' + color(ticket.id) + '">' + esc(initials(ticket.creator_name)) + '</span>'
                     + '</div>'
@@ -321,50 +393,76 @@
                     + '</div>'
                     + '<div class="d-flex justify-content-between align-items-center gap-2">'
                     + '<small class="chat-contact-status text-truncate">' + esc(ticket.last_message || 'Sem mensagens ainda') + '</small>'
-                    + (unread > 0 && !isSelected ? '<span class="badge rounded-pill bg-primary unread-badge">' + unread + '</span>' : '')
+                    + (showUnread ? '<span class="badge rounded-pill bg-primary unread-badge">' + unread + '</span>' : '')
                     + '</div>'
                     + '<div class="d-flex justify-content-between align-items-center gap-2 mt-1">'
                     + '<small class="chat-contact-assignee text-body-secondary text-truncate">'
                     + '<i class="icon-base ti tabler-user-check"></i> ' + esc(ticket.assigned_name || 'Sem responsável')
                     + '</small>'
-                    + (isClosed ? '<span class="badge bg-label-secondary flex-shrink-0"><i class="icon-base ti tabler-lock me-1"></i>Encerrado</span>' : '')
                     + '</div>'
                     + '</div></a>';
                 listEl.appendChild(item);
             });
 
             // Preserva a rolagem da lista entre as atualizações periódicas.
-            if (container) {
+            if (container && !append) {
                 container.scrollTop = scrollTop;
             }
         }
 
-        function loadList(scrollToSelected) {
+        function loadList(scrollToSelected, append, selectFirst) {
             var params = new URLSearchParams();
             if (search) {
                 params.set('q', search);
             }
-            if (scope === 'unread') {
-                params.set('scope', 'unread');
-            } else if (scope === 'closed') {
-                params.set('status', 'closed');
+            if (scope !== 'open') {
+                params.set('scope', scope);
+            }
+            if (scope === 'closed') {
+                params.set('limit', String(CLOSED_PAGE));
+                params.set('offset', String(closedOffset));
             }
 
-            fetch(listUrl + (params.toString() ? '?' + params.toString() : ''), {
+            return fetch(listUrl + (params.toString() ? '?' + params.toString() : ''), {
                 headers: { Accept: 'application/json' },
                 cache: 'no-store'
             })
                 .then(function (response) { return response.json(); })
                 .then(function (data) {
-                    if (data && Array.isArray(data.tickets)) {
-                        renderList(data.tickets);
+                    if (!data || !Array.isArray(data.tickets)) {
+                        return;
+                    }
+                    renderList(data.tickets, append === true);
+                    if (scope === 'open' || scope === 'unread') {
                         syncSidebarUnread(data.tickets);
-                        if (scrollToSelected) {
-                            scrollSelectedIntoView();
+                    }
+                    renderCounts(data.counts);
+                    updateLoadMore(scope === 'closed' && data.has_more === true);
+
+                    if (selectFirst && !append) {
+                        var stillListed = data.tickets.some(function (ticket) {
+                            return parseInt(ticket.id, 10) === selectedId;
+                        });
+                        if (!stillListed) {
+                            if (data.tickets.length && scope !== 'unread') {
+                                selectTicket(parseInt(data.tickets[0].id, 10), true, true);
+                            } else {
+                                // Em "Não lidos", selecionar sozinho marcaria a conversa como lida.
+                                clearSelection();
+                            }
                         }
                     }
+
+                    if (scrollToSelected) {
+                        scrollSelectedIntoView();
+                    }
                 })
-                .catch(function () {});
+                .catch(function () {})
+                .finally(function () {
+                    if (loadMoreBtn) {
+                        loadMoreBtn.disabled = false;
+                    }
+                });
         }
 
         function renderMessages(messages, scrollToBottom) {
@@ -376,6 +474,14 @@
             if (historyBody) {
                 previousDistance = historyBody.scrollHeight - historyBody.scrollTop - historyBody.clientHeight;
             }
+
+            // O polling recria as mensagens a cada 10s: preserva os resumos abertos.
+            var openSummaries = {};
+            messagesEl.querySelectorAll('.collapse.show').forEach(function (el) {
+                if (el.id) {
+                    openSummaries[el.id] = true;
+                }
+            });
 
             messagesEl.innerHTML = '';
             messages.forEach(function (message) {
@@ -419,6 +525,21 @@
             if (noMessages) {
                 noMessages.classList.toggle('d-none', messages.length > 0);
             }
+
+            // Reabre os resumos que estavam expandidos antes da atualização.
+            Object.keys(openSummaries).forEach(function (id) {
+                var body = document.getElementById(id);
+                if (!body) {
+                    return;
+                }
+                body.classList.add('show');
+                var card = body.closest('.ticket-system-card');
+                var toggle = card ? card.querySelector('[data-bs-target="#' + id + '"]') : null;
+                if (toggle) {
+                    toggle.setAttribute('aria-expanded', 'true');
+                }
+            });
+
             if (scrollToBottom !== false) {
                 scrollBottom();
             } else if (historyBody) {
@@ -440,8 +561,21 @@
 
             var contextWrap = document.getElementById('ticketContextWrap');
             if (contextWrap) {
+                // O contexto é re-renderizado no polling: mantém o bloco aberto.
+                var previousContextBody = contextWrap.querySelector('#ticketContextBody');
+                var contextWasOpen = !!(previousContextBody && previousContextBody.classList.contains('show'));
                 if (contextHtml) {
                     contextWrap.innerHTML = contextHtml;
+                    if (contextWasOpen) {
+                        var contextBody = contextWrap.querySelector('#ticketContextBody');
+                        var contextToggle = contextWrap.querySelector('[data-bs-target="#ticketContextBody"]');
+                        if (contextBody) {
+                            contextBody.classList.add('show');
+                        }
+                        if (contextToggle) {
+                            contextToggle.setAttribute('aria-expanded', 'true');
+                        }
+                    }
                     contextWrap.classList.remove('d-none');
                 } else {
                     contextWrap.innerHTML = '';
@@ -472,6 +606,9 @@
             }
             if (emptyState) {
                 emptyState.classList.add('d-none');
+            }
+            if (headerActions) {
+                headerActions.classList.remove('d-none');
             }
             var isClosed = ticket.status === 'closed';
             if (footer) {
@@ -519,6 +656,10 @@
                     if (updateUrl !== false && window.history && window.history.replaceState) {
                         window.history.replaceState(null, '', buildUrl(id));
                     }
+                    // Abrir a conversa marca como lida: atualiza as abas Lidos/Não lidos.
+                    if (scope === 'unread' || scope === 'read') {
+                        loadList();
+                    }
                     var contacts = document.getElementById('app-chat-contacts');
                     if (contacts && window.innerWidth < 992) {
                         contacts.classList.remove('show');
@@ -546,10 +687,11 @@
                 clearTimeout(searchTimer);
                 searchTimer = setTimeout(function () {
                     search = searchEl.value.trim();
+                    closedOffset = 0;
                     if (window.history && window.history.replaceState) {
                         window.history.replaceState(null, '', buildUrl(selectedId));
                     }
-                    loadList(true);
+                    loadList(true, false, true);
                 }, 300);
             });
         }
@@ -557,20 +699,27 @@
         // Filtros
         root.querySelectorAll('.ticket-filter').forEach(function (btn) {
             btn.addEventListener('click', function () {
-                if (btn.hasAttribute('data-scope')) {
-                    scope = btn.getAttribute('data-scope') || 'all';
-                    statusFilter = '';
-                } else {
-                    statusFilter = btn.getAttribute('data-status') || '';
-                    scope = statusFilter === 'closed' ? 'closed' : 'all';
-                }
+                scope = btn.getAttribute('data-scope') || 'open';
+                closedOffset = 0;
                 setActiveFilter();
                 if (window.history && window.history.replaceState) {
                     window.history.replaceState(null, '', buildUrl(selectedId));
                 }
-                loadList(true);
+                loadList(true, false, true);
             });
         });
+
+        // Paginação da aba Encerrados
+        if (loadMoreBtn) {
+            loadMoreBtn.addEventListener('click', function () {
+                if (scope !== 'closed') {
+                    return;
+                }
+                loadMoreBtn.disabled = true;
+                closedOffset += CLOSED_PAGE;
+                loadList(false, true);
+            });
+        }
 
         // Enviar mensagem
         if (form) {
@@ -645,6 +794,7 @@
                         if (next === 'closed') {
                             removeSidebarTicket(selectedId);
                         }
+                        closedOffset = 0;
                         refreshSidebarTickets();
                         loadList();
                         selectTicket(selectedId, false, true);
@@ -813,7 +963,10 @@
                 return;
             }
             selectTicket(selectedId, false, true);
-            loadList();
+            // Encerrados tem paginação: não recarrega para não perder as páginas carregadas.
+            if (scope !== 'closed') {
+                loadList();
+            }
         }, 10000);
     }
 

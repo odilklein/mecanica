@@ -88,7 +88,7 @@ class DashboardController extends Controller
             'chartData' => [
                 'ordersByDay' => $ordersByDay,
                 'openOrdersByDay' => $openOrdersByDay,
-                'revenueByMonth' => $canSeeFinancials ? $this->revenueByMonth($today, 6) : null,
+                'revenueByMonth' => $canSeeFinancials ? $this->revenueByMonth($today, 3) : null,
                 'indicatorTabs' => $this->indicatorTabs($today, 6, $canSeeFinancials, $scopeUserId),
                 'partsByStatus' => $this->partsByStatus($scopeUserId),
                 'ordersByWeek' => $this->ordersByWeek($today, 8, $scopeUserId),

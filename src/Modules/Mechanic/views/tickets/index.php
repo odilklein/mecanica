@@ -49,6 +49,19 @@ $roleLabel = [
     'mechanic' => 'Mecânico',
 ];
 $currentStatus = (string) ($selected['status'] ?? '');
+$counts = $counts ?? ['open' => 0, 'unread' => 0, 'read' => 0, 'closed' => 0];
+$filters = [
+    'open' => 'Abertos',
+    'unread' => 'Não lidos',
+    'read' => 'Lidos',
+    'closed' => 'Encerrados',
+];
+$emptyLabel = match ($scope) {
+    'unread' => 'Nenhum ticket não lido.',
+    'read' => 'Nenhum ticket lido.',
+    'closed' => 'Nenhum ticket encerrado.',
+    default => 'Nenhum ticket aberto.',
+};
 ?>
 <div class="tickets-page">
 <div class="page-header">
@@ -83,22 +96,32 @@ $currentStatus = (string) ($selected['status'] ?? '');
                     <i class="icon-base ti tabler-x icon-lg cursor-pointer close-sidebar d-lg-none"
                        data-bs-toggle="sidebar" data-overlay data-target="#app-chat-contacts"></i>
                 </div>
-                <div class="px-4 pb-3 d-flex gap-2">
-                    <?php
-                    $isAllFilter = $scope !== 'unread' && $status !== 'closed';
-                    $isUnreadFilter = $scope === 'unread';
-                    $isClosedFilter = $status === 'closed';
-                    ?>
-                    <button type="button" class="btn btn-sm <?= $isAllFilter ? 'btn-label-primary' : 'btn-label-secondary' ?> ticket-filter" data-scope="all">Todos</button>
-                    <button type="button" class="btn btn-sm <?= $isUnreadFilter ? 'btn-label-primary' : 'btn-label-secondary' ?> ticket-filter" data-scope="unread">Não lidos</button>
-                    <button type="button" class="btn btn-sm <?= $isClosedFilter ? 'btn-label-primary' : 'btn-label-secondary' ?> ticket-filter" data-status="closed">Encerrados</button>
+                <div class="px-4 pb-3">
+                    <div class="d-flex gap-2">
+                        <?php foreach (['open', 'unread', 'read'] as $filterScope): ?>
+                        <button type="button"
+                                class="btn btn-sm ticket-filter flex-fill <?= $scope === $filterScope ? 'btn-label-primary' : 'btn-label-secondary' ?>"
+                                data-scope="<?= e($filterScope) ?>">
+                            <?= e($filters[$filterScope]) ?>
+                            <span class="ticket-filter-count <?= (int) ($counts[$filterScope] ?? 0) > 0 ? '' : 'd-none' ?>"
+                                  data-count="<?= e($filterScope) ?>"><?= (int) ($counts[$filterScope] ?? 0) ?></span>
+                        </button>
+                        <?php endforeach; ?>
+                    </div>
+                    <button type="button"
+                            class="btn btn-sm ticket-filter w-100 mt-2 <?= $scope === 'closed' ? 'btn-label-primary' : 'btn-label-secondary' ?>"
+                            data-scope="closed">
+                        <i class="icon-base ti tabler-archive me-1"></i> Encerrados
+                        <span class="ticket-filter-count <?= (int) ($counts['closed'] ?? 0) > 0 ? '' : 'd-none' ?>"
+                              data-count="closed"><?= (int) ($counts['closed'] ?? 0) ?></span>
+                    </button>
                 </div>
             </div>
             <div class="sidebar-body">
                 <ul class="list-unstyled chat-contact-list py-2 mb-0" id="ticketList">
                     <?php if (!$tickets): ?>
                     <li class="text-center text-body-secondary py-6 px-4" id="ticketListEmpty">
-                        Nenhum ticket encontrado.
+                        <?= e($emptyLabel) ?>
                     </li>
                     <?php endif; ?>
                     <?php foreach ($tickets as $ticket): ?>
@@ -106,10 +129,12 @@ $currentStatus = (string) ($selected['status'] ?? '');
                         $ticketId = (int) $ticket['id'];
                         $unread = (int) ($ticket['unread'] ?? 0);
                         $isSelected = $ticketId === (int) $selectedId;
-                        $isClosedTicket = ($ticket['status'] ?? 'open') === 'closed';
+                        $ticketHref = '/tickets?ticket=' . $ticketId
+                            . ($scope !== 'open' ? '&scope=' . urlencode($scope) : '')
+                            . ($search !== '' ? '&q=' . urlencode($search) : '');
                     ?>
-                    <li class="chat-contact-list-item mb-1<?= $isSelected ? ' active' : '' ?>" data-ticket-id="<?= $ticketId ?>">
-                        <a href="/tickets?ticket=<?= $ticketId ?>" class="d-flex align-items-center text-reset text-decoration-none p-0">
+                    <li class="chat-contact-list-item mb-1<?= $isSelected ? ' active' : '' ?><?= ($scope !== 'closed' && $unread > 0 && !$isSelected) ? ' is-unread' : '' ?>" data-ticket-id="<?= $ticketId ?>">
+                        <a href="<?= e($ticketHref) ?>" class="d-flex align-items-center text-reset text-decoration-none p-0">
                             <div class="avatar avatar-sm flex-shrink-0">
                                 <span class="avatar-initial rounded-circle bg-label-<?= e($avatarColor($ticketId)) ?>">
                                     <?= e($initials((string) ($ticket['creator_name'] ?? '?'))) ?>
@@ -124,7 +149,7 @@ $currentStatus = (string) ($selected['status'] ?? '');
                                     <small class="chat-contact-status text-truncate">
                                         <?= e($ticket['last_message'] ?: 'Sem mensagens ainda') ?>
                                     </small>
-                                    <?php if ($unread > 0 && !$isSelected): ?>
+                                    <?php if ($scope !== 'closed' && $unread > 0 && !$isSelected): ?>
                                     <span class="badge rounded-pill bg-primary unread-badge"><?= $unread ?></span>
                                     <?php endif; ?>
                                 </div>
@@ -133,15 +158,18 @@ $currentStatus = (string) ($selected['status'] ?? '');
                                         <i class="icon-base ti tabler-user-check"></i>
                                         <?= e($ticket['assigned_name'] ?: 'Sem responsável') ?>
                                     </small>
-                                    <?php if ($isClosedTicket): ?>
-                                    <span class="badge bg-label-secondary flex-shrink-0"><i class="icon-base ti tabler-lock me-1"></i>Encerrado</span>
-                                    <?php endif; ?>
                                 </div>
                             </div>
                         </a>
                     </li>
                     <?php endforeach; ?>
                 </ul>
+                <div class="px-4 pb-3">
+                    <button type="button" class="btn btn-sm btn-label-secondary w-100 <?= !empty($hasMore) ? '' : 'd-none' ?>"
+                            id="ticketLoadMore">
+                        <i class="icon-base ti tabler-chevron-down me-1"></i> Carregar mais
+                    </button>
+                </div>
             </div>
         </div>
 
@@ -178,7 +206,7 @@ $currentStatus = (string) ($selected['status'] ?? '');
                             </div>
                         </div>
                         <?php if ($selected): ?>
-                        <div class="d-flex align-items-center gap-2">
+                        <div class="d-flex align-items-center gap-2" id="ticketHeaderActions">
                             <span class="badge <?= e($statusBadge[$currentStatus] ?? 'bg-label-secondary') ?>" id="ticketStatusBadge">
                                 <?= e($statusLabel[$currentStatus] ?? 'Em aberto') ?>
                             </span>
@@ -275,7 +303,7 @@ $currentStatus = (string) ($selected['status'] ?? '');
 
                 <div class="alert alert-secondary mx-4 mb-3 <?= ($selected && $currentStatus === 'closed') ? '' : 'd-none' ?>" id="ticketClosedNotice">
                     <i class="icon-base ti tabler-lock me-1"></i>
-                    Ticket encerrado. Reabra para enviar novas mensagens.
+                    Ticket encerrado. Ele fica na aba <strong>Encerrados</strong> — reabra para enviar novas mensagens.
                 </div>
 
                 <div class="chat-history-footer shadow-xs <?= ($selected && $currentStatus !== 'closed') ? '' : 'd-none' ?>" id="ticketFooter">

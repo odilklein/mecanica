@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Orçamento #<?= str_pad((string) $budget['number'], 4, '0', STR_PAD_LEFT) ?></title>
+    <link rel="icon" href="/assets/img/favicon/favicon.ico">
     <style>
         * { box-sizing: border-box; }
         body { font-family: -apple-system, "Segoe UI", Arial, sans-serif; color: #111; margin: 0; padding: 32px; }
@@ -31,9 +32,12 @@
 <body>
     <?php
     $companyName = (string) setting('company_name', setting('seo_title', 'Mecânica')) ?: 'Mecânica';
-    $companyAddress = trim((string) setting('company_address', '')
-        . ' ' . (string) setting('company_city', '')
+    $companyAddress = trim((string) setting('company_address', ''));
+    $companyCity = trim((string) setting('company_city', '')
         . ((string) setting('company_state', '') !== '' ? '/' . setting('company_state', '') : ''));
+    if ($companyCity !== '') {
+        $companyAddress .= ($companyAddress !== '' ? ' · ' : '') . $companyCity;
+    }
     $companyLines = array_values(array_filter([
         (string) setting('company_document', ''),
         $companyAddress,

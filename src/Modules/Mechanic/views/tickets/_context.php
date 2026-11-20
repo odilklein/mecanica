@@ -20,6 +20,9 @@ $qty = static fn (float $value): string => rtrim(rtrim(number_format($value, 2, 
 $orderNumber = str_pad((string) ($order['number'] ?? 0), 4, '0', STR_PAD_LEFT);
 $orderId = (int) ($order['id'] ?? 0);
 $status = (string) ($order['status'] ?? 'received');
+$clientId = (int) ($order['client_record_id'] ?? 0);
+$vehicleId = (int) ($order['vehicle_record_id'] ?? 0);
+$canOpenRecords = !empty($canOpenRecords);
 ?>
 <div class="ticket-os-context">
     <div class="d-flex flex-wrap justify-content-between align-items-center gap-2">
@@ -48,7 +51,14 @@ $status = (string) ($order['status'] ?? 'received');
         <div class="row g-3 mt-0">
             <div class="col-md-6">
                 <div class="mb-2">
-                    <small class="text-body-secondary d-block">Veículo</small>
+                    <small class="text-body-secondary d-block">
+                        Veículo
+                        <?php if ($canOpenRecords && $vehicleId > 0): ?>
+                        <a href="/vehicles/<?= $vehicleId ?>/edit" class="ms-1 text-decoration-none" title="Abrir cadastro do veículo">
+                            <i class="icon-base ti tabler-external-link"></i> Abrir
+                        </a>
+                        <?php endif; ?>
+                    </small>
                     <span class="fw-medium"><?= e($order['plate'] ?: '—') ?></span>
                     <?php if ($vehicle !== ''): ?>
                     <span class="text-body">· <?= e($vehicle) ?></span>
@@ -58,6 +68,20 @@ $status = (string) ($order['status'] ?? 'received');
                     <?php endif; ?>
                     <?php if ($order['current_km'] !== null): ?>
                     <span class="text-body-secondary">· <?= number_format((int) $order['current_km'], 0, ',', '.') ?> km</span>
+                    <?php endif; ?>
+                </div>
+                <div class="mb-2">
+                    <small class="text-body-secondary d-block">
+                        Cliente
+                        <?php if ($canOpenRecords && $clientId > 0): ?>
+                        <a href="/clients/<?= $clientId ?>" class="ms-1 text-decoration-none" title="Abrir cadastro do cliente">
+                            <i class="icon-base ti tabler-external-link"></i> Abrir
+                        </a>
+                        <?php endif; ?>
+                    </small>
+                    <span class="fw-medium"><?= e($order['client_name'] ?: '—') ?></span>
+                    <?php if (!empty($order['client_phone'])): ?>
+                    <span class="text-body-secondary">· <?= e((string) $order['client_phone']) ?></span>
                     <?php endif; ?>
                 </div>
                 <div class="mb-2">

@@ -53,25 +53,25 @@ foreach (\Modules\Mechanic\Support\PartOrderStatus::STATUSES as $key => $label) 
 </div>
 
 <div class="row g-3 mb-3">
-    <div class="col-6 col-lg-3">
+    <div class="col-12 col-sm-6 col-lg-3">
         <div class="card crud-kpi"><div class="card-body">
             <div class="crud-kpi-icon bg-label-primary"><i class="icon-base ti tabler-users"></i></div>
             <div class="crud-kpi-info"><span class="crud-kpi-label">Clientes</span><span class="crud-kpi-value"><?= (int) $kpis['clients'] ?></span></div>
         </div></div>
     </div>
-    <div class="col-6 col-lg-3">
+    <div class="col-12 col-sm-6 col-lg-3">
         <div class="card crud-kpi"><div class="card-body">
             <div class="crud-kpi-icon bg-label-success"><i class="icon-base ti tabler-car"></i></div>
             <div class="crud-kpi-info"><span class="crud-kpi-label">Veículos</span><span class="crud-kpi-value"><?= (int) $kpis['vehicles'] ?></span></div>
         </div></div>
     </div>
-    <div class="col-6 col-lg-3">
+    <div class="col-12 col-sm-6 col-lg-3">
         <div class="card crud-kpi"><div class="card-body">
             <div class="crud-kpi-icon bg-label-warning"><i class="icon-base ti tabler-clipboard-list"></i></div>
             <div class="crud-kpi-info"><span class="crud-kpi-label">OS em aberto</span><span class="crud-kpi-value"><?= (int) $kpis['open_orders'] ?></span></div>
         </div></div>
     </div>
-    <div class="col-6 col-lg-3">
+    <div class="col-12 col-sm-6 col-lg-3">
         <div class="card crud-kpi"><div class="card-body">
             <div class="crud-kpi-icon bg-label-info"><i class="icon-base ti tabler-currency-real"></i></div>
             <div class="crud-kpi-info">

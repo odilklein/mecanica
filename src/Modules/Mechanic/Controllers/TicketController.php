@@ -60,12 +60,12 @@ class TicketController extends Controller
                         SELECT r2.user_id
                           FROM service_order_responsibles r2
                          WHERE r2.order_id IN (
-                            SELECT r1.order_id FROM service_order_responsibles r1 WHERE r1.user_id = :me
+                            SELECT r1.order_id FROM service_order_responsibles r1 WHERE r1.user_id = :me_scope
                          )
                      ))
               ORDER BY u.name"
         );
-        $stmt->execute([':me' => $userId]);
+        $stmt->execute([':me' => $userId, ':me_scope' => $userId]);
 
         return $stmt->fetchAll();
     }
@@ -80,21 +80,33 @@ class TicketController extends Controller
         $isAdmin = $this->auth->hasRole(['admin']);
         $query = $request->getQueryParams();
 
-        $status = in_array(($query['status'] ?? ''), ['open', 'closed'], true) ? (string) $query['status'] : null;
-        $search = clean($query['q'] ?? '');
-        $scope = (string) ($query['scope'] ?? 'all');
-
-        if ($scope === 'unread') {
-            $status = 'open';
+        $scope = (string) ($query['scope'] ?? '');
+        if (!in_array($scope, ['open', 'unread', 'read', 'closed'], true)) {
+            $scope = ($query['status'] ?? '') === 'closed' ? 'closed' : 'open';
         }
 
-        $tickets = $this->tickets->visibleTickets($userId, $isAdmin, 100, $status, $search);
+        $status = $scope === 'closed' ? 'closed' : 'open';
+        $search = clean($query['q'] ?? '');
+        $limit = $scope === 'closed' ? 30 : 100;
+
+        // Busca um a mais (só em Encerrados) para saber se existe próxima página.
+        $tickets = $this->tickets->visibleTickets($userId, $isAdmin, $limit + ($scope === 'closed' ? 1 : 0), $status, $search);
+        $hasMore = $scope === 'closed' && count($tickets) > $limit;
+        if ($hasMore) {
+            array_pop($tickets);
+        }
+
         if ($scope === 'unread') {
             $tickets = array_values(array_filter($tickets, static fn (array $t): bool => (int) ($t['unread'] ?? 0) > 0));
+        } elseif ($scope === 'read') {
+            $tickets = array_values(array_filter($tickets, static fn (array $t): bool => (int) ($t['unread'] ?? 0) === 0));
         }
 
+        $counts = $this->tickets->tabCounts($userId, $isAdmin);
+
         $selectedId = (int) ($query['ticket'] ?? 0);
-        if ($selectedId <= 0 && $tickets) {
+        if ($selectedId <= 0 && $tickets && $scope !== 'unread') {
+            // Não abre sozinho na aba "Não lidos": abrir marca como lido.
             $selectedId = (int) $tickets[0]['id'];
         }
 
@@ -112,7 +124,10 @@ class TicketController extends Controller
                 $this->tickets->ensureOrderSummary((int) $selected['id'], (int) $selected['service_order_id']);
                 $context = $this->tickets->orderContext((int) $selected['service_order_id']);
                 if ($context) {
-                    $contextHtml = $this->view->render('mechanic::tickets/_context', ['context' => $context]);
+                    $contextHtml = $this->view->render('mechanic::tickets/_context', [
+                        'context' => $context,
+                        'canOpenRecords' => $this->auth->hasRole(['admin', 'secretary', 'lead_mechanic']),
+                    ]);
                 }
             }
             $messages = $this->tickets->messages((int) $selected['id']);
@@ -158,6 +173,8 @@ class TicketController extends Controller
             'users' => $users,
             'status' => $status,
             'scope' => $scope,
+            'counts' => $counts,
+            'hasMore' => $hasMore,
             'search' => $search,
             'pageStyles' => [
                 '/assets/vendor/css/pages/app-chat.css',
@@ -181,27 +198,44 @@ class TicketController extends Controller
         }
 
         $query = $request->getQueryParams();
-        $status = in_array(($query['status'] ?? ''), ['open', 'closed'], true) ? (string) $query['status'] : null;
-        $search = clean($query['q'] ?? '');
-        $scope = (string) ($query['scope'] ?? 'all');
-
-        if ($scope === 'unread') {
-            $status = 'open';
+        $scope = (string) ($query['scope'] ?? '');
+        if (!in_array($scope, ['open', 'unread', 'read', 'closed'], true)) {
+            $scope = ($query['status'] ?? '') === 'closed' ? 'closed' : 'open';
         }
+
+        $status = $scope === 'closed' ? 'closed' : 'open';
+        $search = clean($query['q'] ?? '');
+        $limit = $scope === 'closed'
+            ? max(1, min(50, (int) ($query['limit'] ?? 30)))
+            : 100;
+        $offset = max(0, min(100000, (int) ($query['offset'] ?? 0)));
 
         $tickets = $this->tickets->visibleTickets(
             (int) $this->auth->id(),
             $this->auth->hasRole(['admin']),
-            100,
+            $limit + ($scope === 'closed' ? 1 : 0),
             $status,
-            $search
+            $search,
+            $offset
         );
+
+        $hasMore = $scope === 'closed' && count($tickets) > $limit;
+        if ($hasMore) {
+            array_pop($tickets);
+        }
 
         if ($scope === 'unread') {
             $tickets = array_values(array_filter($tickets, static fn (array $t): bool => (int) ($t['unread'] ?? 0) > 0));
+        } elseif ($scope === 'read') {
+            $tickets = array_values(array_filter($tickets, static fn (array $t): bool => (int) ($t['unread'] ?? 0) === 0));
         }
 
-        return json_response(['tickets' => $tickets]);
+        return json_response([
+            'tickets' => $tickets,
+            'scope' => $scope,
+            'has_more' => $hasMore,
+            'counts' => $this->tickets->tabCounts((int) $this->auth->id(), $this->auth->hasRole(['admin'])),
+        ]);
     }
 
     /** Detalhe do ticket + mensagens (marca como lido). */
@@ -227,7 +261,10 @@ class TicketController extends Controller
             $this->tickets->ensureOrderSummary((int) $ticket['id'], (int) $ticket['service_order_id']);
             $context = $this->tickets->orderContext((int) $ticket['service_order_id']);
             if ($context) {
-                $contextHtml = $this->view->render('mechanic::tickets/_context', ['context' => $context]);
+                $contextHtml = $this->view->render('mechanic::tickets/_context', [
+                    'context' => $context,
+                    'canOpenRecords' => $this->auth->hasRole(['admin', 'secretary', 'lead_mechanic']),
+                ]);
             }
         }
 
