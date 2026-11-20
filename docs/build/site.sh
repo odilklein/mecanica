@@ -59,10 +59,12 @@ case "${1:-build}" in
       --user "$UID_GID" \
       -e HOME=/tmp \
       -e npm_config_cache=/tmp/.npm \
+      -e CLOUDFLARE_API_TOKEN="${CLOUDFLARE_API_TOKEN:-}" \
       -v "$RAIZ:/workspace" \
       -v "$HOME/.wrangler:/tmp/.wrangler" \
       -w /workspace/docs/site \
-      "$IMG" sh -c "npx --yes wrangler@latest pages deploy dist --project-name torque-zenitec --branch main --commit-dirty=true"
+      "$IMG" sh -c "npx --yes wrangler@latest pages deploy dist --project-name torque-zenitec --branch main --commit-dirty=true" \
+      || { echo; echo "== deploy falhou. Se a sessão do wrangler expirou, rode 'npx wrangler login' (ou exporte CLOUDFLARE_API_TOKEN) e tente de novo."; exit 1; }
     ;;
   preview)
     docker run --rm \
