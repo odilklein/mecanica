@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="pt-BR" dir="ltr" data-skin="default" data-bs-theme="light">
+<html lang="pt-BR" dir="ltr" data-skin="default" data-bs-theme="light" data-assets-path="/assets/" data-template="vertical-menu-template">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
@@ -34,23 +34,59 @@
     <link rel="stylesheet" href="/assets/vendor/css/core.css">
     <link rel="stylesheet" href="/assets/css/demo.css">
     <link rel="stylesheet" href="/css/mecanica.css">
-    <link rel="stylesheet" href="/assets/vendor/css/pages/page-auth.css">
+    <link rel="stylesheet" href="<?= e(asset('/css/auth.css')) ?>">
 
     <?= theme_css_inline(setting('theme_color', '#b8270f')) ?>
 
     <script src="/assets/vendor/js/helpers.js"></script>
+    <script src="<?= e(asset('/assets/js/config.js')) ?>"></script>
 </head>
-<body>
-    <div class="container-xxl">
-        <div class="authentication-wrapper authentication-basic container-p-y">
-            <div class="authentication-inner py-6">
-                <div class="card">
-                    <div class="card-body">
-                        <?= $content ?? '' ?>
-                    </div>
+<body class="auth-page">
+    <div class="auth-shell">
+        <aside class="auth-showcase">
+            <div class="auth-showcase-content">
+                <a class="auth-brand" href="/">
+                    <span class="brand-icon"><i class="icon-base ti tabler-tool"></i></span>
+                    <span><?= e(setting('company_name', 'Mecânica') ?: 'Mecânica') ?></span>
+                </a>
+
+                <div class="auth-showcase-copy">
+                    <span class="auth-eyebrow">Gestão da oficina</span>
+                    <h1>Do primeiro contato à entrega do veículo.</h1>
+                    <p>Clientes, veículos, orçamentos e ordens de serviço em um único fluxo — com histórico completo de cada atendimento.</p>
+                </div>
+
+                <ul class="auth-features">
+                    <li>
+                        <span class="feat-icon"><i class="icon-base ti tabler-clipboard-text"></i></span>
+                        <span><strong>Ordens de serviço</strong>Acompanhe cada etapa, da queixa à entrega.</span>
+                    </li>
+                    <li>
+                        <span class="feat-icon"><i class="icon-base ti tabler-receipt-2"></i></span>
+                        <span><strong>Orçamentos e peças</strong>Valores, aprovação do cliente e pedidos.</span>
+                    </li>
+                    <li>
+                        <span class="feat-icon"><i class="icon-base ti tabler-shield-check"></i></span>
+                        <span><strong>Acesso sob controle</strong>Permissões por perfil e registro de auditoria.</span>
+                    </li>
+                </ul>
+
+                <div class="auth-showcase-foot">
+                    Sistema de gestão para oficinas mecânicas
                 </div>
             </div>
-        </div>
+        </aside>
+
+        <main class="auth-panel">
+            <div class="card auth-card">
+                <div class="card-body">
+                    <?= $content ?? '' ?>
+                </div>
+            </div>
+            <p class="auth-copyright">
+                &copy; <?= date('Y') ?> <?= e(setting('company_name', 'Mecânica') ?: 'Mecânica') ?> — todos os direitos reservados.
+            </p>
+        </main>
     </div>
 
     <script src="/assets/vendor/libs/jquery/jquery.js"></script>
@@ -58,17 +94,25 @@
     <script src="/assets/vendor/js/bootstrap.js"></script>
     <script src="/assets/js/main.js"></script>
     <script>
-        document.getElementById('togglePassword')?.addEventListener('click', function () {
+        (function () {
+            var toggle = document.getElementById('togglePassword');
             var input = document.getElementById('password');
-            var icon = this.querySelector('i');
-            if (input.type === 'password') {
-                input.type = 'text';
-                icon.className = 'icon-base ti tabler-eye';
-            } else {
-                input.type = 'password';
-                icon.className = 'icon-base ti tabler-eye-off';
-            }
-        });
+            if (!toggle || !input) return;
+
+            toggle.addEventListener('click', function () {
+                var show = input.type === 'password';
+                input.type = show ? 'text' : 'password';
+
+                var icon = toggle.querySelector('i');
+                if (icon) {
+                    icon.className = 'icon-base ti ' + (show ? 'tabler-eye' : 'tabler-eye-off');
+                }
+
+                toggle.setAttribute('aria-pressed', show ? 'true' : 'false');
+                toggle.setAttribute('aria-label', show ? 'Ocultar senha' : 'Mostrar senha');
+                input.focus({ preventScroll: true });
+            });
+        })();
     </script>
 </body>
 </html>

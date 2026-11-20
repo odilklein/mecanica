@@ -1,4 +1,4 @@
-<div class="app-brand justify-content-center mb-6">
+<div class="app-brand auth-card-brand justify-content-center mb-6">
     <a href="/" class="app-brand-link gap-2">
         <span class="app-brand-logo demo">
             <span class="brand-icon"><i class="icon-base ti tabler-tool"></i></span>
@@ -7,7 +7,7 @@
     </a>
 </div>
 
-<h4 class="mb-1">Bem-vindo! 👋</h4>
+<h4 class="mb-1">Bem-vindo!</h4>
 <p class="mb-6">Entre na sua conta para acessar o sistema.</p>
 
 <?php if (!empty($error)): ?>
@@ -22,14 +22,19 @@
 
     <div class="mb-6 form-control-validation">
         <label for="email" class="form-label">Email</label>
-        <input type="email" class="form-control" id="email" name="email" placeholder="seu@email.com" autofocus required>
+        <input type="email" class="form-control" id="email" name="email" placeholder="seu@email.com"
+               autocomplete="username" autofocus required>
     </div>
 
-    <div class="mb-6 form-password-toggle form-control-validation">
+    <div class="mb-6 form-control-validation auth-password">
         <label class="form-label" for="password">Senha</label>
         <div class="input-group input-group-merge">
-            <input type="password" id="password" class="form-control" name="password" placeholder="············" required>
-            <span class="input-group-text cursor-pointer" id="togglePassword"><i class="icon-base ti tabler-eye-off"></i></span>
+            <input type="password" id="password" class="form-control" name="password" placeholder="············"
+                   autocomplete="current-password" required>
+            <button type="button" class="input-group-text auth-password-toggle" id="togglePassword"
+                    aria-label="Mostrar senha" aria-pressed="false" aria-controls="password">
+                <i class="icon-base ti tabler-eye-off" aria-hidden="true"></i>
+            </button>
         </div>
     </div>
 
