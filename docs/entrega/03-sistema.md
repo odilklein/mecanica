@@ -1,10 +1,10 @@
 # Documentação do Sistema
 
-O sistema foi construído em ciclos curtos, com o banco e os diagramas acompanhando o código.
+O sistema roda em Docker, com banco MySQL e diagramas que acompanham o código.
 
 ## 3.1 Metodologia de Desenvolvimento
 
-O trabalho foi feito em ciclos curtos, com uma funcionalidade verificável por vez. O quadro Kanban tinha quatro colunas: *a fazer*, *em andamento*, *revisão* e *concluído*.
+O grupo trabalhou em ciclos curtos, com uma funcionalidade verificável por vez. O quadro Kanban tinha quatro colunas: *a fazer*, *em andamento*, *revisão* e *concluído*.
 
 As etapas foram:
 
@@ -17,11 +17,13 @@ As etapas foram:
 
 O versionamento usou Git e GitHub, com mensagens no padrão `tipo(escopo): descrição`. As mudanças de banco ficaram em migrations aplicadas por `bin/migrate.php`. O ambiente é o mesmo no desenvolvimento e na apresentação, com Docker Compose.
 
-Os diagramas têm fontes versionadas e o documento oficial é gerado a partir de Markdown dentro do template da FATEC. O texto pode ser corrigido sem mexer na formatação.
+Os diagramas têm fontes versionadas e o documento oficial é gerado a partir de Markdown dentro do template da FATEC. O texto pode ser corrigido sem alterar a formatação.
 
 ## 3.2 Diagramas UML
 
 Os diagramas saíram do código e do banco em execução, com PlantUML. As fontes ficam em `docs/diagramas/fontes/` e as imagens em `docs/diagramas/png/`.
+
+Todos têm uma versão interativa no site da documentação. No DOCX/PDF, clique na legenda da figura para abrir o diagrama; o endereço é https://torque-zenitec.pages.dev.
 
 ### 3.2.1 Diagrama de casos de uso
 
@@ -127,7 +129,7 @@ Um módulo novo não exige mudança no núcleo: basta criar a pasta com `module.
 | Auditoria | Registro de ações sensíveis |
 | IA | Propostas com aprovação humana e verificação de papel |
 
-A matriz de permissões fica no recurso e é aplicada no controller. O mecânico vê a OS, mas só altera aquelas em que é responsável, líder ou criador. A rota também recusa a operação; esconder o botão não basta.
+A matriz de permissões fica no recurso e é aplicada no controller. O mecânico vê a OS, mas só altera aquelas em que é responsável, líder ou criador. Esconder o botão não basta: a rota também recusa a operação.
 
 ### 3.5.2 Integrações
 
@@ -140,6 +142,14 @@ A matriz de permissões fica no recurso e é aplicada no controller. O mecânico
 | Cloudflare Turnstile | Proteção do login | Captcha desativado se as chaves não existirem |
 
 Nenhuma integração é obrigatória. Sem internet ou sem chave de API, o fluxo de OS, orçamento e entrega continua funcionando.
+
+### 3.5.3 Avaliação de segurança
+
+Em 20 de novembro de 2026 o sistema passou por uma avaliação de segurança com varredura dinâmica e revisão do código. A varredura usou o HexStrike AI v6.0 em um container Kali Linux, com nmap, Nikto, Nuclei, ffuf, wafw00f e testes manuais de sessão, CSRF, IDOR e injeção.
+
+Nenhuma falha explorável de injeção, XSS ou acesso cruzado foi encontrada. Os problemas estavam na configuração de implantação e na gestão de credenciais. Foram 18 achados: 2 críticos, 4 altos, 5 médios e 7 baixos. Desses, 17 foram corrigidos ou mitigados e 1 depende da rotação de uma chave no provedor de IA.
+
+O detalhamento, as evidências e a verificação posterior estão no Anexo IV. A versão técnica fica em https://torque-zenitec.pages.dev/#/engenharia/07-seguranca-ofensiva
 
 ## 3.6 Recursos e ferramentas
 
@@ -161,7 +171,7 @@ Nenhuma integração é obrigatória. Sem internet ou sem chave de API, o fluxo 
 
 ## 3.7 Funcionalidades implementadas
 
-A tabela lista o que está pronto e o que ficou parcial.
+Os itens parciais e os não implementados estão detalhados nas ressalvas do capítulo 4.
 
 | Módulo | Funcionalidade | Estado |
 |---|---|---|

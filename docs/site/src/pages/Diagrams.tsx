@@ -41,7 +41,8 @@ export function Diagrams() {
         </h1>
         <p className="mt-3 text-sm leading-6 text-ink-600">
           Os 14 diagramas do documento foram recriados em React Flow. Arraste os nós, use o
-          zoom, o minimapa e os controles para explorar cada um.
+          zoom e o minimapa, passe o mouse para ver os detalhes de cada componente e ligue as
+          animações no botão “Animar”.
         </p>
       </div>
 

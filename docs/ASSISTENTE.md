@@ -46,8 +46,8 @@ Se `LLM_API_KEY` estiver vazio, o assistente usa `GROQ_API_KEY`.
 | `LLM_MAX_TOKENS_DEEP` | `3072` | teto do modo Profundo |
 | `LLM_TEMPERATURE` | `0.3` | temperatura |
 | `AGENT_MOCK` | `false` | modo demonstração sem provedor |
-| `AGENT_MAX_TURNS_HOUR` | `30` | limite por usuário/hora |
-| `AGENT_MAX_TURNS_DAY` | `200` | limite por usuário/dia |
+| `AGENT_MAX_TURNS_HOUR` | `120` | limite por usuário/hora |
+| `AGENT_MAX_TURNS_DAY` | `1000` | limite por usuário/dia |
 | `AGENT_MAX_STEPS` | `6` | iterações de tool calling por turno |
 | `APP_KEY` | — | assina o token das ofertas de peça (gere com `php -r "echo bin2hex(random_bytes(32));"`) |
 
@@ -135,7 +135,7 @@ fechamento e assinatura da oficina.
 | `POST /assistant/enhance` | melhorar queixa/laudo |
 | `POST /assistant/customer-message` | gerar mensagem ao cliente |
 
-Todos exigem auth + CSRF e têm limite por sessão (30/60/20 por hora).
+Todos exigem auth + CSRF e têm limite por sessão (60/120/60 por hora).
 
 ---
 
@@ -219,6 +219,21 @@ src/Modules/Agent/
 public/js/assistant.js                chat, markdown, widgets, SSE, anexos
 public/css/assistant.css
 ```
+
+### Sessões
+
+| Endpoint | Uso |
+|---|---|
+| `POST /assistant/sessions` | cria uma nova conversa |
+| `GET /assistant/sessions/{id}` | histórico da conversa (escopo do dono) |
+| `POST /assistant/sessions/{id}/archive` | arquiva a conversa |
+| `POST /assistant/sessions/{id}/delete` | exclui a conversa, mensagens, anexos e pendências |
+| `POST /assistant/sessions/delete-all` | exclui todas as conversas do usuário |
+
+A exclusão remove também os arquivos de anexo do disco (quando não são mais
+referenciados) e as propostas ainda pendentes da conversa. Propostas já
+decididas permanecem apenas como histórico de auditoria, sem vínculo com a
+conversa excluída.
 
 ### Tabelas
 
@@ -354,7 +369,8 @@ Renderização em `public/js/assistant.js` (`renderWidget`), sempre com
 
 ## 7. Interface
 
-- layout sem navbar e sem rodapé, ocupando a tela inteira;
+- layout sem navbar e sem rodapé, ocupando a tela inteira, com rail de
+  histórico recolhível (somente ícones) e compositor arredondado;
 - streaming SSE com digitação contínua e botão **Parar**;
 - seletor de modelo e de esforço (Rápido / Equilibrado / Profundo) no compositor;
 - painel de reasoning (admin), colapsável e com duração;
@@ -373,6 +389,9 @@ Renderização em `public/js/assistant.js` (`renderWidget`), sempre com
 - **texto para o cliente** no detalhe da OS, com copiar e abrir o WhatsApp Web;
 - atalhos: `Enter` envia, `Shift+Enter` quebra linha, `Esc` para/descarta a
   gravação, `Ctrl/⌘+Shift+K` nova conversa, `Ctrl/⌘+Shift+A` anexar;
+- **excluir conversas**: ícone de lixeira em cada item do histórico (com
+  confirmação) e **Excluir tudo** para limpar todo o histórico do usuário;
+  a exclusão remove mensagens, anexos, arquivos e propostas pendentes;
 - histórico de conversas, pendências e uso diário (tokens + custo estimado).
 
 ### Comportamento do agente
@@ -384,6 +403,10 @@ Renderização em `public/js/assistant.js` (`renderWidget`), sempre com
   renderizado sem conteúdo.
 - **Respostas variadas**: o prompt evita abertura fixa, narração de ferramentas
   e repetição dos dados que já estão no cartão.
+- **Sem cara de IA**: o prompt segue os padrões do
+  [Humanizer](REVISAO_HUMANIZER.md) — nada de "não é apenas X, é Y", fecho de
+  efeito, trio forçado ou adjetivo de propaganda. A regra vale para o assistente
+  e para a documentação.
 
 ### Visualizador de áudio
 

@@ -97,6 +97,7 @@ export function DiagramModal({
 
         <div className="relative min-h-0 flex-1 bg-[var(--flow-canvas)]">
           <DiagramCanvas
+            key={diagram.id}
             diagram={diagram}
             height="100%"
             className="h-full overflow-hidden"

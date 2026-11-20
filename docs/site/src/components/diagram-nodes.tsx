@@ -97,6 +97,14 @@ export function ActorNode({ data }: NodeProps<DiagramNode>) {
   return (
     <div className="flex h-full w-full flex-col items-center justify-center gap-1.5 text-center">
       <Ports />
+      {/* Saída das associações no centro do ícone, não na borda do nó. */}
+      <Handle
+        id="actor"
+        type="source"
+        position={Position.Right}
+        className="!h-1.5 !w-1.5 !min-h-0 !min-w-0 !border-0 !bg-transparent !opacity-0"
+        style={{ top: 37, left: 'calc(50% + 24px)', right: 'auto', transform: 'translate(0, -50%)' }}
+      />
       <div
         className={`flex h-12 w-12 items-center justify-center rounded-full border-2 ${t.box} ${t.border} ${t.text}`}
       >
@@ -111,10 +119,15 @@ export function UseCaseNode({ data }: NodeProps<DiagramNode>) {
   const t = tone(data.tone)
   return (
     <div
-      className={`flex h-full w-full items-center justify-center rounded-full border px-4 text-center text-[13px] font-medium leading-tight ${t.box} ${t.border} ${t.text}`}
+      className={`flex h-full w-full items-center gap-2.5 rounded-full border px-3 text-center text-[13px] font-medium leading-tight ${t.box} ${t.border} ${t.text}`}
     >
       <Ports />
-      {data.label}
+      {data.badge ? (
+        <span className="inline-flex h-6 min-w-6 shrink-0 items-center justify-center rounded-full border border-line bg-surface/80 px-1 text-[9px] font-bold tabular-nums opacity-80">
+          {data.badge}
+        </span>
+      ) : null}
+      <span className="flex-1 truncate px-1">{data.label}</span>
     </div>
   )
 }

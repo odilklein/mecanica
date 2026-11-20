@@ -1,8 +1,8 @@
 # Apresentação da Empresa
 
-A Team Zenitec é a empresa criada pelo grupo para o Projeto Integrador. O trabalho foi conduzido como uma consultoria de pequeno porte: entender a rotina de um cliente, propor um sistema e entregar o código com a documentação.
+A Team Zenitec é a empresa criada pelo grupo para o Projeto Integrador. O grupo trabalhou como uma consultoria de pequeno porte: entender a rotina de um cliente, propor um sistema e entregar o código com a documentação.
 
-O cliente é a Auto Mecânica Leme, uma oficina de pequeno porte que controla o atendimento em cadernos, planilhas e mensagens. O grupo acompanhou esse dia a dia e partiu dele para decidir o que o sistema deveria resolver: o histórico dos veículos, a ordem de serviço, o orçamento e a compra de peças.
+O cliente é a Auto Mecânica Leme, uma oficina de pequeno porte que controla o atendimento em cadernos, planilhas e mensagens. O grupo acompanhou essa rotina e usou o que viu para definir o foco do sistema: o histórico dos veículos, a ordem de serviço, o orçamento e a compra de peças.
 
 ![Figura 1 — Logotipos da Team Zenitec e da Auto Mecânica Leme.](imagens/logos/logotipos.png)
 

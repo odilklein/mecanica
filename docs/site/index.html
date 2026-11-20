@@ -7,15 +7,7 @@
     <meta name="theme-color" content="#B8270F" />
     <link rel="icon" type="image/png" href="./logos/team-zenitec.png" />
     <title>Torque — Documentação</title>
-    <script>
-      (function () {
-        try {
-          var salvo = localStorage.getItem('theme');
-          var escuro = salvo === 'dark' || (!salvo && window.matchMedia('(prefers-color-scheme: dark)').matches);
-          document.documentElement.classList.toggle('dark', escuro);
-        } catch (e) {}
-      })();
-    </script>
+    <script src="./theme-init.js"></script>
   </head>
   <body>
     <div id="root"></div>

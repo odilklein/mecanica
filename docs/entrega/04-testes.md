@@ -2,16 +2,16 @@
 
 ## 4.1 Estratégia de testes
 
-A validação foi **manual e exploratória**, com roteiros tirados dos casos de uso e das regras de negócio. Cada fluxo teve um cenário de sucesso e pelo menos um de exceção, executados sobre a base de demonstração.
+A validação foi manual e exploratória, com roteiros tirados dos casos de uso e das regras de negócio. Cada fluxo teve um cenário de sucesso e pelo menos um de exceção, executados sobre a base de demonstração.
 
 Os testes cobriram:
 
-1. **Fluxo funcional**: login, cadastro, abertura de OS, orçamento, pedido, entrega, ticket e relatório.
-2. **Regra de negócio**: transições de status, bloqueio de edição de orçamento aprovado, KM de saída e limite de login.
-3. **Autorização**: rotas restritas com cada perfil.
-4. **Integração**: ViaCEP, FIPE, Canal da Peça e Groq, inclusive sem chave ou sem rede.
-5. **Interface**: responsividade, mensagens de erro e navegação por perfil.
-6. **Banco**: conferência dos registros em OS, eventos, entregas, auditoria e pedidos.
+1. Fluxo funcional: login, cadastro, abertura de OS, orçamento, pedido, entrega, ticket e relatório.
+2. Regra de negócio: transições de status, bloqueio de edição de orçamento aprovado, KM de saída e limite de login.
+3. Autorização: rotas restritas com cada perfil.
+4. Integração: ViaCEP, FIPE, Canal da Peça e Groq, inclusive sem chave ou sem rede.
+5. Interface: responsividade, mensagens de erro e navegação por perfil.
+6. Banco: conferência dos registros em OS, eventos, entregas, auditoria e pedidos.
 
 A base de demonstração tem 46 clientes, 67 veículos, 182 ordens de serviço, 159 orçamentos e 2.359 peças. Isso permitiu testar listagens, filtros e paginação com volume.
 
@@ -42,7 +42,7 @@ Os testes rodaram em 18 de novembro de 2026, no Docker, com os quatro perfis.
 | CT19 | Aplicação de proposta sem o papel exigido | Aprovado (bloqueia) |
 | CT20 | Upload acima de 25 MB | Aprovado (bloqueia) |
 
-**Ressalvas conhecidas:**
+Ressalvas conhecidas:
 
 - Não há suíte automatizada de testes, embora o PHPUnit esteja declarado no projeto. A validação é manual e depende do roteiro.
 - O estoque não é baixado automaticamente ao executar a OS; o saldo é informativo.
@@ -51,15 +51,15 @@ Os testes rodaram em 18 de novembro de 2026, no Docker, com os quatro perfis.
 
 ## 4.3 Garantia da qualidade
 
-O que foi feito para reduzir defeitos:
+A equipe adotou estas medidas para reduzir defeitos:
 
-- **Padrão de código**: PSR-4, nomes descritivos, controllers pequenos e regras de status em classes próprias.
-- **Validação em duas camadas**: formulário e servidor, com CPF, placa, e-mail e campos obrigatórios.
-- **CSRF e autorização**: verificados em todo `POST` e em cada recurso.
-- **Migrations**: o schema evolui por arquivos aplicados em sequência e registrados na tabela `migrations`.
-- **Auditoria**: as ações sensíveis deixam usuário, data e dados alterados.
-- **Revisão manual**: cada módulo foi revisto antes do fechamento, com correção de textos, permissões e consultas.
-- **Documentação**: requisitos, diagramas e dicionário são gerados ou conferidos a partir do código e do banco.
+- Padrão de código: PSR-4, nomes descritivos, controllers pequenos e regras de status em classes próprias.
+- Validação em duas camadas: formulário e servidor, com CPF, placa, e-mail e campos obrigatórios.
+- CSRF e autorização: verificados em todo `POST` e em cada recurso.
+- Migrations: o schema evolui por arquivos aplicados em sequência e registrados na tabela `migrations`.
+- Auditoria: as ações sensíveis deixam usuário, data e dados alterados.
+- Revisão manual: cada módulo passou por revisão antes do fechamento, com correção de textos, permissões e consultas.
+- Documentação: requisitos, diagramas e dicionário são gerados ou conferidos a partir do código e do banco.
 
 ## 4.4 Requisitos mínimos de hardware e software
 

@@ -1,0 +1,6 @@
+# Configuração do Cloudflare Pages.
+# O endereço público é https://torque-zenitec.pages.dev.
+# Se o nome já estiver em uso, troque aqui e nos demais lugares listados no README.
+name = "torque-zenitec"
+pages_build_output_dir = "dist"
+compatibility_date = "2026-11-20"

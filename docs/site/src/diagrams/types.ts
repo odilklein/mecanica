@@ -19,6 +19,10 @@ export type NodeData = {
   label: string
   subtitle?: string
   meta?: string
+  /** Texto exibido no cartão de detalhes quando o nó é apontado ou selecionado. */
+  description?: string
+  /** Selo curto exibido no nó (ex.: UC01 em casos de uso). */
+  badge?: string
   tone?: Tone
   fields?: DiagramField[]
   icon?: string

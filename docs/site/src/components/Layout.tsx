@@ -2,6 +2,7 @@ import type { ReactNode } from 'react'
 import { useState } from 'react'
 import { Link, NavLink } from 'react-router-dom'
 import { ThemeToggle } from './ThemeToggle'
+import { SITE_HOST } from '@/lib/site'
 import {
   BookOpen,
   Download,
@@ -16,7 +17,8 @@ const NAV = [
   { to: '/', label: 'Visão geral', end: true },
   { to: '/documento', label: 'Documento' },
   { to: '/diagramas', label: 'Diagramas' },
-  { to: '/engenharia', label: 'Engenharia' },
+  { to: '/engenharia', label: 'Engenharia', end: true },
+  { to: '/engenharia/07-seguranca-ofensiva', label: 'Segurança' },
 ]
 
 function Brand() {
@@ -44,7 +46,7 @@ export function Layout({ children }: { children: ReactNode }) {
         <div className="container-page flex h-16 items-center justify-between gap-4">
           <Brand />
 
-          <nav className="hidden items-center gap-1 md:flex">
+          <nav className="hidden items-center gap-1 lg:flex">
             {NAV.map((item) => (
               <NavLink
                 key={item.to}
@@ -63,7 +65,7 @@ export function Layout({ children }: { children: ReactNode }) {
             ))}
           </nav>
 
-          <div className="hidden items-center gap-2 md:flex">
+          <div className="hidden items-center gap-2 lg:flex">
             <ThemeToggle />
             <a
               href="downloads/PI-ES2-2026.pdf"
@@ -94,7 +96,7 @@ export function Layout({ children }: { children: ReactNode }) {
           <button
             type="button"
             onClick={() => setAberto((v) => !v)}
-            className="btn-ghost !px-2.5 md:hidden"
+            className="btn-ghost !px-2.5 lg:hidden"
             aria-label={aberto ? 'Fechar menu' : 'Abrir menu'}
             aria-expanded={aberto}
           >
@@ -103,7 +105,7 @@ export function Layout({ children }: { children: ReactNode }) {
         </div>
 
         {aberto ? (
-          <div className="border-t border-sand-200 bg-sand-50 md:hidden">
+          <div className="border-t border-sand-200 bg-sand-50 lg:hidden">
             <div className="container-page flex flex-col gap-1 py-3">
               {NAV.map((item) => (
                 <NavLink
@@ -183,7 +185,11 @@ export function Layout({ children }: { children: ReactNode }) {
         <div className="border-t border-sand-200 py-4">
           <div className="container-page flex flex-col items-center justify-between gap-2 text-xs text-ink-500 sm:flex-row">
             <span>© 2026 Team Zenitec. Documento acadêmico.</span>
-            <span>React · Tailwind CSS · React Flow</span>
+            <span className="flex items-center gap-2">
+              <span className="font-mono text-[11px]">{SITE_HOST}</span>
+              <span aria-hidden="true">·</span>
+              <span>React · Tailwind CSS · React Flow</span>
+            </span>
           </div>
         </div>
       </footer>

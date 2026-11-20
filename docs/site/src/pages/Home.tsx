@@ -10,6 +10,7 @@ import {
   Github,
   Layers,
   Network,
+  ShieldCheck,
 } from 'lucide-react'
 import { documento, identificacao } from '@/content/generated'
 import { diagrams } from '@/diagrams'
@@ -163,7 +164,7 @@ export function Home() {
           </p>
         </div>
 
-        <div className="mt-5 grid gap-4 sm:grid-cols-2">
+        <div className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           <Link to="/documento" className="card group p-5 transition hover:border-wine-300">
             <FileText className="h-5 w-5 text-wine-600" />
             <h3 className="mt-3 text-sm font-bold text-ink-900">Documento oficial</h3>
@@ -185,6 +186,22 @@ export function Home() {
             </p>
             <span className="mt-3 inline-flex items-center gap-1 text-xs font-semibold text-wine-700">
               Explorar <ArrowRight className="h-3.5 w-3.5 transition group-hover:translate-x-0.5" />
+            </span>
+          </Link>
+
+          <Link
+            to="/engenharia/07-seguranca-ofensiva"
+            className="card group p-5 transition hover:border-wine-300"
+          >
+            <ShieldCheck className="h-5 w-5 text-wine-600" />
+            <h3 className="mt-3 text-sm font-bold text-ink-900">Segurança</h3>
+            <p className="mt-1 text-[13px] leading-6 text-ink-600">
+              Varredura com HexStrike AI e Kali, 18 achados priorizados, correções e
+              verificação posterior.
+            </p>
+            <span className="mt-3 inline-flex items-center gap-1 text-xs font-semibold text-wine-700">
+              Ler o relatório{' '}
+              <ArrowRight className="h-3.5 w-3.5 transition group-hover:translate-x-0.5" />
             </span>
           </Link>
         </div>

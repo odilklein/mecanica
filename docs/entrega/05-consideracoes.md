@@ -2,13 +2,13 @@
 
 O sistema está em funcionamento e cobre o atendimento da oficina, do cadastro do cliente à entrega do veículo. A base de demonstração tem 39 tabelas, 91 rotas e dados suficientes para executar os fluxos de ponta a ponta.
 
-Construir sem framework deu mais trabalho no início. Foi preciso escrever o container, o roteador, a sessão, a autorização, o CRUD e as views antes de chegar às regras da oficina. Em troca, cada uma dessas partes ficou visível no código. Na apresentação, é possível abrir o arquivo e mostrar onde a requisição entra, onde a permissão é verificada e como o CSRF é tratado.
+Construir sem framework deu mais trabalho no início. O grupo precisou escrever o container, o roteador, a sessão, a autorização, o CRUD e as views antes de chegar às regras da oficina. Em troca, cada uma dessas partes ficou visível no código. Na apresentação, a banca pode abrir o arquivo e ver onde a requisição entra, onde a permissão é verificada e como o CSRF é tratado.
 
 O banco cresceu junto com o sistema, em 32 migrations. O dicionário de dados é gerado a partir do banco em execução, então não fica desatualizado quando uma tabela muda.
 
 A IA ficou restrita a consultar, resumir e propor. Nenhuma alteração é gravada sem aprovação do usuário e checagem de permissão. Isso evita que um erro do modelo vire um orçamento ou uma OS errada.
 
-Ficaram de fora os testes automatizados, a baixa automática de estoque, o módulo financeiro, a emissão fiscal, o aplicativo nativo e o backup feito pelo próprio sistema. O prazo do semestre foi o limite.
+Ficaram de fora os testes automatizados, a baixa automática de estoque, o módulo financeiro, a emissão fiscal, o aplicativo nativo e o backup feito pelo próprio sistema. O prazo do semestre definiu esse corte.
 
 Trabalhos futuros:
 

@@ -63,7 +63,7 @@ export function DiagramPage() {
       </div>
 
       <div ref={canvasRef} className="diagram-fullscreen relative mt-6">
-        <DiagramCanvas diagram={diagram} height={altura} />
+        <DiagramCanvas key={diagram.id} diagram={diagram} height={altura} />
         <button
           type="button"
           onClick={alternar}

@@ -21,6 +21,7 @@ from pathlib import Path
 from docx import Document
 from docx.enum.table import WD_TABLE_ALIGNMENT
 from docx.enum.text import WD_ALIGN_PARAGRAPH
+from docx.opc.constants import RELATIONSHIP_TYPE as RT
 from docx.oxml import OxmlElement
 from docx.oxml.ns import qn
 from docx.shared import Cm, Pt, RGBColor
@@ -35,10 +36,29 @@ ENTREGA = DOCS / "entrega"
 DICIONARIO = DOCS / "engenharia" / "04-modelo-dados.md"
 MANIFESTO = DOCS / "saida" / "toc.json"
 
+# Endereço público da documentação (Cloudflare Pages). As figuras do DOCX/PDF
+# apontam para a versão interativa no site.
+SITE_URL = "https://torque-zenitec.pages.dev"
+
 LARGURA_TEXTO = Cm(15.7)
 ALTURA_MAX = Cm(17.8)
 FONTE_TABELA = Pt(8.5)
 FONTE_DICIONARIO = Pt(7.8)
+
+# Larguras específicas para tabelas do relatório de segurança (e outras que
+# fogem do padrão de 2 a 4 colunas). A chave é o cabeçalho em minúsculas.
+LARGURAS_POR_CABECALHO = {
+    ("id", "severidade", "achado", "situação"): [1.4, 2.1, 7.6, 4.6],
+    ("id", "severidade", "achado", "status"): [1.4, 2.1, 7.6, 4.6],
+    ("severidade", "quantidade", "destaques"): [2.4, 2.2, 11.1],
+    ("ferramenta", "objetivo", "execução"): [3.3, 6.2, 6.2],
+    ("componente", "configuração"): [4.2, 11.5],
+    ("porta", "estado", "serviço", "observação"): [1.8, 2.0, 4.8, 7.1],
+    ("caminho", "sem sessão", "observação"): [5.0, 3.0, 7.7],
+    ("controle", "evidência"): [5.0, 10.7],
+    ("etapa", "volume", "resultado"): [4.0, 4.0, 7.7],
+    ("data", "atividade", "responsável"): [2.6, 9.6, 3.5],
+}
 
 # Paleta única do documento (a mesma do sistema: vinho #b8270f).
 COR_VINHO = "B8270F"
@@ -91,6 +111,7 @@ ARQUIVOS = [
     "anexos/01-diario-de-bordo.md",
     "anexos/02-cronograma-efetivo.md",
     "anexos/03-evidencias.md",
+    "anexos/04-relatorio-seguranca.md",
 ]
 
 HEADINGS: list[dict] = []
@@ -223,13 +244,67 @@ def fonte_celulas(tabela, tamanho: Pt, negrito: bool = False) -> None:
                         run.font.bold = True
 
 
+def adicionar_link(
+    paragrafo: Paragraph,
+    texto: str,
+    url: str,
+    *,
+    size: float | None = None,
+    bold: bool = False,
+    italic: bool = False,
+) -> None:
+    """Acrescenta um run clicável (hyperlink externo) ao parágrafo."""
+    r_id = paragrafo.part.relate_to(url, RT.HYPERLINK, is_external=True)
+    link = OxmlElement("w:hyperlink")
+    link.set(qn("r:id"), r_id)
+
+    run = OxmlElement("w:r")
+    rPr = OxmlElement("w:rPr")
+    if bold:
+        rPr.append(OxmlElement("w:b"))
+    if italic:
+        rPr.append(OxmlElement("w:i"))
+    cor = OxmlElement("w:color")
+    cor.set(qn("w:val"), COR_VINHO)
+    rPr.append(cor)
+    sublinhado = OxmlElement("w:u")
+    sublinhado.set(qn("w:val"), "single")
+    rPr.append(sublinhado)
+    if size:
+        sz = OxmlElement("w:sz")
+        sz.set(qn("w:val"), str(int(size * 2)))
+        rPr.append(sz)
+    run.append(rPr)
+
+    t = OxmlElement("w:t")
+    t.set("{http://www.w3.org/XML/1998/namespace}space", "preserve")
+    t.text = texto
+    run.append(t)
+    link.append(run)
+    paragrafo._p.append(link)
+
+
 def texto_formatado(paragrafo: Paragraph, texto: str) -> None:
-    """Interpreta **negrito**, *itálico* e `código` no texto."""
-    partes = re.split(r"(\*\*[^*]+\*\*|\*[^*]+\*|`[^`]+`)", texto)
+    """Interpreta **negrito**, *itálico*, `código` e links markdown/URL."""
+    partes = re.split(
+        r"(\[[^\]]+\]\([^)]+\)|https?://[^\s)]+|\*\*[^*]+\*\*|\*[^*]+\*|`[^`]+`)",
+        texto,
+    )
     for parte in partes:
         if not parte:
             continue
-        if parte.startswith("**") and parte.endswith("**"):
+        if parte.startswith("[") and "](" in parte:
+            m = re.fullmatch(r"\[([^\]]+)\]\(([^)]+)\)", parte)
+            if m:
+                adicionar_link(paragrafo, m.group(1), m.group(2))
+            else:
+                paragrafo.add_run(parte)
+        elif re.match(r"https?://", parte):
+            url = parte.rstrip(".,;:")
+            adicionar_link(paragrafo, url, url)
+            if url != parte:
+                paragrafo.add_run(parte[len(url):])
+        elif parte.startswith("**") and parte.endswith("**"):
             run = paragrafo.add_run(parte[2:-2])
             run.bold = True
         elif parte.startswith("`") and parte.endswith("`"):
@@ -303,6 +378,13 @@ def titulo(doc: Document, texto: str, nivel: int) -> Paragraph:
     return p
 
 
+def url_da_figura(caminho: Path) -> str:
+    """Aponta a figura para o diagrama interativo ou para o documento online."""
+    if caminho.parent.name == "png" and "diagramas" in caminho.parts:
+        return f"{SITE_URL}/#/diagramas/{caminho.stem}"
+    return f"{SITE_URL}/#/documento"
+
+
 def adicionar_figura(doc: Document, caminho: Path, legenda: str) -> None:
     if not caminho.is_file():
         raise FileNotFoundError(f"imagem não encontrada: {caminho}")
@@ -315,18 +397,27 @@ def adicionar_figura(doc: Document, caminho: Path, legenda: str) -> None:
     if largura_cm / aspecto > altura_max:
         altura_cm = altura_max
         largura_cm = altura_cm * aspecto
+    url = url_da_figura(caminho)
+
     p = doc.add_paragraph()
     p.alignment = WD_ALIGN_PARAGRAPH.CENTER
     p.paragraph_format.space_before = Pt(6)
     p.paragraph_format.space_after = Pt(2)
     p.paragraph_format.keep_with_next = True
-    p.add_run().add_picture(str(caminho), width=Cm(largura_cm))
+    run = p.add_run()
+    run.add_picture(str(caminho), width=Cm(largura_cm))
+    # A própria imagem vira um link para o site.
+    r_id = p.part.relate_to(url, RT.HYPERLINK, is_external=True)
+    link = OxmlElement("w:hyperlink")
+    link.set(qn("r:id"), r_id)
+    run._r.addprevious(link)
+    link.append(run._r)
+
     legenda_p = doc.add_paragraph()
     legenda_p.alignment = WD_ALIGN_PARAGRAPH.CENTER
     legenda_p.paragraph_format.space_after = Pt(10)
-    run = legenda_p.add_run(legenda)
-    run.italic = True
-    run.font.size = Pt(10)
+    # A legenda também é clicável e leva para a versão online.
+    adicionar_link(legenda_p, legenda, url, size=10, italic=True)
 
 
 def adicionar_tabela(
@@ -430,8 +521,10 @@ def adicionar_tabela(
 def adicionar_bullets(doc: Document, itens: list[str]) -> None:
     for item in itens:
         p = doc.add_paragraph()
-        p.paragraph_format.left_indent = Cm(0.75)
-        p.paragraph_format.first_line_indent = Cm(-0.4)
+        # Sem recuo pendente: o LibreOffice inverte o w:hanging na conversão
+        # DOCX -> PDF e o texto quebrava fora da margem.
+        p.paragraph_format.left_indent = Cm(0)
+        p.paragraph_format.first_line_indent = Cm(0)
         p.paragraph_format.space_after = Pt(2)
         p.add_run("• ")
         texto_formatado(p, item)
@@ -727,23 +820,24 @@ def renderizar_arquivo(doc: Document, caminho: Path, *, esquerda: bool = False) 
             if dados:
                 qtd_colunas = len(dados[0])
                 cabecalho = [c.lower() for c in dados[0]]
-                larguras = None
-                if qtd_colunas == 9:
-                    larguras = [3.2] + [1.56] * 8
-                elif qtd_colunas == 4:
-                    if cabecalho[0] == "etapa":
-                        larguras = [5.0, 3.9, 3.9, 2.9]
-                    else:
-                        larguras = [7.4, 2.7, 2.7, 2.9]
-                elif qtd_colunas == 3:
-                    if cabecalho[0] == "data":
-                        larguras = [2.6, 9.6, 3.5]
-                    elif cabecalho[0] == "item":
-                        larguras = [5.6, 5.0, 5.1]
-                    else:
-                        larguras = [7.4, 4.6, 3.7]
-                elif qtd_colunas == 2:
-                    larguras = [7.8, 7.9]
+                larguras = LARGURAS_POR_CABECALHO.get(tuple(cabecalho))
+                if larguras is None:
+                    if qtd_colunas == 9:
+                        larguras = [3.2] + [1.56] * 8
+                    elif qtd_colunas == 4:
+                        if cabecalho[0] == "etapa":
+                            larguras = [5.0, 3.9, 3.9, 2.9]
+                        else:
+                            larguras = [7.4, 2.7, 2.7, 2.9]
+                    elif qtd_colunas == 3:
+                        if cabecalho[0] == "data":
+                            larguras = [2.6, 9.6, 3.5]
+                        elif cabecalho[0] == "item":
+                            larguras = [5.6, 5.0, 5.1]
+                        else:
+                            larguras = [7.4, 4.6, 3.7]
+                    elif qtd_colunas == 2:
+                        larguras = [7.8, 7.9]
                 destaque = 3 if cabecalho[0].startswith("funcionalidade") else None
                 adicionar_tabela(
                     doc, dados, legenda=legenda_tabela, larguras=larguras,
@@ -768,9 +862,12 @@ def renderizar_arquivo(doc: Document, caminho: Path, *, esquerda: bool = False) 
                 i += 1
             for item in itens:
                 p = doc.add_paragraph()
-                p.paragraph_format.left_indent = Cm(0.75)
-                p.paragraph_format.first_line_indent = Cm(-0.5)
+                p.paragraph_format.left_indent = Cm(0)
+                p.paragraph_format.first_line_indent = Cm(0)
                 p.paragraph_format.space_after = Pt(2)
+                # "1) " evita que o LibreOffice converta o texto em lista
+                # automática e aplique um recuo só na primeira linha.
+                item = re.sub(r"^(\d+)\.\s+", r"\1) ", item)
                 texto_formatado(p, item)
             continue
 

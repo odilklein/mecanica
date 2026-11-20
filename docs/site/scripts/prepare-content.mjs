@@ -27,6 +27,7 @@ const ORDEM_DOCUMENTO = [
   'anexos/01-diario-de-bordo.md',
   'anexos/02-cronograma-efetivo.md',
   'anexos/03-evidencias.md',
+  'anexos/04-relatorio-seguranca.md',
 ]
 
 const ORDEM_ENGENHARIA = [
@@ -36,6 +37,7 @@ const ORDEM_ENGENHARIA = [
   '04-modelo-dados.md',
   '05-arquitetura.md',
   '06-integracoes.md',
+  '07-seguranca-ofensiva.md',
 ]
 
 const ADRS = [

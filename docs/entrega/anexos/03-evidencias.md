@@ -5,6 +5,13 @@
 - Código-fonte: https://github.com/odilklein/mecanica
 - Histórico de commits: https://github.com/odilklein/mecanica/commits
 - Documentação técnica: pasta `docs/` do repositório
+- Documentação online: https://torque-zenitec.pages.dev
+
+**Relatório de segurança**
+
+- Relatório completo: `docs/seguranca/RELATORIO_PENTEST_HEXSTRIKE.md`
+- Artefatos brutos: `docs/seguranca/artefatos/`
+- Versão online: https://torque-zenitec.pages.dev/#/engenharia/07-seguranca-ofensiva
 
 **Ambiente de demonstração**
 

@@ -17,6 +17,26 @@ export function routeEdges(
     const dx = t.position.x + tw / 2 - (s.position.x + sw / 2)
     const dy = t.position.y + th / 2 - (s.position.y + sh / 2)
 
+    // O ator tem um handle no centro do ícone: as associações saem do boneco,
+    // não do canto da caixa do nó.
+    if (s.type === 'actor' && t.type === 'usecase') {
+      return {
+        ...edge,
+        sourceHandle: 'actor',
+        targetHandle: 'll',
+      }
+    }
+
+    // Mensagens de sequência são horizontais e partem do centro da lifeline,
+    // não da borda da caixa do nó. Os handles de topo ficam no eixo central.
+    if (edge.type === 'message' || typeof edge.data?.y === 'number') {
+      return {
+        ...edge,
+        sourceHandle: 't',
+        targetHandle: 'tt',
+      }
+    }
+
     if (Math.abs(dx) >= Math.abs(dy)) {
       return {
         ...edge,

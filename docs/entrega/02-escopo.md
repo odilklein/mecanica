@@ -24,9 +24,9 @@ O levantamento teve três frentes: entrevista semiestruturada com o responsável
 
 A entrevista partiu de um roteiro com perguntas abertas sobre a chegada do cliente, a abertura do serviço, a comunicação com o mecânico, a aprovação do orçamento, a compra de peças e a entrega do veículo. As respostas foram registradas em ata e convertidas em requisitos.
 
-Na observação, acompanhou-se o caminho de um atendimento completo, do recebimento do veículo à entrega, anotando os pontos em que a informação era repetida, perdida ou registrada em mais de um lugar. Também foram analisadas as planilhas de controle e os modelos de orçamento já utilizados pela oficina.
+Na observação, o grupo acompanhou o caminho de um atendimento completo, do recebimento do veículo à entrega, e anotou os pontos em que a informação era repetida, perdida ou registrada em mais de um lugar. Também analisou as planilhas de controle e os modelos de orçamento que a oficina já usava.
 
-O resultado foi consolidado em requisitos funcionais, requisitos não funcionais e regras de negócio. As funcionalidades foram priorizadas em essenciais, importantes e desejáveis, considerando o prazo do semestre e o impacto na operação. Cada requisito foi validado com o cliente antes da implementação, quando havia tempo.
+O resultado foi consolidado em requisitos funcionais, requisitos não funcionais e regras de negócio. As funcionalidades foram priorizadas em essenciais, importantes e desejáveis, considerando o prazo do semestre e o impacto na operação. O grupo validou cada requisito com o cliente antes da implementação, quando havia tempo.
 
 ## 2.3 Requisitos funcionais
 
@@ -158,9 +158,9 @@ Novos módulos devem poder ser adicionados sem alterar o núcleo, desde que resp
 
 ## 2.5 Comparativo entre sistemas
 
-Para situar o Torque no mercado, foram comparadas suas funcionalidades com as de duas soluções comerciais voltadas a oficinas mecânicas: o Bruning Eixo e o Actana ERP. A comparação considera apenas recursos divulgados publicamente pelos fornecedores e não avalia preço, suporte ou qualidade de implementação.
+Para situar o Torque no mercado, a equipe comparou suas funcionalidades com as de duas soluções comerciais para oficinas mecânicas: o Bruning Eixo e o Actana ERP. A comparação considera apenas recursos divulgados publicamente pelos fornecedores e não avalia preço, suporte ou qualidade de implementação.
 
-A Tabela 1 usa **X** para indicar que o recurso existe e **–** para indicar que não foi identificado na documentação pública.
+Na Tabela 1, **X** indica que o recurso existe e **–** que não foi identificado na documentação pública.
 
 Tabela 1 – Comparativo das funcionalidades da aplicação
 
@@ -185,11 +185,11 @@ Tabela 1 – Comparativo das funcionalidades da aplicação
 
 Fonte: elaborado pelos autores com base nos sites dos fornecedores (2026).
 
-O Torque não compete em amplitude com os ERPs comerciais: não possui módulo fiscal, financeiro nem aplicativo nativo. Seu diferencial está na combinação de um fluxo enxuto de oficina com um assistente de IA que apenas propõe alterações, sempre sujeitas à aprovação do usuário.
+O Torque não compete em amplitude com os ERPs comerciais: não tem módulo fiscal, financeiro nem aplicativo nativo. O que ele oferece é um fluxo enxuto de oficina junto a um assistente de IA que apenas propõe alterações, sempre sujeitas à aprovação do usuário.
 
 ## 2.6 Cronograma
 
-O cronograma registra o que foi planejado e o que foi executado. A Tabela 2 marca com **X** os períodos de cada atividade.
+A Tabela 2 marca com **X** os períodos planejados e executados de cada atividade.
 
 Tabela 2 – Cronograma do projeto
 

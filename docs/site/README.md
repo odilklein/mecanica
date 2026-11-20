@@ -44,6 +44,7 @@ conteúdo, edite os Markdown e rode o build de novo.
 src/
   content/generated.ts        conteúdo gerado (não versionado)
   diagrams/                   definições dos 14 grafos (nós e arestas)
+  lib/site.ts                 endereço público (Cloudflare Pages)
   components/
     diagram-nodes.tsx         ator, caso de uso, classe, entidade, componente, estado, lifeline
     MessageEdge.tsx           seta horizontal das sequências
@@ -51,6 +52,8 @@ src/
     DiagramMiniature.tsx      miniatura SVG usada no documento e na galeria
     MarkdownDocument.tsx      Markdown -> páginas, tabelas e figuras
   pages/                      Home, Documento, Diagramas, Engenharia
+wrangler.toml                 configuração do Cloudflare Pages
+public/_headers               cabeçalhos HTTP do Cloudflare Pages
 ```
 
 ## Tema e interação
@@ -62,6 +65,17 @@ src/
 - O modal e a página do diagrama têm **tela cheia** (Fullscreen API) e link para a página
   completa.
 - Os previews só montam o React Flow quando entram na viewport; até lá usam a miniatura SVG.
+
+### Interações do diagrama
+
+- **Arrastar** reposiciona os nós; o zoom e o minimapa continuam funcionando.
+- **Passar o mouse** acende o nó e as ligações vizinhas e esmaece o resto. O cartão no
+  topo mostra a descrição do componente.
+- **Clicar** fixa os detalhes do nó; clicar no fundo limpa a seleção.
+- **Animar** liga o movimento das ligações. Diagramas de arquitetura e de fluxo já
+  começam animados; sequências ficam estáticas para não alterar o significado do tracejado.
+- Cada nó aceita `description` em `src/diagrams/types.ts`. O texto aparece no cartão de
+  detalhes e não muda o desenho do diagrama.
 
 ## Equipe
 
@@ -84,16 +98,40 @@ Para adicionar um diagrama:
 
 ## Deploy
 
-O build é estático (`dist/`) e usa `HashRouter`, então funciona em qualquer hospedagem,
-inclusive GitHub Pages, sem regra de rewrite. O workflow
-[`.github/workflows/docs.yml`](../../.github/workflows/docs.yml) publica em Pages a cada push
-na branch principal.
+O build é estático (`dist/`) e usa `HashRouter`, então funciona em qualquer hospedagem
+sem regra de rewrite.
 
-Para habilitar: **Settings → Pages → Build and deployment → Source: GitHub Actions**.
+**Endereço público:** https://torque-zenitec.pages.dev
+
+**Cloudflare Pages**
+
+O projeto se chama `torque-zenitec`; o subdomínio `.pages.dev` é derivado desse nome. A
+configuração está em [`wrangler.toml`](wrangler.toml):
+
+| Campo | Valor |
+|---|---|
+| Projeto | `torque-zenitec` |
+| Branch de produção | `main` |
+| Diretório raiz | `docs/site` |
+| Comando de build | `npm run build` |
+| Diretório de saída | `dist` |
+| Variável | `NODE_VERSION=22` (ou `.node-version` com `22`) |
+
+No painel do Cloudflare: **Workers & Pages → Create → Pages → Connect to Git**, escolha o
+repositório, informe o diretório raiz e os comandos acima. O `wrangler.toml` já declara o
+nome e a pasta de saída. Se o nome `torque-zenitec` estiver em uso, troque-o em:
+
+1. `wrangler.toml` (`name`);
+2. `src/lib/site.ts` (`SITE_URL` e `SITE_HOST`);
+3. `docs/build/build_docx.py` (`SITE_URL`);
+4. `docs/README.md` e neste arquivo.
+
+O workflow antigo de GitHub Pages continua em `.github/workflows/docs.yml` como
+alternativa. Para desativá-lo, remova o arquivo ou a permissão de Pages do repositório.
 
 > Os arquivos `docs/saida/PI-ES2-2026.pdf` e `docs/saida/PI-ES2-2026.docx` precisam estar
-> versionados para os botões de download funcionarem no Pages. Se não estiverem, o site é
-> publicado normalmente, mas os links de download ficam vazios.
+> versionados para os botões de download funcionarem. O `prepare-content` copia os dois
+> para `public/downloads/`.
 
 ## Observações
 
