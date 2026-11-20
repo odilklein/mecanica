@@ -9,10 +9,11 @@
 **Ambiente de demonstração**
 
 - Aplicação: http://localhost:8080
-- Usuários de demonstração (senha `admin123`):
-  - `admin@mecanica.com` — administrador
-  - `secretaria@mecanica.com` — secretaria
-  - `mecanico@mecanica.com` — mecânico
+- Usuários de demonstração: `admin@mecanica.com` (administrador),
+  `secretaria@mecanica.com` (secretaria) e `mecanico@mecanica.com` (mecânico).
+  As senhas não ficam no repositório: são definidas no ambiente
+  (`bin/create_admin.php` ou `SEED_PASSWORD` no seed) e trocadas no primeiro
+  acesso.
 
 **Evidências visuais**
 
