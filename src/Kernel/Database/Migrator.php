@@ -98,7 +98,21 @@ class Migrator
     private function migrationFiles(): array
     {
         $files = glob($this->basePath . '/src/Modules/*/migrations/*.php') ?: [];
-        sort($files);
+
+        // Ordena por módulo respeitando o module.json (Core antes de Mechanic,
+        // Mechanic antes de Agent) e, dentro do módulo, pelo nome do arquivo.
+        // Sem isso a ordem alfabética das pastas roda Agent primeiro e uma FK
+        // para `users`/`service_orders` quebra em banco vazio.
+        $rank = array_flip($this->moduleOrder());
+
+        usort($files, static function (string $a, string $b) use ($rank): int {
+            $moduleOf = static function (string $file): string {
+                return preg_match('~/src/Modules/([^/]+)/migrations/~', $file, $m) === 1 ? $m[1] : '';
+            };
+
+            return [$rank[$moduleOf($a)] ?? PHP_INT_MAX, basename($a)]
+                <=> [$rank[$moduleOf($b)] ?? PHP_INT_MAX, basename($b)];
+        });
 
         $map = [];
         foreach ($files as $file) {
@@ -106,6 +120,64 @@ class Migrator
             $map[$key] = $file;
         }
         return $map;
+    }
+
+    /**
+     * Ordem de execução dos módulos, derivada do module.json
+     * (dependências primeiro; pastas sem manifesto ficam de fora).
+     *
+     * @return string[] nomes das pastas dos módulos, na ordem de execução
+     */
+    private function moduleOrder(): array
+    {
+        $rawDeps = [];
+        $folderByName = [];
+
+        foreach (glob($this->basePath . '/src/Modules/*/module.json') ?: [] as $manifestFile) {
+            $folder = basename(dirname($manifestFile));
+            $manifest = json_decode((string) file_get_contents($manifestFile), true);
+            if (!is_array($manifest)) {
+                continue;
+            }
+
+            $name = (string) ($manifest['name'] ?? strtolower($folder));
+            $folderByName[$name] = $folder;
+            $rawDeps[$folder] = array_map('strval', (array) ($manifest['dependencies'] ?? []));
+        }
+
+        // Dependências vêm com o nome do manifesto ("core"); traduz para a pasta.
+        $modules = [];
+        foreach ($rawDeps as $folder => $deps) {
+            $modules[$folder] = array_map(
+                static fn (string $dep): string => $folderByName[$dep] ?? $dep,
+                $deps
+            );
+        }
+
+        $order = [];
+        $visiting = [];
+        $resolve = function (string $folder) use (&$resolve, &$order, &$visiting, $modules): void {
+            if (isset($order[$folder]) || isset($visiting[$folder])) {
+                return;
+            }
+
+            $visiting[$folder] = true;
+            foreach ($modules[$folder] ?? [] as $dep) {
+                if (isset($modules[$dep])) {
+                    $resolve($dep);
+                }
+            }
+            unset($visiting[$folder]);
+            $order[$folder] = true;
+        };
+
+        $folders = array_keys($modules);
+        sort($folders);
+        foreach ($folders as $folder) {
+            $resolve($folder);
+        }
+
+        return array_keys($order);
     }
 
     /**
