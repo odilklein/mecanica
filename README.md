@@ -70,8 +70,8 @@ A arquitetura é modular:
 | --- | --- |
 | Sistema | <https://torque-zenitec.page.gd> |
 | Documentação | <https://torque-zenitec.pages.dev> |
-| Acesso de demonstração | `secretaria@mecanica.com` / `Demo@Mecanica2026` |
-| Outros perfis | `mecanico@mecanica.com` e `carlos.souza@mecanica.com` usam a mesma senha |
+| Acesso de demonstração | `juliana.prado@mecanica.com` / `Demo@Mecanica2026` (secretaria) |
+| Outros perfis | `carlos.souza@mecanica.com` (mecânico-chefe) e `fernanda.lima@mecanica.com` (mecânica) usam a mesma senha |
 
 Os dados são fictícios e recriáveis com `php bin/seed_operacao.php`. O acesso de
 administrador não é publicado: é criado no deploy com

@@ -11,8 +11,8 @@ InfinityFree.
 > visita. Para o sistema completo e sem esses limites, use o
 > [guia Docker](DOCKER.md).
 >
-> Acesso público: <https://torque-zenitec.page.gd> · `secretaria@mecanica.com` /
-> `Demo@Mecanica2026`. O administrador não é publicado.
+> Acesso público: <https://torque-zenitec.page.gd> · `juliana.prado@mecanica.com` /
+> `Demo@Mecanica2026` (secretaria). O administrador não é publicado.
 
 | Item | Valor |
 | --- | --- |
