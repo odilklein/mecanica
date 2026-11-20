@@ -17,9 +17,9 @@ InfinityFree.
 | Item | Valor |
 | --- | --- |
 | URL | https://torque-zenitec.page.gd |
-| Conta | `if0_42913295` |
-| Docroot | `torque-zenitec.page.gd/htdocs` |
-| Banco | `if0_42913295_torquedb` em `sql211.infinityfree.com` |
+| Conta | `if0_XXXXXXXX` (painel da InfinityFree) |
+| Docroot | `<dominio>/htdocs` |
+| Banco | `<conta>_torquedb` em `sqlXXX.infinityfree.com` |
 | PHP | 8.4 (Apache com `mod_php`) |
 
 Credenciais de FTP, MySQL e do administrador ficam **apenas no `.env` do
