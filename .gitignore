@@ -22,3 +22,6 @@
 /docs/site/public/prints/
 /docs/site/public/logos/
 /docs/site/public/downloads/
+
+# Credenciais locais de teste (geradas em runtime)
+/CREDENCIAIS-TESTE.md

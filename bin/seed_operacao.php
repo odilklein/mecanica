@@ -8,7 +8,7 @@
 //   php bin/seed_operacao.php                 (recria apenas este seed)
 //   php bin/seed_operacao.php --fresh          (remove também o seed-demo antigo)
 //   php bin/seed_operacao.php --clean          (só remove)
-//   php bin/seed_operacao.php --months=8       (período, padrão 6)
+//   php bin/seed_operacao.php --months=8       (período, padrão 3)
 //   php bin/seed_operacao.php --os=220         (quantidade aproximada de OS)
 //
 // Todos os registros criados são marcados com
@@ -32,11 +32,11 @@ $pdo = Connection::fromEnv();
 $flags = array_slice($argv, 1);
 $onlyClean = in_array('--clean', $flags, true);
 $withLegacy = in_array('--fresh', $flags, true);
-$months = 6;
-$targetOs = null;
+$months = 3;
+$targetOs = 150;
 foreach ($flags as $flag) {
     if (preg_match('/^--months=(\d+)$/', $flag, $m)) {
-        $months = max(5, min(24, (int) $m[1]));
+        $months = max(3, min(24, (int) $m[1]));
     }
     if (preg_match('/^--os=(\d+)$/', $flag, $m)) {
         $targetOs = max(40, min(600, (int) $m[1]));
@@ -1138,7 +1138,7 @@ $recentOrders = $pdo->query(
 )->fetchAll();
 
 $notifMessages = [
-    'os_created' => 'Você foi designado para a OS #%s.',
+    'os_created' => 'Nova OS #%s aberta.',
     'os_status' => 'A OS #%s teve o status atualizado.',
     'part' => 'Pedido de peças da OS #%s foi atualizado.',
 ];
@@ -1150,16 +1150,30 @@ foreach ($recentOrders as $n => $order) {
         $adminId,
     ])));
     $type = ['os_created', 'os_status', 'part'][$n % 3];
-    foreach (array_slice($userIds, 0, 2) as $k => $userId) {
+    $actor = $type === 'os_created'
+        ? (int) $order['created_by']
+        : (int) ($order['lead_mechanic_id'] ?: $order['created_by']);
+    $actor = $actor ?: $adminId;
+    $osLabel = str_pad((string) $order['number'], 4, '0', STR_PAD_LEFT);
+    $recipients = array_values(array_filter(
+        $userIds,
+        static fn (int $userId): bool => $userId !== $actor
+    ));
+
+    foreach (array_slice($recipients, 0, 2) as $k => $userId) {
+        $message = $type === 'os_created' && $userId === (int) $order['lead_mechanic_id']
+            ? 'Você foi designado para a OS #' . $osLabel . '.'
+            : sprintf($notifMessages[$type], $osLabel);
+
         q(
             $pdo,
             'INSERT INTO notifications (user_id, created_by, type, message, link, read_at, created_at)
              VALUES (?, ?, ?, ?, ?, ?, ?)',
             [
                 $userId,
-                $adminId,
+                $actor,
                 $type,
-                sprintf($notifMessages[$type], str_pad((string) $order['number'], 4, '0', STR_PAD_LEFT)),
+                $message,
                 '/service-orders/' . (int) $order['id'],
                 ($n + $k) % 3 === 0 ? null : $today->modify('-' . between(1, 20) . ' hours')->format('Y-m-d H:i:s'),
                 $today->modify('-' . between(1, 60) . ' hours')->format('Y-m-d H:i:s'),
@@ -1172,7 +1186,11 @@ foreach ($recentOrders as $n => $order) {
 // Auditoria
 // ---------------------------------------------------------------------
 $auditOrders = $pdo->query(
-    "SELECT id, number FROM service_orders WHERE internal_notes LIKE '[seed-op]%' ORDER BY RAND() LIMIT 60"
+    "SELECT id, number, created_by, lead_mechanic_id
+       FROM service_orders
+      WHERE internal_notes LIKE '[seed-op]%'
+      ORDER BY RAND()
+      LIMIT 60"
 )->fetchAll();
 
 $auditActions = ['create', 'update', 'status', 'delivery'];
@@ -1182,15 +1200,21 @@ foreach ($auditOrders as $n => $order) {
     if ($when > $today) {
         $when = $today;
     }
+    $action = $auditActions[$n % count($auditActions)];
+    $actor = $action === 'create'
+        ? (int) $order['created_by']
+        : (int) ($order['lead_mechanic_id'] ?: $order['created_by']);
+    $actor = $actor ?: $adminId;
+
     q(
         $pdo,
         'INSERT INTO audit_logs (user_id, entity, entity_id, action, data, created_at)
          VALUES (?, ?, ?, ?, ?, ?)',
         [
-            $adminId,
+            $actor,
             $auditEntities[$n % count($auditEntities)],
             (int) $order['id'],
-            $auditActions[$n % count($auditActions)],
+            $action,
             json_encode(['seed' => 'seed-op', 'order' => (int) $order['number']], JSON_UNESCAPED_UNICODE),
             $when->setTime(between(8, 18), between(0, 59))->format('Y-m-d H:i:s'),
         ]
