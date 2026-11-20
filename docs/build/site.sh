@@ -5,6 +5,7 @@
 #   ./site.sh dev       # servidor de desenvolvimento em http://localhost:5173
 #   ./site.sh build     # gera docs/site/dist
 #   ./site.sh preview   # serve o build em http://localhost:4173
+#   ./site.sh deploy    # publica no Cloudflare Pages (produção)
 set -euo pipefail
 
 SITE="$(cd "$(dirname "$0")/../site" && pwd)"
@@ -47,6 +48,22 @@ case "${1:-build}" in
     run npm run build
     echo "== build em $SITE/dist"
     ;;
+  deploy)
+    # Publica em https://torque-zenitec.pages.dev. Usa o login do wrangler
+    # (~/.wrangler); rode `npx wrangler login` uma vez se ainda não estiver logado.
+    if [ ! -d "$SITE/dist" ]; then
+      echo "== nenhum build encontrado; gerando"
+      "$0" build
+    fi
+    docker run --rm \
+      --user "$UID_GID" \
+      -e HOME=/tmp \
+      -e npm_config_cache=/tmp/.npm \
+      -v "$RAIZ:/workspace" \
+      -v "$HOME/.wrangler:/tmp/.wrangler" \
+      -w /workspace/docs/site \
+      "$IMG" sh -c "npx --yes wrangler@latest pages deploy dist --project-name torque-zenitec --branch main --commit-dirty=true"
+    ;;
   preview)
     docker run --rm \
       --user "$UID_GID" \
@@ -58,7 +75,7 @@ case "${1:-build}" in
       "$IMG" npm run preview -- --host 0.0.0.0
     ;;
   *)
-    echo "uso: $0 [install|content|dev|build|preview]"
+    echo "uso: $0 [install|content|dev|build|preview|deploy]"
     exit 1
     ;;
 esac

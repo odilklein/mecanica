@@ -14,7 +14,12 @@ bash docs/build/site.sh install   # instala as dependências (uma vez)
 bash docs/build/site.sh dev       # http://localhost:5173
 bash docs/build/site.sh build     # gera docs/site/dist
 bash docs/build/site.sh preview   # serve o build em http://localhost:4173
+bash docs/build/site.sh deploy    # publica em https://torque-zenitec.pages.dev
 ```
+
+O `deploy` usa o wrangler com o login salvo em `~/.wrangler` (rode
+`npx wrangler login` uma vez). O projeto `torque-zenitec` **não** está ligado ao
+GitHub: um `git push` não publica o site, é preciso rodar o comando de deploy.
 
 Se preferir Node local (22+):
 
@@ -58,7 +63,8 @@ public/_headers               cabeçalhos HTTP do Cloudflare Pages
 
 ## Tema e interação
 
-- **Tema claro sépia** e **tema escuro** com toggle no cabeçalho (persistido em
+- **Temas claro e escuro** alinhados à paleta do sistema (`#f8f7fa`/`#25293c`,
+  primária `#b8270f`) com toggle no cabeçalho (persistido em
   `localStorage`; respeita `prefers-color-scheme` na primeira visita).
 - No documento, cada figura é um **preview real em React Flow** (sem interação). O clique
   abre um **modal** com o diagrama interativo, zoom, minimapa e legenda.

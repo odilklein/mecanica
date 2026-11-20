@@ -327,6 +327,7 @@ Para gerar o documento oficial e o site:
 bash docs/build/render.sh diagramas   # PlantUML/D2 via Docker
 bash docs/build/render.sh documento   # DOCX + PDF em docs/saida/
 bash docs/build/site.sh dev           # site em http://localhost:5173
+bash docs/build/site.sh deploy        # publica em https://torque-zenitec.pages.dev
 ```
 
 ## Equipe
