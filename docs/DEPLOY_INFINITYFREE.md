@@ -131,6 +131,9 @@ segundos; `--clean` remove tudo o que foi criado.
 - Sessões ficam em `/php_sessions` (compartilhado do host), não em `storage/`.
 - A primeira visita passa por um desafio JavaScript (`aes.js`) da InfinityFree;
   navegadores resolvem sozinhos, `curl`/bots recebem a página do desafio.
+- O WAF do host bloqueia algumas palavras no caminho da URL (HTTP 403), mesmo em
+  arquivos estáticos. `app-chat.css` do template era bloqueado; o arquivo foi
+  renomeado para `app-conversa.css`. Evite nomes como `chat` em rotas e assets.
 - Conexões de saída funcionam (Groq, ViaCEP, FIPE, Canal da Peça), mas o IP é
   compartilhado — se algum provedor bloquear, a integração falha.
 

@@ -177,7 +177,7 @@ class TicketController extends Controller
             'hasMore' => $hasMore,
             'search' => $search,
             'pageStyles' => [
-                '/assets/vendor/css/pages/app-chat.css',
+                '/assets/vendor/css/pages/app-conversa.css',
             ],
             'pageScripts' => [
                 '/js/tickets.js',

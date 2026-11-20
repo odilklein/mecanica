@@ -520,7 +520,7 @@ class ServiceOrderController extends CrudController
             'statusAvailable' => $statusAvailable,
             'canManage' => $this->auth->hasRole(['admin', 'secretary', 'lead_mechanic']),
             'pageStyles' => [
-                '/assets/vendor/css/pages/app-chat.css',
+                '/assets/vendor/css/pages/app-conversa.css',
             ],
             'pageScripts' => [
                 '/js/ticket-audio.js',
