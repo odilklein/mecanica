@@ -13,7 +13,7 @@ Projeto Integrador · DSM · FATEC Araras · Team Zenitec
 [![Documentação](https://img.shields.io/badge/docs-online-B8270F)](https://torque-zenitec.pages.dev)
 [![License: MIT](https://img.shields.io/badge/license-MIT-2ea44f)](LICENSE)
 
-[Sistema (demo)](https://torque-zenitec.page.gd) · [Documentação](https://torque-zenitec.pages.dev) · [Documento (PDF)](https://torque-zenitec.pages.dev/downloads/PI-ES2-2026.pdf) · [Diagramas](https://torque-zenitec.pages.dev/diagramas) · [Segurança](https://torque-zenitec.pages.dev/engenharia/07-seguranca-ofensiva)
+[Sistema (demo)](https://torque-zenitec.page.gd) · [Documentação](https://torque-zenitec.pages.dev) · [Documento (PDF)](https://torque-zenitec.pages.dev/downloads/PI-ES2-2026.pdf) · [Diagramas](https://torque-zenitec.pages.dev/#/diagramas) · [Segurança](https://torque-zenitec.pages.dev/#/engenharia/07-seguranca-ofensiva)
 
 </div>
 
@@ -284,10 +284,10 @@ React Flow, com zoom e navegação.
 | Seção | O que tem | Link |
 | --- | --- | --- |
 | **Visão geral** | Resumo do projeto, recursos, capturas e equipe | [/](https://torque-zenitec.pages.dev/) |
-| **Documento** | Documento oficial do PI, seção a seção, com requisitos RF/RNF | [/documento](https://torque-zenitec.pages.dev/documento) |
-| **Diagramas** | 14 diagramas interativos (casos de uso, classes, sequência, ER, arquitetura e fluxo da OS) | [/diagramas](https://torque-zenitec.pages.dev/diagramas) |
-| **Engenharia** | Referência técnica: stack, requisitos, regras, modelo de dados, arquitetura, integrações e ADRs | [/engenharia](https://torque-zenitec.pages.dev/engenharia) |
-| **Segurança** | Pentest com HexStrike AI, 18 achados, correções e reprodução | [/engenharia/07-seguranca-ofensiva](https://torque-zenitec.pages.dev/engenharia/07-seguranca-ofensiva) |
+| **Documento** | Documento oficial do PI, seção a seção, com requisitos RF/RNF | [/#/documento](https://torque-zenitec.pages.dev/#/documento) |
+| **Diagramas** | 14 diagramas interativos (casos de uso, classes, sequência, ER, arquitetura e fluxo da OS) | [/#/diagramas](https://torque-zenitec.pages.dev/#/diagramas) |
+| **Engenharia** | Referência técnica: stack, requisitos, regras, modelo de dados, arquitetura, integrações e ADRs | [/#/engenharia](https://torque-zenitec.pages.dev/#/engenharia) |
+| **Segurança** | Pentest com HexStrike AI, 18 achados, correções e reprodução | [/#/engenharia/07-seguranca-ofensiva](https://torque-zenitec.pages.dev/#/engenharia/07-seguranca-ofensiva) |
 
 O PDF e o DOCX do documento oficial ficam em `docs/saida/` e podem ser baixados pelo
 próprio site.
