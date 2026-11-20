@@ -120,6 +120,21 @@ mesmo script temporário, com `$argv = ['seed', '--password=...']` antes do
 `require`. O seed padrão gera 3 meses de operação (≈150 OS) e leva poucos
 segundos; `--clean` remove tudo o que foi criado.
 
+## Turnstile no login
+
+O login usa Cloudflare Turnstile. As chaves ficam no `.env` do servidor
+(`TURNSTILE_KEY` ou `TURNSTILE_SITE_KEY`, mais `TURNSTILE_SECRET`) e
+`TURNSTILE_HOSTNAMES` precisa listar o domínio do site. Sem site key e secret, a
+verificação é ignorada e o login volta ao normal.
+
+- O widget é renderizado dentro do formulário (`data-action="login"`); o token
+  vai como `cf-turnstile-response` e é validado no servidor.
+- Navegadores automatizados/headless são barrados pela Cloudflare (erro `600*`),
+  então testes com Playwright não conseguem autenticar. Em navegador comum o
+  desafio passa sozinho.
+- Para desativar rapidamente (sem internet na banca, por exemplo), deixe as duas
+  chaves vazias no `.env`.
+
 ## Limitações do plano gratuito
 
 - `exec`, `shell_exec`, `proc_open`, `symlink` e `chmod` estão desabilitados.
@@ -143,5 +158,5 @@ segundos; `--clean` remove tudo o que foi criado.
 - [x] Migrations aplicadas (33) e admin criado.
 - [x] `src/`, `vendor/`, `bin/`, `storage/`, `.env` e `composer.*` bloqueados.
 - [x] `storage/cache`, `storage/logs` e `storage/agent` graváveis.
-- [x] Turnstile desativado (sem chaves) — login liberado.
+- [x] Turnstile ativo no login (chaves no `.env` do servidor).
 - [ ] Seed de demonstração (opcional).

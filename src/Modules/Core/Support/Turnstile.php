@@ -13,7 +13,8 @@ class Turnstile
 {
     public static function siteKey(): string
     {
-        return trim((string) env('TURNSTILE_SITE_KEY'));
+        // Aceita TURNSTILE_KEY (nome usado no painel da Cloudflare) como alias.
+        return trim((string) (env('TURNSTILE_SITE_KEY') ?: env('TURNSTILE_KEY')));
     }
 
     public static function secret(): string
@@ -90,7 +91,7 @@ class Turnstile
     {
         $missing = [];
         if (self::siteKey() === '') {
-            $missing[] = 'TURNSTILE_SITE_KEY';
+            $missing[] = 'TURNSTILE_SITE_KEY (ou TURNSTILE_KEY)';
         }
         if (self::secret() === '') {
             $missing[] = 'TURNSTILE_SECRET';
