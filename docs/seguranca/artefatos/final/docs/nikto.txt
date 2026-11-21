@@ -1,0 +1,31 @@
+- Nikto v2.6.1
+---------------------------------------------------------------------------
++ Target IP:          172.66.46.222
++ Target Hostname:    torque-zenitec.pages.dev
++ Target Port:        443
+---------------------------------------------------------------------------
++ SSL Info:           Subject:  /CN=torque-zenitec.pages.dev
+                      CN:       torque-zenitec.pages.dev
+                      SAN:      *.torque-zenitec.pages.dev, torque-zenitec.pages.dev
+                      Ciphers:  TLS_AES_256_GCM_SHA384
+                      Issuer:   /C=US/O=Let's Encrypt/CN=YE1
++ Platform:           Unknown
++ Start Time:         2026-11-21 01:02:47 (GMT0)
+---------------------------------------------------------------------------
++ Server: cloudflare
++ Multiple IPs found: 172.66.46.222, 172.66.45.34, 2606:4700:310c::ac42:2d22, 2606:4700:310c::ac42:2ede
++ [000287] /: Retrieved access-control-allow-origin header: \*.
++ [011799] /: An alt-svc header was found which is advertising HTTP/3. The endpoint is: ':443'. Nikto cannot test HTTP/3 over QUIC. See: https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/alt-svc
++ [999106] /: Cloudflare detected via cf-ray header. Recommend proxying via Burp or mitmproxy to avoid TLS fingerprint blocks. See: https://github.com/sullo/nikto/wiki/Using-a-Proxy
++ No CGI Directories found (use '-C all' to force check all possible dirs). CGI tests skipped.
++ [800264] /: cloudflare - Cloudflare detected via banner. Recommend proxying via Burp or mitmproxy to avoid TLS fingerprint blocks if not already proxying.
+- STATUS: Completed 168 requests (~5% complete, ~1.7 minutes left): currently in plugin 'Site Files'
+- STATUS: Running average: Not enough data.
++ Scan terminated: 20 errors and 4 items reported on the remote host
++ End Time:           2026-11-21 01:02:51 (GMT0) (4 seconds)
+---------------------------------------------------------------------------
++ 1 host(s) tested
+
+--- stderr ---
++ ERROR: *** Error limit (20) reached for host, giving up. Last error: opening stream: ssl connect failed. ***
++ ERROR: *** Consider using mitmproxy to avoid TLS fingerprinting. ***

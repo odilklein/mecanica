@@ -1,0 +1,17 @@
+===============================================================
+Gobuster v3.8.2
+by OJ Reeves (@TheColonial) & Christian Mehlmauer (@firefart)
+===============================================================
+[+] Url:                     https://torque-zenitec.pages.dev
+[+] Method:                  GET
+[+] Threads:                 10
+[+] Wordlist:                /usr/share/dirb/wordlists/common.txt
+[+] Negative Status codes:   404
+[+] User Agent:              gobuster/3.8.2
+[+] Timeout:                 10s
+===============================================================
+Starting gobuster in directory enumeration mode
+===============================================================
+
+--- stderr ---
+2026/11/21 01:06:31 the server returns a status code that matches the provided options for non existing urls. https://torque-zenitec.pages.dev/4e703b5d-e123-4162-86de-373a5e5a5ec7 => 200 (Length: 939). Please exclude the response length or the status code or set the wildcard option.. To continue please exclude the status code or the length

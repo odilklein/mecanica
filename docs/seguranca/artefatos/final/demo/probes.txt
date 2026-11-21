@@ -1,0 +1,42 @@
+# Demo InfinityFree — varredura final (20/11/2026)
+
+Alvo: `https://torque-zenitec.page.gd`
+Acesso: desafio JavaScript (`aes.js`) resolvido localmente; cookie `__test` +
+`User-Agent` de navegador.
+
+## Testes pontuais (antes do bloqueio)
+
+| Requisição | Resposta |
+| --- | --- |
+| `GET /` | `302 → /login` |
+| `GET /login` | `200` (7.914 bytes) |
+| `POST /login` sem `csrf_token` | `302 → /login?error=Sessão expirada...` |
+| `POST /login` com conta demo, sem Turnstile | `302 → /login?error=Confirme a verificação de segurança...` |
+| `GET /api/fipe/models` | `401` |
+| `GET /api/search?q=test` | `401` |
+| `GET /api/notifications` | `200` (payload vazio) |
+| `GET /.env`, `/.git/HEAD`, `/.git/config`, `/.htaccess` | conexão encerrada pelo WAF do host |
+| `GET /.env.` | `403` |
+| `GET /vendor/`, `/src/`, `/storage/`, `/composer.json`, `/.htpasswd` | `403` |
+| `GET /Dockerfile`, `/server-status`, `/phpinfo.php`, `/phpmyadmin/`, `/adminer.php`, `/diagnostico.php` | `404` |
+| `OPTIONS /login` | `404` |
+| `TRACE /login` | `405` |
+| `PUT`/`DELETE`/`PATCH /login` | `404` |
+| TLS | ZeroSSL, `CN=page.gd`, válido até 17/02/2027 |
+
+## Nuclei
+
+A execução foi interrompida no início: o WAF da InfinityFree passou a responder
+
+```
+HTTP/1.1 429 Too Many Requests
+429 Too Many Requests - Scanner activity detected
+```
+
+O processo do Nuclei foi encerrado no container HexStrike e nenhuma nova
+requisição foi feita em sequência. O bloqueio por IP ainda estava ativo no fim da
+rodada, então não há saída do Nuclei para este alvo.
+
+**Não repetir varredura automatizada contra o plano gratuito.** A verificação
+dos cabeçalhos deve ser feita com uma única requisição depois que o bloqueio
+expirar.

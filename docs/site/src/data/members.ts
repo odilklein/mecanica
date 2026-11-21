@@ -18,7 +18,7 @@ export const members: Member[] = [
     contribution:
       'Concepção, núcleo do sistema, módulos de negócio, modelagem do banco, integrações e redação técnica.',
     initials: 'OK',
-    photo: 'https://github.com/odilklein.png',
+    photo: '/imagens/equipe/odil-klein.jpg',
     github: 'https://github.com/odilklein',
   },
   {

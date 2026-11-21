@@ -1,0 +1,19 @@
+# Semgrep — varredura final (20/11/2026)
+
+```
+semgrep scan --config=auto       -> 15 achados brutos
+semgrep scan --config=p/php --config=p/security-audit --config=p/secrets -> 3 achados
+php -l (142 arquivos)            -> 0 erros
+```
+
+## Triagem
+
+| Regra | Ocorrências | Veredito |
+| --- | --- | --- |
+| `github-actions-mutable-action-tag` | 4 (`docs.yml`: `actions/checkout@v4`, `setup-node@v4`, `upload-pages-artifact@v3`, `deploy-pages@v4`) | informativo — actions oficiais fixadas por tag; endurecer com SHA é backlog de supply chain |
+| `unlink-use` | 10 (`AttachmentService`, `TranscriptionController`) | falso positivo — os caminhos vêm de `storage_path` do banco e/ou de `realpath()` com prefixo validado, nunca direto da requisição |
+| `exec-use` | 2 (`AttachmentService:511` e `:524`) | falso positivo — `pdfinfo`/`pdftotext` recebem `escapeshellarg()` e o limite é `(int)`; o caminho é o arquivo temporário do upload |
+| `echoed-request` | 3 (`vehicles/form.php:65,69,79`) | falso positivo — a closure `$select()` monta o HTML escapando nome, valor e rótulo com `e()` |
+
+Conclusão: **nenhuma vulnerabilidade confirmada** pelo Semgrep. Os erros de
+`exec-use` foram revisados linha a linha.

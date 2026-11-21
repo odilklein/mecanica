@@ -1,0 +1,27 @@
+# =============================================================================
+# Torque Zênitec — InfinityFree
+#
+# O app vive na raiz de htdocs (src/, vendor/, storage/) e o front controller
+# em /public. Esta raiz bloqueia os arquivos internos e encaminha as rotas
+# para index.php (que ancora SCRIPT_NAME e chama public/index.php).
+# =============================================================================
+
+RewriteEngine On
+RewriteBase /
+
+# HTTPS obrigatório (HSTS já é enviado pelo public/.htaccess).
+RewriteCond %{HTTPS} !=on
+RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [R=301,L]
+
+# Nunca servir código, configuração, banco ou arquivos internos.
+RewriteRule ^(src|vendor|bin|storage|docs|tests|deploy|sql)(/|$) - [F,L,NC]
+RewriteRule ^(\.|composer\.(json|lock)$|README\.md$) - [F,L,NC]
+
+# Assets estáticos do front controller.
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteRule ^(assets|css|js)/(.*)$ public/$1/$2 [L]
+
+# Rotas: tudo o que não é arquivo/diretório real cai no front controller.
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^ index.php [QSA,L]

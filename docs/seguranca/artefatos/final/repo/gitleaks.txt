@@ -1,0 +1,23 @@
+# Gitleaks — varredura final (20/11/2026)
+
+```
+docker run --rm -v "$PWD":/repo zricethezav/gitleaks:latest detect
+187 commits escaneados (~102,24 MB)
+2 ocorrências, ambas a mesma string
+```
+
+| Regra | Arquivo | Commit | Situação |
+| --- | --- | --- | --- |
+| `generic-api-key` | `diagnostico.php` (linhas 4 e 8) | `f0d8fe4` | arquivo removido do projeto |
+
+A string é o token estático de uma página de diagnóstico temporária
+(`DIAG_TOKEN = 'diag-...'`), que só servia para liberar um dump de caminhos e
+checar a existência do `.env`. O arquivo não existe mais em nenhuma versão
+publicada e o token não dá acesso a serviço, banco ou dado. Não é uma
+credencial viva.
+
+Nenhuma chave de API, senha ou `.env` foi encontrada no histórico.
+
+Observação: o `.env` atual (não versionado, coberto pelo `.gitignore`) contém a
+chave `GROQ_API_KEY` real — pendência SEC-03 do relatório anterior (rotacionar
+no painel do provedor).

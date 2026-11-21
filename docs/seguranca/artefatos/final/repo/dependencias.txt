@@ -1,0 +1,29 @@
+# Dependências — varredura final (20/11/2026)
+
+## PHP / Composer
+
+```
+composer audit --locked --format=json
+{
+    "advisories": [],
+    "abandoned": [],
+    "filter": [],
+    "cooldown": []
+}
+```
+
+0 avisos para as versões travadas em `composer.lock`.
+
+## Documentação (docs/site) — npm
+
+```
+npm audit --omit=dev
+```
+
+| Pacote | Severidade | Aviso | Aplicabilidade |
+| --- | --- | --- | --- |
+| `react-router` / `react-router-dom` 6.x | moderada | GHSA-wrjc-x8rr-h8h6 — open redirect via barra invertida em `<Link>`/`useNavigate` | não explorável: o site usa `HashRouter` e só passa rotas literais para `<Link>`; não há `useNavigate` com entrada do usuário |
+| `react-router` / `react-router-dom` 6.x | moderada | GHSA-337j-9hxr-rhxg — injeção de construtor em `deserializeErrors()` na hidratação SSR | não aplicável: build Vite é client-side, sem SSR/hidratação |
+
+Correção disponível apenas em `react-router-dom@7.18.6` (major). O upgrade não
+foi feito nesta rodada; o risco prático no site estático é nulo.

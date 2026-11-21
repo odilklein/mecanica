@@ -45,13 +45,23 @@ htdocs/
 └── storage/             # cache, logs e anexos do assistente (bloqueado)
 ```
 
-O `.htaccess` da raiz:
+O `.htaccess` da raiz (versionado em
+[`deploy/infinityfree/htdocs.htaccess`](../deploy/infinityfree/htdocs.htaccess)):
 
+- aplica `X-Content-Type-Options`, `X-Frame-Options`, `Referrer-Policy`,
+  `Permissions-Policy`, CSP e HSTS a **todas** as respostas — inclusive
+  `/login`, que passa pelo `index.php` da raiz;
 - redireciona HTTP para HTTPS;
 - responde 403 para `src/`, `vendor/`, `bin/`, `storage/`, `composer.*`,
   arquivos iniciados por ponto e `README.md`;
 - encaminha `/assets`, `/css` e `/js` para `public/`;
 - encaminha todo o resto para `index.php`.
+
+> [!IMPORTANT]
+> O `public/.htaccess` só vale para arquivos servidos de `/public`. Cabeçalhos
+> de segurança de páginas dinâmicas precisam estar no `.htaccess` da raiz;
+> caso contrário o navegador recebe CSP/HSTS apenas nos assets e ignora ambos
+> no documento.
 
 `index.php` existe porque o roteador (`bramus/router`) calcula a rota a partir
 de `SCRIPT_NAME`. Como o front controller real mora em `public/`, o arquivo da

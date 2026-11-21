@@ -1,0 +1,17 @@
+Starting Nmap 7.99 ( https://nmap.org ) at 2026-11-21 00:54 +0000
+Nmap scan report for localhost (127.0.0.1)
+Host is up (0.000036s latency).
+
+PORT     STATE  SERVICE         VERSION
+22/tcp   closed ssh
+80/tcp   closed http
+443/tcp  closed https
+3306/tcp closed mysql
+8080/tcp open   http            Apache httpd
+| http-title: Login | Mec\xC3\xA2nica \xE2\x80\x94 Sistema de Gest\xC3\xA3o
+|_Requested resource was /login
+|_http-server-header: Apache
+8081/tcp closed blackice-icecap
+
+Service detection performed. Please report any incorrect results at https://nmap.org/submit/ .
+Nmap done: 1 IP address (1 host up) scanned in 6.87 seconds

@@ -1,0 +1,10 @@
+# PHP lint — varredura final (20/11/2026)
+
+Comando (dentro do container `mecanica-app`):
+
+```
+find /var/www/html/src /var/www/html/public /var/www/html/bin -name '*.php' -print0 \
+  | xargs -0 -n1 php -l
+```
+
+Resultado: **142 arquivos verificados, 0 erros de sintaxe.**

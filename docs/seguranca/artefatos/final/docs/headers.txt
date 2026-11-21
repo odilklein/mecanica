@@ -1,0 +1,36 @@
+# Documentação (Cloudflare Pages) — cabeçalhos em 20/11/2026
+
+Alvo: `https://torque-zenitec.pages.dev`
+
+```
+HTTP/2 200
+content-type: text/html; charset=utf-8
+access-control-allow-origin: *
+cache-control: public, max-age=0, must-revalidate
+content-security-policy: default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self'; font-src 'self' data:; connect-src 'self'; frame-ancestors 'self'; base-uri 'self'; form-action 'self'
+permissions-policy: geolocation=(), microphone=(), camera=()
+referrer-policy: strict-origin-when-cross-origin
+x-content-type-options: nosniff
+x-frame-options: SAMEORIGIN
+server: cloudflare
+alt-svc: h3=":443"; ma=86400
+```
+
+Ausente no momento da varredura: `Strict-Transport-Security`.
+Corrigido em `docs/site/public/_headers` (aguarda deploy).
+
+## Console do navegador (antes da correção)
+
+```
+[ERROR] Loading the image 'https://github.com/odilklein.png' violates the
+following Content Security Policy directive: "img-src 'self' data:".
+```
+
+O avatar passou a ser local (`/imagens/equipe/odil-klein.jpg`), sem abrir
+`img-src` para terceiros.
+
+## Comportamento de caminhos inexistentes
+
+`/_headers`, `/.git/HEAD`, `/package.json`, `/src/content/generated.ts`,
+`/assets/` e `/404.html` devolviam `200` com o `index.html` (soft 404).
+Corrigido com `docs/site/public/404.html` (resposta `404` real após o deploy).

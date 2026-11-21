@@ -192,6 +192,22 @@ Os resultados brutos ficam em `docs/seguranca/artefatos/`:
 | `ffuf.txt` | rotas descobertas |
 | `headers.txt` | cabeçalhos, métodos e caminhos sensíveis |
 
+## Varredura final (20/11/2026)
+
+Uma última rodada foi executada depois das correções, em quatro alvos:
+o sistema local em Docker, o site de demonstração na InfinityFree, a
+documentação na Cloudflare Pages e o próprio repositório.
+
+| Alvo | Destaque |
+|---|---|
+| Docker `127.0.0.1:8080` | Nuclei 0 correspondências em 16,4 mil requisições; nenhum achado novo |
+| Demo `torque-zenitec.page.gd` | CSP/HSTS/XFO só nos assets (corrigido); CSP bloqueava a ViaCEP (corrigido); Turnstile e CSRF falham fechados |
+| Docs `torque-zenitec.pages.dev` | Cloudflare WAF; HSTS ausente (corrigido); avatar externo bloqueado pela CSP (corrigido com imagem local); soft 404 (corrigido) |
+| Repositório | Gitleaks sem credencial viva; Semgrep sem vulnerabilidade confirmada; Composer 0 avisos; `php -l` 142/0 |
+
+O relatório completo, com os artefatos, está em
+`docs/seguranca/RELATORIO_VARREDURA_FINAL.md`.
+
 ## Limitações
 
 - Alvo em HTTP local, sem TLS e sem WAF. HSTS e `Secure` foram avaliados por configuração.
