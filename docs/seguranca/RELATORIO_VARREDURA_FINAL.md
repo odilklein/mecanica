@@ -2,7 +2,7 @@
 
 **Projeto:** Torque — Sistema de Gestão para Oficinas Mecânicas
 **Data:** 20/11/2026 (execução à noite, horário de Brasília; já 21/11 em UTC)
-**Commit de referência:** `7159106` (working tree com as correções desta rodada)
+**Commit de referência:** `4bee1a8` (correções desta rodada)
 **Autorização:** avaliação conduzida pelo mantenedor do sistema, somente contra
 alvos próprios.
 
@@ -16,7 +16,7 @@ Quatro superfícies foram avaliadas na mesma rodada:
 |---|------|----------|-----------|
 | 1 | Sistema (Docker) | `http://127.0.0.1:8080` | 0 achados novos; Nuclei 0 correspondências em 16,4 mil requisições |
 | 2 | Site do repositório (demo) | `https://torque-zenitec.page.gd` | 3 achados; 2 corrigidos na hora, 1 bloqueio operacional do host |
-| 3 | Documentação | `https://torque-zenitec.pages.dev` | 4 achados; 3 corrigidos no repositório (aguardam deploy) e 1 dependência aceita |
+| 3 | Documentação | `https://torque-zenitec.pages.dev` | 4 achados; 3 corrigidos e publicados, 1 dependência aceita |
 | 4 | Repositório | Git + código + dependências | 0 vulnerabilidades exploráveis; 1 segredo histórico de baixo valor |
 
 **Nenhuma falha explorável de injeção, XSS, CSRF, IDOR, path traversal ou RCE
@@ -209,7 +209,7 @@ achado.
 
 ### 5.2 Achados
 
-#### VF-04 — HSTS ausente (Baixo) — corrigido no repositório
+#### VF-04 — HSTS ausente (Baixo) — corrigido e publicado
 
 O site é HTTPS-only na Cloudflare, mas não enviava `Strict-Transport-Security`.
 Correção em `docs/site/public/_headers`, junto com
@@ -230,7 +230,7 @@ A CSP estava correta; o dado é que apontava para fora. Em vez de abrir
 `docs/site/public/imagens/equipe/odil-klein.jpg` e `src/data/members.ts` passou a
 usar o caminho local. A CSP continua restrita a `'self' data:`.
 
-#### VF-06 — Soft 404 (Baixo) — corrigido no repositório
+#### VF-06 — Soft 404 (Baixo) — corrigido e publicado
 
 Qualquer caminho inexistente devolvia `200` com o `index.html` (fallback de SPA).
 Como o roteamento é por hash (`HashRouter`), isso não é necessário e mascara
@@ -249,10 +249,18 @@ com status `404` real.
 A correção exige `react-router-dom@7` (major). Risco prático nulo no site
 estático; fica registrado para o próximo ciclo.
 
-### 5.3 Pendente
+### 5.3 Publicação e verificação
 
-- [ ] Publicar o site (`_headers`, `404.html`, `members.ts` + imagem).
-- [ ] Repetir o console do navegador depois do deploy para confirmar 0 erros de CSP.
+Publicado no Cloudflare Pages em 20/11/2026 (deploy `0d431fec`, commit
+`4bee1a8`). Verificado em produção:
+
+- `Strict-Transport-Security`, `Cross-Origin-Opener-Policy`,
+  `X-Permitted-Cross-Domain-Policies`, `nosniff` e `X-Frame-Options` presentes;
+- caminho inexistente responde `404` com a página nova;
+- `/.git/HEAD` responde `404`;
+- avatar local responde `200 image/jpeg`;
+- console do navegador: **0 erros** (a violação de CSP do avatar desapareceu);
+- seção “Varredura final” renderizada em `/#/engenharia/07-seguranca-ofensiva`.
 
 ---
 
@@ -317,6 +325,7 @@ imagem buildada (sem bind mount) ou um volume só de `storage/`.
 | `docs/DEPLOY_INFINITYFREE.md` | documenta o `.htaccess` de raiz e por que os cabeçalhos não podem ficar só em `public/` |
 | `.dockerignore` | exclui `deploy/` da imagem |
 | Servidor InfinityFree | `.htaccess` de raiz atualizado por FTP (backup em `docs/seguranca/artefatos/final/demo/htaccess-antes.txt`) |
+| Cloudflare Pages | build + deploy do `dist` (deploy `0d431fec`, commit `4bee1a8`) |
 
 Validação feita:
 
@@ -378,9 +387,9 @@ O sistema resistiu à varredura: não há injeção, XSS, CSRF, IDOR, traversal,
 nem CVE conhecida nos alvos testados. As falhas reais estavam na **borda** —
 cabeçalhos aplicados no lugar errado (VF-01), uma CSP que quebrava uma integração
 legítima (VF-02) e três ajustes no site de docs (VF-04 a VF-06). Todas foram
-corrigidas no código/servidor nesta rodada, com exceção do deploy do site de
-documentação e da verificação final do demo, que dependem de publicação e do fim
-do bloqueio do host.
+corrigidas no código/servidor nesta rodada e a documentação foi publicada. A única
+verificação pendente é a resposta HTTP do demo, que depende do fim do bloqueio
+`429` da InfinityFree.
 
 O risco residual é baixo e conhecido: rotação da chave da Groq (SEC-03), deploy
 da documentação, upgrade do `react-router` e endurecimento da CSP com nonce.
