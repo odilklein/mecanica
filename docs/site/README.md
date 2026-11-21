@@ -63,8 +63,8 @@ public/_headers               cabeçalhos HTTP do Cloudflare Pages
 
 ## Tema e interação
 
-- **Temas claro e escuro** alinhados à paleta do sistema (`#f8f7fa`/`#25293c`,
-  primária `#b8270f`) com toggle no cabeçalho (persistido em
+- **Temas claro e escuro** alinhados à paleta do sistema (areia `#f6f0e7` no
+  claro, preto `#09090b` no escuro, primária `#b8270f`) com toggle no cabeçalho (persistido em
   `localStorage`; respeita `prefers-color-scheme` na primeira visita).
 - No documento, cada figura é um **preview real em React Flow** (sem interação). O clique
   abre um **modal** com o diagrama interativo, zoom, minimapa e legenda.

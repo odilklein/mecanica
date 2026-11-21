@@ -4,70 +4,67 @@
 
 :root {
   color-scheme: light;
-  /* Neutros alinhados ao tema claro do sistema (Bootstrap/Vuexy). */
-  --sand-50: 248 247 250;   /* fundo da página  #f8f7fa */
-  --sand-100: 244 244 249;  /* chips e faixas  #f4f4f9 */
-  --sand-200: 230 230 232;  /* bordas suaves    #e6e6e8 */
-  --sand-300: 214 214 219;  /* bordas fortes    #d6d6db */
-  --ink-500: 118 119 142;   /* texto secundário #76778e */
-  --ink-600: 109 107 119;   /* texto            #6d6b77 */
-  --ink-700: 74 72 84;      /* texto forte      #4a4854 */
-  --ink-800: 68 64 80;      /* títulos          #444050 */
-  --ink-900: 47 43 58;      /* títulos grandes  #2f2b3a */
-  --surface: 255 255 255;   /* cartões          #ffffff */
-  --surface-2: 248 247 250; /* cartões internos #f8f7fa */
-  --line: 230 230 232;      /* #e6e6e8 */
-  /* Primária = cor da marca no sistema: #b8270f. */
-  --wine-50: 253 238 234;
-  --wine-100: 250 224 218;
-  --wine-200: 240 189 178;
-  --wine-300: 226 152 135;
-  --wine-400: 201 101 79;
+  --sand-50: 246 240 231;
+  --sand-100: 251 247 241;
+  --sand-200: 237 228 217;
+  --sand-300: 222 209 193;
+  --ink-500: 122 109 96;
+  --ink-600: 94 81 70;
+  --ink-700: 74 63 53;
+  --ink-800: 43 36 31;
+  --ink-900: 28 23 20;
+  --surface: 252 248 242;
+  --surface-2: 247 241 232;
+  --line: 231 220 207;
+  --wine-50: 249 238 233;
+  --wine-100: 244 224 217;
+  --wine-200: 230 190 179;
+  --wine-300: 214 155 139;
+  --wine-400: 201 101 78;
   --wine-500: 184 39 15;
-  --wine-600: 184 39 15;
-  --wine-700: 158 33 12;
-  --wine-800: 130 27 10;
-  --wine-900: 90 18 7;
-  --flow-edge: #9e210c;
-  --flow-dot: #d6d6db;
-  --flow-text: #444050;
-  --flow-canvas: #f8f7fa;
-  --code-bg: #25293c;
-  --code-fg: #f4f4f9;
+  --wine-600: 158 33 12;
+  --wine-700: 142 31 12;
+  --wine-800: 110 26 11;
+  --wine-900: 74 18 8;
+  --flow-edge: #8e1f0c;
+  --flow-dot: #d8d0c6;
+  --flow-text: #2b241f;
+  --flow-canvas: #f8f2e9;
+  --code-bg: #241f1a;
+  --code-fg: #f6f0e7;
 }
 
 .dark {
   color-scheme: dark;
-  /* Neutros alinhados ao tema escuro do sistema (Bootstrap/Vuexy). */
-  --sand-50: 37 41 60;      /* fundo da página  #25293c */
-  --sand-100: 47 51 73;     /* chips e faixas  #2f3349 */
-  --sand-200: 58 62 84;     /* #3a3e54 */
-  --sand-300: 68 72 94;     /* bordas          #44485e */
-  --ink-500: 172 170 177;   /* #acaab1 */
-  --ink-600: 172 171 193;   /* #acabc1 */
-  --ink-700: 207 205 228;   /* #cfcde4 */
-  --ink-800: 226 225 238;   /* #e2e1ee */
-  --ink-900: 240 239 248;   /* #f0eff8 */
-  --surface: 47 51 73;      /* cartões  #2f3349 */
-  --surface-2: 37 41 60;    /* #25293c */
-  --line: 68 72 94;         /* #44485e */
-  /* A primária continua a mesma da marca, como no sistema. */
-  --wine-50: 58 26 21;
-  --wine-100: 76 32 25;
-  --wine-200: 104 44 34;
-  --wine-300: 139 62 47;
-  --wine-400: 176 88 69;
-  --wine-500: 224 118 96;
+  /* Preto/cinza + vermelho da marca, igual ao tema escuro do sistema. */
+  --sand-50: 9 9 11;
+  --sand-100: 24 24 27;
+  --sand-200: 39 39 42;
+  --sand-300: 63 63 70;
+  --ink-500: 161 161 170;
+  --ink-600: 212 212 216;
+  --ink-700: 228 228 231;
+  --ink-800: 250 250 250;
+  --ink-900: 255 255 255;
+  --surface: 18 18 20;
+  --surface-2: 24 24 27;
+  --line: 39 39 42;
+  --wine-50: 46 16 11;
+  --wine-100: 66 21 14;
+  --wine-200: 92 28 18;
+  --wine-300: 130 39 26;
+  --wine-400: 175 55 38;
+  --wine-500: 184 39 15;
   --wine-600: 184 39 15;
-  --wine-700: 226 140 120;
-  --wine-800: 238 180 165;
-  --wine-900: 248 214 204;
-  --flow-edge: #e3a99f;
-  --flow-dot: #44485e;
-  --flow-text: #cfcde4;
-  --flow-canvas: #25293c;
-  --code-bg: #1b1e2b;
-  --code-fg: #e7e6f0;
+  --wine-700: 232 112 92;
+  --wine-800: 240 165 149;
+  --wine-900: 248 205 195;
+  --flow-edge: #e8705c;
+  --flow-dot: #3f3f46;
+  --flow-text: #d4d4d8;
+  --flow-canvas: #121214;
+  --code-bg: #0f0f11;
+  --code-fg: #f6f0e7;
 }
 
 @layer base {
@@ -76,6 +73,11 @@
   }
   body {
     @apply bg-sand-50 text-ink-800 antialiased;
+    background-image: radial-gradient(
+      1200px 500px at 50% -10%,
+      rgb(var(--wine-50) / 0.5),
+      transparent 70%
+    );
   }
   ::selection {
     @apply bg-wine-200 text-wine-900;
@@ -203,7 +205,7 @@
   animation: node-in 360ms cubic-bezier(0.2, 0.7, 0.3, 1) both;
 }
 .react-flow__node:hover > div {
-  filter: drop-shadow(0 10px 18px rgba(47, 43, 58, 0.18));
+  filter: drop-shadow(0 10px 18px rgba(43, 36, 31, 0.16));
 }
 .react-flow__node.diagram-dim {
   opacity: 0.22;

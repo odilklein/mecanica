@@ -48,8 +48,8 @@ export default {
         mono: ['ui-monospace', 'SFMono-Regular', 'Menlo', 'Consolas', 'monospace'],
       },
       boxShadow: {
-        card: '0 1px 2px rgba(47, 43, 58, 0.05), 0 10px 28px -14px rgba(47, 43, 58, 0.24)',
-        lift: '0 2px 4px rgba(47, 43, 58, 0.06), 0 22px 48px -20px rgba(184, 39, 15, 0.35)',
+        card: '0 1px 2px rgba(43, 36, 31, 0.04), 0 10px 28px -14px rgba(43, 36, 31, 0.22)',
+        lift: '0 2px 4px rgba(43, 36, 31, 0.05), 0 22px 48px -20px rgba(142, 31, 12, 0.35)',
         glow: '0 0 0 1px rgba(184, 39, 15, 0.12), 0 18px 50px -18px rgba(184, 39, 15, 0.45)',
       },
       keyframes: {
